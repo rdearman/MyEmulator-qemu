@@ -10,9 +10,11 @@ MyEmulator has a 16-bit byte address bus and an 8-bit data bus.
 
 Every address identifies one byte. Data `LD` and `ST` access one byte. A 16-bit
 instruction occupies `PC` and `PC+1`; ordinary execution advances `PC` by 2.
-Stack addresses are byte addresses; multi-register ordering is pending.
+Stack addresses are byte addresses. PUSH pre-decrements before each byte store;
+POP reads before each post-increment. PUSH order is ascending mask order and POP
+order is reverse mask order.
 
-The vector byte order follows the pending endianness decision. Initial QEMU
+Reset vectors and all future 16-bit values are little endian. Initial QEMU
 maps the full space as flat RAM, then writes vectors in the top four bytes. ROM,
 EPROM, MMIO overlays, and bank switching are future work.
 

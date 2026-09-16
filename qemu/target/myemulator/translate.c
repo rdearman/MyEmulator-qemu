@@ -55,9 +55,50 @@ static void gen_next_pc(DisasContext *ctx)
     tcg_gen_movi_i32(cpu_pc, ctx->base.pc_next & 0xffff);
 }
 
+static void gen_pc_relative_branch(DisasContext *ctx, uint8_t imm,
+                                   TCGCond condition)
+{
+    TCGLabel *taken = gen_new_label();
+    TCGLabel *done = gen_new_label();
+    int target = (ctx->base.pc_next + ((int8_t)imm * 2)) & 0xffff;
+
+    tcg_gen_brcondi_i32(condition, cpu_zf, 0, taken);
+    gen_next_pc(ctx);
+    tcg_gen_br(done);
+    gen_set_label(taken);
+    tcg_gen_movi_i32(cpu_pc, target);
+    gen_set_label(done);
+    ctx->base.is_jmp = DISAS_EXIT;
+}
+
+static void gen_push_register(uint8_t reg)
+{
+    tcg_gen_subi_i32(cpu_sp, cpu_sp, 1);
+    if (reg == 4) {
+        tcg_gen_qemu_st_i32(cpu_lr, cpu_sp, MMU_PHYS_IDX, MO_UB);
+    } else {
+        tcg_gen_qemu_st_i32(cpu_r[reg], cpu_sp, MMU_PHYS_IDX, MO_UB);
+    }
+}
+
+static void gen_pop_register(uint8_t reg)
+{
+    TCGv_i32 tmp = tcg_temp_new_i32();
+
+    tcg_gen_qemu_ld_i32(tmp, cpu_sp, MMU_PHYS_IDX, MO_UB);
+    if (reg == 4) {
+        tcg_gen_mov_i32(cpu_lr, tmp);
+    } else {
+        tcg_gen_mov_i32(cpu_r[reg], tmp);
+    }
+    tcg_gen_addi_i32(cpu_sp, cpu_sp, 1);
+}
+
 static void decode_and_translate(DisasContext *ctx)
 {
-    uint16_t insn = translator_lduw(ctx->env, &ctx->base, ctx->base.pc_next);
+    uint16_t insn = translator_ldub(ctx->env, &ctx->base, ctx->base.pc_next) |
+                    (translator_ldub(ctx->env, &ctx->base,
+                                     ctx->base.pc_next + 1) << 8);
     uint8_t opcode = extract32(insn, 12, 4);
     uint8_t regs = extract32(insn, 8, 4);
     uint8_t rd = extract32(regs, 2, 2);
@@ -88,16 +129,38 @@ static void decode_and_translate(DisasContext *ctx)
         tcg_gen_qemu_st_i32(tmp, cpu_r[rn], MMU_PHYS_IDX, MO_UB);
         gen_next_pc(ctx);
         break;
-    case 0x5: /* JMP; target encoding remains an open architecture decision. */
-        tcg_gen_movi_i32(cpu_lr, ctx->base.pc_next - 2);
-        tcg_gen_movi_i32(cpu_pc, imm);
+    case 0x5: /* JAL, signed PC-relative displacement in instruction units. */
+        tcg_gen_movi_i32(cpu_lr, ctx->base.pc_next);
+        tcg_gen_movi_i32(cpu_pc,
+                         (ctx->base.pc_next + ((int8_t)imm * 2)) & 0xffff);
         ctx->base.is_jmp = DISAS_EXIT;
+        break;
+    case 0x6: /* BEQ */
+        gen_pc_relative_branch(ctx, imm, TCG_COND_NE);
+        break;
+    case 0x7: /* BNE */
+        gen_pc_relative_branch(ctx, imm, TCG_COND_EQ);
+        break;
+    case 0xe: /* PUSH, ascending R0..R3 then LR. */
+        for (int reg = 0; reg < 5; reg++) {
+            if (imm & (1 << reg)) {
+                gen_push_register(reg);
+            }
+        }
+        gen_next_pc(ctx);
         break;
     case 0xf: /* HALT is the reserved secondary encoding 0xf080. */
         if ((insn & 0x0fff) == 0x080) {
             gen_next_pc(ctx);
             gen_helper_halt(tcg_env);
             ctx->base.is_jmp = DISAS_NORETURN;
+        } else if (imm < 0x20) { /* POP, reverse LR..R0. */
+            for (int reg = 4; reg >= 0; reg--) {
+                if (imm & (1 << reg)) {
+                    gen_pop_register(reg);
+                }
+            }
+            gen_next_pc(ctx);
         } else {
             tcg_gen_movi_i32(cpu_pc, ctx->base.pc_next);
             gen_helper_illegal(tcg_env);

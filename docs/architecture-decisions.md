@@ -10,10 +10,14 @@ behaviour, then accidental quirks and bugs.
 | --- | --- | --- |
 | Primary opcode | ARCHITECTURAL | Bits 15..12 form 16 primary opcode groups. Unused encodings within a group remain reserved until needed. |
 | Memory | ARCHITECTURAL | 16-bit byte address, 8-bit data, 64 KiB. Instructions are 16-bit and occupy two bytes; sequential `PC += 2`. |
+| Endianness | ARCHITECTURAL | All 16-bit values are little endian: the low byte is stored at the lower address. |
 | Registers | ARCHITECTURAL | `R0`-`R3` and `LR` are 8-bit; `PC` and `SP` are 16-bit byte addresses; flags are `ZF`, `OF`, `CF`. |
 | HALT | ARCHITECTURAL | `0xf080` is the operand-free HALT instruction. It halts QEMU. `PC == 0xff` is not special. |
 | Reset | ARCHITECTURAL | `SP=read16(0xfffc)` and `PC=read16(0xfffe)`. |
 | PUSH/POP mask | ARCHITECTURAL | Bits 0..4 select `R0`, `R1`, `R2`, `R3`, `LR`; only selected registers transfer. |
+| PUSH/POP order | ARCHITECTURAL | PUSH processes selected registers `R0` through `LR`; POP processes them in reverse. PUSH pre-decrements before each byte store; POP reads then post-increments after each byte. |
+| Conditional branches | ARCHITECTURAL | `BEQ` and `BNE` use signed 8-bit PC-relative displacements in instruction units: `target = P + 2 + sign_extend(imm8) * 2`. |
+| JAL | ARCHITECTURAL | Primary opcode `0x5`; writes `LR=P+2` and branches with the same signed PC-relative displacement. |
 | Old compatibility | EXCLUDED | Old binaries, assembler workarounds, syscall meanings, and emulator bugs are not requirements. |
 | Banked RAM/EPROM | INTENDED, DEFERRED | Preserve design room for it, but use flat RAM for bring-up. |
 
@@ -26,26 +30,6 @@ meaning.
 
 ## Open decisions
 
-### Instruction byte order
-
-The design establishes byte addressing but does not establish order. Existing
-bring-up bytes use little endian (`02 10` for `0x1002`), while historical text
-and HEX formats are not convincing evidence for hardware order. QEMU currently
-uses little endian provisionally. Choices are little endian, big endian, or an
-explicit instruction-only order; this affects fetch, vectors, images, and the
-assembler.
-
-### Branch encoding
-
-An 8-bit operand cannot directly represent every 16-bit byte address. Choices
-are an absolute page-local byte address, a signed PC-relative byte offset, or a
-long-form instruction using reserved encodings. PC-relative is compact and
-relocatable; page-local is simple but limited; long form has reach but consumes
-encodings/bytes. No choice is made yet, and QEMU must not infer the old
-`target+1` behaviour.
-
-### PUSH/POP ordering
-
-Mask semantics are closed, but historical code is too inconsistent to establish
-ordering. Choices are ascending mask order, descending order, or an explicit
-ABI order. This determines stack layout and call conventions. No choice is made.
+No unresolved questions remain from this decision set. Future jump forms and
+expanded instruction groups require separate decisions. Plain `J`, `JALR`,
+`RET`, `CALL`, long immediates, and multiword instructions are not introduced.

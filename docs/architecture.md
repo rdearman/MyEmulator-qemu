@@ -13,9 +13,8 @@ byte-addressed program counter (`PC`), a 16-bit byte-addressed stack pointer
 
 Memory is byte addressed. Instructions are fixed-width 16-bit values occupying
 two consecutive bytes; sequential `PC` advance is 2. Data loads and stores
-access one byte. Instruction byte order is still a pending architectural
-decision; current QEMU bring-up uses little-endian encoding as an explicit
-temporary assumption.
+access one byte. All 16-bit values are little-endian: the low byte is stored at
+the lower address.
 
 | State | Width | Reset source |
 | --- | ---: | --- |
@@ -25,12 +24,14 @@ temporary assumption.
 | `PC` | 16 | `read16(0xfffe)` |
 
 The reset vectors are architectural. Initial QEMU testing maps flat RAM across
-the full address space and places the vectors in its top four bytes.
+the full address space and places the little-endian vectors in its top four
+bytes.
 
 The Python post-branch increment, branch-label workaround, unsupported-opcode
 double increment, `PC == 0xff` halt convention, old syscall meanings, and old
 PUSH/POP side effects are historical bugs or compatibility behaviours. They are
 not preserved. Banked RAM/EPROM is intended future hardware, but is deferred.
 
-See [architecture-decisions.md](architecture-decisions.md) for evidence and
-the remaining endianness, branch encoding, and stack ordering decisions.
+`BEQ`, `BNE`, and `JAL` use signed PC-relative instruction-unit displacements.
+See [architecture-decisions.md](architecture-decisions.md) for the complete
+formal decisions and the intentionally unassigned future jump forms.

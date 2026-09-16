@@ -9,16 +9,16 @@ reference for a modern translator loop and compact machine/image wiring.
 
 The repository overlay contains `target/myemulator` and `hw/myemulator`: a TCG
 CPU, QOM machine, 64 KiB RAM, raw `-kernel` loading, monitor register dump, and
-GDB register hooks. Fetch is explicit byte-addressed, two-byte, provisional
-little-endian decode. Reset reads `0xfffc` and `0xfffe`. `LI`, immediate `ADD`,
-and `0xf080 HALT` prove the first milestone. Illegal encodings stop visibly.
+GDB register hooks. Fetch is explicit byte-addressed, two-byte little-endian
+decode. Reset reads little-endian vectors at `0xfffc` and `0xfffe`. `LI`,
+immediate `ADD`, `BEQ`, `BNE`, `JAL`, mask-based `PUSH`/`POP`, and `0xf080 HALT`
+are the current defined bring-up subset. Illegal encodings stop visibly.
 
 ## Staged work
 
-1. Close byte order, branch encoding, and PUSH/POP ordering.
-2. Add remaining CPU instructions and proper exceptions.
-3. Add differential tests and a corrected assembler/image tool.
-4. Add ROM/EPROM, console, storage, timers, interrupts, and banking as their
+1. Add remaining CPU instructions and proper exceptions.
+2. Add differential tests and a corrected assembler/image tool.
+3. Add ROM/EPROM, console, storage, timers, interrupts, and banking as their
    architecture is specified.
 5. Boot machine software through the new image format.
 

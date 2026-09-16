@@ -7,8 +7,7 @@ SP = read16(0xfffc)
 PC = read16(0xfffe)
 ```
 
-General registers and flags reset to zero. Vector byte order is tied to the
-pending endianness decision.
+General registers and flags reset to zero. The vectors are little endian.
 
 For initial QEMU bring-up, `-kernel` loads a raw image at `0x0000` into flat
 RAM. The machine supplies the reset vectors in the top four bytes and starts
