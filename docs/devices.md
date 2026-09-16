@@ -3,16 +3,21 @@
 The current Python emulator has very limited hardware devices. Most peripheral
 behaviour is implemented as CLI/host services rather than memory-mapped devices.
 
-## Console and Syscalls
+## Console, POP Bit 7, and Syscalls
 
 Console output is implemented through a syscall queue between the emulator and
 CLI.
 
 Guest-visible mechanism:
 
-- Execute `POP`/`SYSCALL` instruction with operand bit 7 set.
+- Execute primary opcode `0xf` (`POP`) with operand bit 7 set.
 - Low 7 operand bits become the syscall number.
 - `R0`-`R3` are passed to `syscall_dispatcher()`.
+
+The guest-visible `POP` bit-7 mechanism is currently classified UNRESOLVED. It
+may be a deliberate secondary encoding space, since the primary opcode field is
+only four bits and all 16 primary opcodes are assigned. The host queue and CLI
+dispatcher are compatibility behaviour, not hardware.
 
 Implemented host-side calls:
 
@@ -86,13 +91,17 @@ but it acts as a run/halt latch:
 
 ## QEMU Device Direction
 
-The initial QEMU machine should avoid modelling host syscalls as CPU internals.
+The initial QEMU machine should avoid baking Python host services directly into
+ordinary `POP` semantics. Do not implement operand-bit-7 as a normal stack pop.
+Instead, keep it as an unresolved escape/trap encoding until the machine-level
+interface is chosen.
+
 Recommended path:
 
 1. Implement CPU and RAM first.
 2. Add a tiny memory-mapped debug/console device for output.
-3. Add an optional compatibility semihosting/syscall path for existing
-   `syscall`/`POP bit7` programs.
+3. Decide whether `POP` bit 7 becomes a real trap/syscall instruction,
+   semihosting compatibility path, or is replaced by MMIO/serial conventions.
 4. Design storage as a simple block or byte-stream device only after old
    software requirements are known.
 
@@ -107,8 +116,8 @@ Potential QEMU mappings:
 
 ## Open Questions
 
-- Is the syscall ABI part of the architecture or just an emulator monitor
-  convenience?
+- Is the `POP` bit-7 escape an architectural trap/syscall mechanism,
+  semihosting compatibility hook, or a transitional assembler convention?
 - Should the initial QEMU target support `SYS_PRINT` for compatibility before a
   real serial device exists?
 - What existing software, if any, depends on the host `harddrive` directory

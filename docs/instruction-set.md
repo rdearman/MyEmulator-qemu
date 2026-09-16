@@ -5,38 +5,55 @@ This is the implemented instruction set of `rdearman/MyEmulator` at commit
 
 ## Encoding
 
-All currently executed instructions are 16-bit words:
+All currently executed instructions are 16-bit words. Current evidence from the
+design notes, assembler, and emulator agrees on this top-level layout:
 
 ```
-bits 15..12  opcode
-bits 11..10  Rd
-bits  9..8   Rn
-bits  7..0   operand/immediate/mask
+ 15          12 11      10 9        8 7                       0
++-------------+----------+----------+-------------------------+
+| opcode[3:0] | Rd[1:0]  | Rn[1:0]  | operand / imm / mask[7:0]|
++-------------+----------+----------+-------------------------+
 ```
 
-`Rd` and `Rn` encode `R0`-`R3` only. `LR` is not addressable through these
-fields; it is accessed by jump and stack masks.
+Field meanings currently understood:
+
+| Bits | Field | Meaning |
+| --- | --- | --- |
+| `15..12` | Primary opcode | One of sixteen primary opcodes, `0x0` through `0xf`. |
+| `11..10` | `Rd` | Two-bit destination/general register selector: `00=R0`, `01=R1`, `10=R2`, `11=R3`. |
+| `9..8` | `Rn` | Two-bit source/address/general register selector: `00=R0`, `01=R1`, `10=R2`, `11=R3`. |
+| `7..0` | Operand | Immediate value, branch target, register-list mask, or secondary selector depending on opcode. |
+
+`LR` is not addressable through `Rd` or `Rn`; it is accessed by `JMP` and by
+stack/register-list masks.
+
+The byte-vs-word meaning of instruction addresses remains unresolved. See
+`docs/architecture-decisions.md`.
 
 ## Opcodes
 
-| Opcode | Mnemonic | Implemented behaviour |
-| --- | --- | --- |
-| `0x0` | `LD` | `Rd = mem[Rn]`; sets `ZF` from `Rd`. |
-| `0x1` | `LI` | `Rd = operand`; flags unchanged. |
-| `0x2` | `ST` | `mem[Rn] = Rd & 0xff`; flags unchanged. |
-| `0x3` | `ADD` | If operand is not `None`, `Rd = Rn + operand`; otherwise `Rd = Rd + Rn`. Sets `ZF`, `OF`, `CF`. |
-| `0x4` | `SUB` | If operand is not `None`, `Rd = Rn - operand`; otherwise `Rd = Rd - Rn`. Sets `ZF`, `OF`, `CF`. |
-| `0x5` | `JMP` | `LR = PC`; `PC = operand`; post-execute increment still applies. |
-| `0x6` | `BEQ` | If `ZF`, `PC = operand`; post-execute increment still applies. |
-| `0x7` | `BNE` | If not `ZF`, `PC = operand`; post-execute increment still applies. |
-| `0x8` | `CMP` | Compares `Rd` against `Rn`, except `Rd == 0 && Rn == 0` means compare `R0` against operand. Sets `ZF`, `OF`, `CF`. |
-| `0x9` | `AND` | Stores result in `R0`, not `Rd`. If `Rn == 0`, uses operand as immediate; otherwise uses `Rn`. Sets `ZF`. |
-| `0xa` | `OR` | Stores result in `R0`, not `Rd`. If `Rn == 0`, uses operand as immediate; otherwise uses `Rn`. Sets `ZF`. |
-| `0xb` | `XOR` | Stores result in `R0`, not `Rd`. If `Rn == 0`, uses operand as immediate; otherwise uses `Rn`. Sets `ZF`. |
-| `0xc` | `SHL` | `Rd = (Rn << operand) & 0xff`; sets `ZF`, `OF`, clears `CF`. |
-| `0xd` | `SHR` | `Rd = (Rn >> operand) & 0xff`; sets `ZF`, `OF` from old bit 7, clears `CF`. |
-| `0xe` | `PUSH` | Stack operation using `Rd`, `Rn`, and operand mask; see below. |
-| `0xf` | `POP` / `SYSCALL` | Stack pop using mask, or syscall when operand bit 7 is set. |
+| Opcode | Mnemonic | Status | Implemented behaviour / notes |
+| --- | --- | --- | --- |
+| `0x0` | `LD` | ARCHITECTURAL opcode | Python: `Rd = mem[Rn]`; sets `ZF` from `Rd`. |
+| `0x1` | `LI` | ARCHITECTURAL opcode | Python: `Rd = operand`; flags unchanged. |
+| `0x2` | `ST` | ARCHITECTURAL opcode | Python: `mem[Rn] = Rd & 0xff`; flags unchanged. |
+| `0x3` | `ADD` | ARCHITECTURAL opcode | Python: `Rd = Rn + operand` for assembled programs. Sets `ZF`, `OF`, `CF`. Documentation describes register-register add. |
+| `0x4` | `SUB` | ARCHITECTURAL opcode | Python: `Rd = Rn - operand` for assembled programs. Sets `ZF`, `OF`, `CF`. Documentation describes register-register subtract. |
+| `0x5` | `JMP` | ARCHITECTURAL opcode | Intended: jump to target, update `LR`. Python has extra post-jump increment; QEMU should not preserve that bug. |
+| `0x6` | `BEQ` | ARCHITECTURAL opcode | Intended: branch to target when `ZF` is set. Python has extra post-branch increment. |
+| `0x7` | `BNE` | ARCHITECTURAL opcode | Intended: branch to target when `ZF` is clear. Python has extra post-branch increment. |
+| `0x8` | `CMP` | ARCHITECTURAL opcode | Python compares `Rd` against `Rn`, except `Rn == 0` encodes immediate compare. Sets `ZF`, `OF`, `CF`. |
+| `0x9` | `AND` | ARCHITECTURAL opcode, semantics partly unresolved | Documentation says destination register; Python stores into `R0` regardless of `Rd`. |
+| `0xa` | `OR` | ARCHITECTURAL opcode, semantics partly unresolved | Documentation says destination register; Python stores into `R0` regardless of `Rd`. |
+| `0xb` | `XOR` | ARCHITECTURAL opcode, semantics partly unresolved | Documentation says destination register; Python stores into `R0` regardless of `Rd`. |
+| `0xc` | `SHL` | ARCHITECTURAL opcode | Python: `Rd = (Rn << operand) & 0xff`; sets `ZF`, `OF`, clears `CF`. |
+| `0xd` | `SHR` | ARCHITECTURAL opcode | Python: `Rd = (Rn >> operand) & 0xff`; sets `ZF`, `OF` from old bit 7, clears `CF`. |
+| `0xe` | `PUSH` | ARCHITECTURAL opcode, mask semantics partly unresolved | Register-list stack operation using operand mask; Python also pushes `Rd` unconditionally. |
+| `0xf` | `POP` / secondary space | ARCHITECTURAL opcode, bit-7 escape UNRESOLVED | Register-list pop when operand bit 7 is clear; bit 7 selects syscall/IRC path in assembler and Python. |
+
+All 16 primary opcode values are currently assigned. There are no unused primary
+opcodes in the observed ISA, which supports the theory that `PUSH`/`POP`
+operand bits may have been used deliberately as secondary opcode space.
 
 ## Arithmetic Flags
 
@@ -98,18 +115,28 @@ operand bit 7 = IRC/syscall for POP
 - Then iterates bits 0..4 and pushes each selected register.
 - This can duplicate pushes when `Rd`/`Rn` overlap the mask.
 - Comment mentions bit 8 for an interrupt control register, but the operand is
-  only 8 bits and the implementation checks `1 << 8`, which cannot be set by
-  current instructions.
+  8 bits. The assembler names bit 7 `IRC`.
 
 `POP` implementation details:
 
-- If operand bit 7 is set, no stack pop happens. The low 7 bits are dispatched
-  as a syscall number.
+- If operand bit 7 is set, no stack pop happens in the Python emulator. The low
+  7 bits are dispatched as a syscall number. This is currently classified
+  UNRESOLVED, not as an emulator artefact, because the assembler deliberately
+  emits it and all primary opcodes are already consumed.
 - Otherwise bit 0 can pop into `Rd`, bit 1 can pop into `Rn`, then bits 0..4
   pop into fixed `R0`..`LR`.
 - If bit 4 is set, LR is popped again and `PC = LR`.
 
 ## Syscalls
+
+Guest-visible encoding:
+
+```
+bits 15..12 = 1111  POP primary opcode
+bits 11..8  = 0000
+bit  7      = 1     IRC/syscall selector
+bits 6..0   = syscall/service number
+```
 
 Implemented syscall numbers:
 
@@ -157,6 +184,9 @@ Output is an Intel-HEX-like text file:
 - `LD/ST [#imm]` are encoded by the assembler but ignored by the emulator.
 - Branch target labels are recorded as `address - 1`, likely compensating for
   the emulator's unconditional post-branch PC increment.
+- A branch probe confirmed this: a label at instruction slot `1` encoded as
+  operand `0x00`, which reaches slot `1` only because the Python emulator
+  increments `PC` after the branch handler returns.
 - Some test files are stale and do not assemble under the current assembler.
 
 ## Differential Testing Seeds

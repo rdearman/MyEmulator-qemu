@@ -81,27 +81,42 @@ limit, or wrap handling.
 Only `current_ram_bank = 0` and `boot_eprom_bank = 60` exist as variables in
 the emulator. They do not affect reads, writes, fetch, or boot.
 
-## Proposed QEMU Memory Model
+## QEMU Memory Model Direction
 
-Start with the implemented architecture:
+Start with the smallest memory system needed for CPU bring-up:
 
 | QEMU region | Proposed range | Notes |
 | --- | --- | --- |
-| RAM | `0x0000`-`0xffff` | Main system memory, byte-addressed in QEMU. |
-| ROM/EPROM | unresolved | Add only after boot/ROM semantics are defined. |
+| RAM | minimal flat RAM, currently `0x0000`-`0xffff` | Enough for raw test programs and register/instruction bring-up. |
+| ROM/EPROM | INTENDED but deferred | Add only after boot/ROM semantics are defined. |
 | MMIO console/syscall | unresolved | Prefer real MMIO device rather than preserving host syscall queue forever. |
 
-For compatibility with old `.hex` files, the loader can map each 16-bit
-instruction word to two bytes in guest memory while keeping architectural `PC`
-as an instruction index, or it can define `PC` as a byte address from the start.
-This is unresolved and should be settled before writing the translator.
+The larger banked RAM/EPROM arrangement in `MyFictional8BitComputer.txt` is
+architectural intent, not initial bring-up scope. The QEMU design should leave
+room for banks, ROM, and boot mapping later without forcing them into the first
+CPU tests.
 
-Compatibility recommendation for milestone 1:
+## Byte vs Word Addressing
 
-- Define instruction fetch as 16-bit little-endian words from byte address
-  `PC * 2`.
-- Keep architectural `PC` reported in instruction slots.
-- Provide a loader/converter for old `.hex` instruction records.
+This remains UNRESOLVED.
 
-This matches QEMU's byte-addressed memory while preserving the old emulator's
-visible PC arithmetic.
+Evidence for byte addressing:
+
+- The design prose describes a 16-bit address bus and an 8-bit data bus.
+- Data loads/stores operate on byte-like values.
+- Assembler `.data` labels advance one address per `.byte` or `.asciz`
+  character.
+- Assembler `.word` advances by two addresses.
+- Standard Intel-HEX data records (`0x00`) are byte records.
+
+Evidence for word/instruction-slot addressing:
+
+- Python instruction fetch reads one 16-bit instruction from `ram_memory[PC]`.
+- Python `PC` increments by one per instruction.
+- Assembler instruction addresses increment by one per instruction.
+- Nonstandard instruction records (`0x11`) contain packed 16-bit instruction
+  words; the Python loader stores each word in one RAM entry.
+
+For initial QEMU experiments, any byte-addressed raw loader/fetch path is
+provisional until this decision is closed. Do not treat Python list indexing as
+settled architecture.

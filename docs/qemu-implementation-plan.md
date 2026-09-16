@@ -4,7 +4,9 @@ This project should implement MyEmulator as a real QEMU target and machine, not
 as a wrapper around the Python emulator.
 
 The implementation should be developed from the architecture documented in this
-directory, using `rdearman/MyEmulator` as a behavioural reference.
+directory, using `rdearman/MyEmulator` as a behavioural reference. When the
+Python emulator conflicts with design intent or old software evidence, follow
+`docs/architecture-decisions.md`.
 
 ## Upstream QEMU Snapshot Inspected
 
@@ -128,10 +130,22 @@ The translator should:
 
 Open design point:
 
-- Whether QEMU memory fetch uses `PC * 2` byte addressing while reporting `PC`
-  as instruction slots, or whether `PC` becomes byte-addressed. The compatibility
-  plan currently favours `PC * 2` fetch so old branch targets remain closer to
-  Python behaviour.
+- Whether QEMU memory fetch uses byte-addressed `PC`, `PC * 2` with
+  instruction-slot `PC`, or another explicit code-address convention. This is
+  UNRESOLVED. Existing assembler/program evidence must be considered before the
+  representation is frozen.
+
+Branch and jump semantics:
+
+- QEMU should implement normal intended target semantics: taken control flow
+  sets `PC` to the encoded target, with no hidden post-branch `+1`.
+- Old binaries assembled with label operands may encode `target - 1`; handle
+  that, if required, as compatibility tooling rather than CPU semantics.
+
+Unsupported opcodes:
+
+- Initial bring-up should stop execution with an obvious diagnostic.
+- Do not preserve the Python emulator's accidental double `PC` increment.
 
 ## Machine Definition
 
@@ -151,8 +165,10 @@ Later:
 
 - Add a ROM/EPROM region once boot semantics are decided.
 - Add a chardev-backed console device.
-- Add storage only after deciding whether to preserve the host-folder model or
-  design a real block device.
+- Decide whether the `POP` bit-7 escape becomes a real trap/syscall mechanism,
+  semihosting compatibility hook, or gives way to MMIO/serial devices.
+- Add storage only after deciding whether to preserve the host-folder model as
+  compatibility tooling or design a real block device.
 - Add timer/interrupt controller only when software requires it.
 
 ## Differential Testing Strategy

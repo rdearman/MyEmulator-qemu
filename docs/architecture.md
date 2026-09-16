@@ -1,12 +1,17 @@
 # MyEmulator Architecture
 
-This document describes the architecture implemented by `rdearman/MyEmulator`
-as inspected on 2026-09-16 at commit `b6141f978fc44537a7a5b3ea53c9250cf7699e3d`.
+This document describes the architecture evidence found in
+`rdearman/MyEmulator` as inspected on 2026-09-16 at commit
+`b6141f978fc44537a7a5b3ea53c9250cf7699e3d`.
 
-The implementation source of truth is currently `new/emulator/emulator.py`,
+The main executable evidence is currently `new/emulator/emulator.py`,
 `new/cli/cli.py`, and `assembler4emulator_v8.1.py`. The older prose files are
-useful design notes, but they disagree with the executable implementation in
-several important places.
+important design notes, but they disagree with the executable implementation in
+several places.
+
+For QEMU work, the Python emulator is a behavioural reference rather than an
+automatic architectural authority. Discrepancies are resolved using
+`docs/architecture-decisions.md`.
 
 ## Related Repositories
 
@@ -14,7 +19,7 @@ several important places.
 
 - Purpose: current Python emulator, Python assembler, CLI, example programs,
   and historical archived versions.
-- Status for this project: authoritative behavioural reference.
+- Status for this project: behavioural reference and architecture evidence.
 - Default branch: `main`.
 - Relevant files:
   - `new/emulator/emulator.py`
@@ -99,11 +104,16 @@ regs[3:2] = Rd
 regs[1:0] = Rn
 ```
 
-`PC` increments by one instruction slot after `execute_instruction()` returns.
-Branches and jumps assign `PC` to their target and are then still followed by
-the unconditional post-execute increment. This means the effective next fetch is
-`target + 1` for branch/jump targets in the current implementation. The
-assembler appears to compensate partly by recording labels as `address - 1`.
+`PC` increments by one instruction slot after `execute_instruction()` returns in
+the Python emulator. Branches and jumps assign `PC` to their target and are
+then still followed by the unconditional post-execute increment. This means the
+effective next fetch is `target + 1` for branch/jump targets in the current
+implementation.
+
+This is classified as a Python emulator bug with compatibility consequences,
+not as intended architecture. The assembler compensates for labels by recording
+them as `address - 1`; a branch probe confirmed this behaviour. QEMU should use
+normal branch/label semantics.
 
 ## Reset
 
@@ -128,11 +138,14 @@ No real exceptions or interrupts are implemented.
 Unsupported opcodes are logged and then the PC is incremented in
 `execute_instruction()`, after which `fetch_and_execute()` increments it again.
 The separate `handle_unsupported_opcode()` method would halt the CPU, but it is
-not used by the current dispatch path.
+not used by the current dispatch path. QEMU should not preserve this double
+increment; unsupported opcodes should halt/diagnose obviously until a real
+illegal-instruction exception is defined.
 
 The `POP` instruction has a syscall escape when operand bit 7 is set. This is
-not a hardware interrupt in the emulator; it queues a host-side request to the
-CLI.
+not a hardware interrupt in the Python emulator; it queues a host-side request
+to the CLI. Its guest-visible encoding is deliberately emitted by the assembler,
+so it is currently classified UNRESOLVED rather than discarded as an artefact.
 
 ## Discrepancies from Prose Documentation
 
@@ -147,14 +160,14 @@ CLI.
 - Several test files use syntax that does not match the current assembler
   (`LI #0`, three-operand logical instructions, `r4`, immediate `PUSH`/`POP`).
 
-## Open Questions
+## Current Decisions and Open Questions
 
-- Should QEMU preserve the branch/jump `target + 1` behaviour as observable
-  compatibility, or should it model the intended label semantics and compensate
-  only when loading old assembler output?
-- Is the `POP` syscall escape an architectural software interrupt, or only a
-  CLI convenience to be replaced with memory-mapped I/O?
-- Should EPROM and RAM banking be implemented because they are design intent,
-  or omitted until old software needs them?
-- Are instruction slots architecturally 16-bit addressable words, or should
-  QEMU expose byte-addressed RAM with 16-bit instruction fetches?
+- Branch/jump should use normal target semantics in QEMU. Existing assembled
+  label branches may need compatibility handling because the assembler encoded
+  `target - 1`.
+- `POP` bit 7 / syscall is UNRESOLVED. The host CLI services are compatibility
+  behaviour, but the encoding may be an intentional ISA extension.
+- Larger RAM/EPROM banking is INTENDED architecture, but not required for
+  initial CPU bring-up.
+- Byte vs word addressing is UNRESOLVED and must be decided from evidence
+  before it becomes a stable QEMU architectural contract.

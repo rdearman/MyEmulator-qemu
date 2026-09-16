@@ -1,0 +1,3 @@
+config MYEMULATOR_MACHINE
+    bool
+    default y
