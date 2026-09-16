@@ -105,8 +105,8 @@ static void myemulator_cpu_dump_state(CPUState *cs, FILE *f, int flags)
     qemu_fprintf(f, "R0: 0x%02x  R1: 0x%02x  R2: 0x%02x  R3: 0x%02x\n",
                  env->r[0] & 0xff, env->r[1] & 0xff,
                  env->r[2] & 0xff, env->r[3] & 0xff);
-    qemu_fprintf(f, "FLAGS: ZF=%u OF=%u CF=%u\n",
-                 env->zf & 1, env->of & 1, env->cf & 1);
+    qemu_fprintf(f, "FLAGS: ZF=%u NF=%u OF=%u CF=%u\n",
+                 env->zf & 1, env->nf & 1, env->of & 1, env->cf & 1);
 }
 
 #include "hw/core/sysemu-cpu-ops.h"

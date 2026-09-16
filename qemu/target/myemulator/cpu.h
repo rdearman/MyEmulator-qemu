@@ -25,6 +25,7 @@ typedef struct CPUArchState {
     uint32_t lr;
     uint32_t r[4];
     uint32_t zf;
+    uint32_t nf;
     uint32_t of;
     uint32_t cf;
     bool halted;

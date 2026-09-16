@@ -23,6 +23,7 @@ static TCGv_i32 cpu_sp;
 static TCGv_i32 cpu_lr;
 static TCGv_i32 cpu_r[4];
 static TCGv_i32 cpu_zf;
+static TCGv_i32 cpu_nf;
 static TCGv_i32 cpu_of;
 static TCGv_i32 cpu_cf;
 
@@ -39,6 +40,8 @@ void myemulator_cpu_tcg_init(void)
                                     offsetof(CPUMyEmulatorState, lr), "lr");
     cpu_zf = tcg_global_mem_new_i32(tcg_env,
                                     offsetof(CPUMyEmulatorState, zf), "zf");
+    cpu_nf = tcg_global_mem_new_i32(tcg_env,
+                                    offsetof(CPUMyEmulatorState, nf), "nf");
     cpu_of = tcg_global_mem_new_i32(tcg_env,
                                     offsetof(CPUMyEmulatorState, of), "of");
     cpu_cf = tcg_global_mem_new_i32(tcg_env,
@@ -56,19 +59,39 @@ static void gen_next_pc(DisasContext *ctx)
 }
 
 static void gen_pc_relative_branch(DisasContext *ctx, uint8_t imm,
-                                   TCGCond condition)
+                                   TCGCond condition, TCGv_i32 lhs,
+                                   TCGv_i32 rhs)
 {
     TCGLabel *taken = gen_new_label();
     TCGLabel *done = gen_new_label();
     int target = (ctx->base.pc_next + ((int8_t)imm * 2)) & 0xffff;
 
-    tcg_gen_brcondi_i32(condition, cpu_zf, 0, taken);
+    tcg_gen_brcond_i32(condition, lhs, rhs, taken);
     gen_next_pc(ctx);
     tcg_gen_br(done);
     gen_set_label(taken);
     tcg_gen_movi_i32(cpu_pc, target);
     gen_set_label(done);
     ctx->base.is_jmp = DISAS_EXIT;
+}
+
+static void gen_sub_flags(TCGv_i32 lhs, TCGv_i32 rhs, TCGv_i32 result)
+{
+    TCGv_i32 tmp = tcg_temp_new_i32();
+    TCGv_i32 result8 = tcg_temp_new_i32();
+
+    tcg_gen_andi_i32(result8, result, 0xff);
+    tcg_gen_setcondi_i32(TCG_COND_EQ, cpu_zf, result8, 0);
+    tcg_gen_andi_i32(tmp, result8, 0x80);
+    tcg_gen_setcondi_i32(TCG_COND_NE, cpu_nf, tmp, 0);
+    tcg_gen_setcond_i32(TCG_COND_GEU, cpu_cf, lhs, rhs);
+
+    /* Signed subtraction overflow: (lhs ^ rhs) & (lhs ^ result) & 0x80. */
+    tcg_gen_xor_i32(tmp, lhs, rhs);
+    tcg_gen_xor_i32(result8, lhs, result8);
+    tcg_gen_and_i32(tmp, tmp, result8);
+    tcg_gen_andi_i32(tmp, tmp, 0x80);
+    tcg_gen_setcondi_i32(TCG_COND_NE, cpu_of, tmp, 0);
 }
 
 static void gen_push_register(uint8_t reg)
@@ -115,13 +138,50 @@ static void decode_and_translate(DisasContext *ctx)
         gen_next_pc(ctx);
         break;
     case 0x3: /* ADD immediate, matching the Python emulator path */
+        {
+        TCGv_i32 lhs = tcg_temp_new_i32();
+        TCGv_i32 rhs = tcg_temp_new_i32();
         tmp = tcg_temp_new_i32();
-        tcg_gen_addi_i32(tmp, cpu_r[rn], imm);
+        tcg_gen_andi_i32(lhs, cpu_r[rn], 0xff);
+        tcg_gen_movi_i32(rhs, imm);
+        tcg_gen_add_i32(tmp, lhs, rhs);
         tcg_gen_setcondi_i32(TCG_COND_GTU, cpu_cf, tmp, 255);
-        tcg_gen_setcondi_i32(TCG_COND_GTU, cpu_of, tmp, 127);
         tcg_gen_andi_i32(cpu_r[rd], tmp, 0xff);
         tcg_gen_setcondi_i32(TCG_COND_EQ, cpu_zf, cpu_r[rd], 0);
+        tcg_gen_shri_i32(tmp, cpu_r[rd], 7);
+        tcg_gen_andi_i32(cpu_nf, tmp, 1);
+        tcg_gen_xor_i32(tmp, lhs, rhs);
+        tcg_gen_xor_i32(rhs, lhs, cpu_r[rd]);
+        tcg_gen_and_i32(tmp, tmp, rhs);
+        tcg_gen_andi_i32(tmp, tmp, 0x80);
+        tcg_gen_setcondi_i32(TCG_COND_NE, cpu_of, tmp, 0);
         gen_next_pc(ctx);
+        }
+        break;
+    case 0x4: /* SUB immediate, with subtraction flags. */
+        {
+        TCGv_i32 lhs = tcg_temp_new_i32();
+        TCGv_i32 rhs = tcg_temp_new_i32();
+        tmp = tcg_temp_new_i32();
+        tcg_gen_andi_i32(lhs, cpu_r[rn], 0xff);
+        tcg_gen_movi_i32(rhs, imm);
+        tcg_gen_sub_i32(tmp, lhs, rhs);
+        gen_sub_flags(lhs, rhs, tmp);
+        tcg_gen_andi_i32(cpu_r[rd], tmp, 0xff);
+        gen_next_pc(ctx);
+        }
+        break;
+    case 0x8: /* CMP register-to-register; result is discarded. */
+        {
+        TCGv_i32 lhs = tcg_temp_new_i32();
+        TCGv_i32 rhs = tcg_temp_new_i32();
+        tmp = tcg_temp_new_i32();
+        tcg_gen_andi_i32(lhs, cpu_r[rd], 0xff);
+        tcg_gen_andi_i32(rhs, cpu_r[rn], 0xff);
+        tcg_gen_sub_i32(tmp, lhs, rhs);
+        gen_sub_flags(lhs, rhs, tmp);
+        gen_next_pc(ctx);
+        }
         break;
     case 0x2: /* ST */
         tmp = tcg_temp_new_i32();
@@ -135,11 +195,36 @@ static void decode_and_translate(DisasContext *ctx)
                          (ctx->base.pc_next + ((int8_t)imm * 2)) & 0xffff);
         ctx->base.is_jmp = DISAS_EXIT;
         break;
-    case 0x6: /* BEQ */
-        gen_pc_relative_branch(ctx, imm, TCG_COND_NE);
-        break;
-    case 0x7: /* BNE */
-        gen_pc_relative_branch(ctx, imm, TCG_COND_EQ);
+    case 0x6: /* Conditional branch family. */
+        switch (regs) {
+        case 0x0: /* BEQ: ZF == 1 */
+            gen_pc_relative_branch(ctx, imm, TCG_COND_NE, cpu_zf,
+                                   tcg_constant_i32(0));
+            break;
+        case 0x1: /* BNE: ZF == 0 */
+            gen_pc_relative_branch(ctx, imm, TCG_COND_EQ, cpu_zf,
+                                   tcg_constant_i32(0));
+            break;
+        case 0x2: /* BLT: NF != OF */
+            gen_pc_relative_branch(ctx, imm, TCG_COND_NE, cpu_nf, cpu_of);
+            break;
+        case 0x3: /* BGE: NF == OF */
+            gen_pc_relative_branch(ctx, imm, TCG_COND_EQ, cpu_nf, cpu_of);
+            break;
+        case 0x4: /* BLTU: CF == 0 */
+            gen_pc_relative_branch(ctx, imm, TCG_COND_EQ, cpu_cf,
+                                   tcg_constant_i32(0));
+            break;
+        case 0x5: /* BGEU: CF == 1 */
+            gen_pc_relative_branch(ctx, imm, TCG_COND_NE, cpu_cf,
+                                   tcg_constant_i32(0));
+            break;
+        default:
+            tcg_gen_movi_i32(cpu_pc, ctx->base.pc_next);
+            gen_helper_illegal(tcg_env);
+            ctx->base.is_jmp = DISAS_NORETURN;
+            break;
+        }
         break;
     case 0xe: /* PUSH, ascending R0..R3 then LR. */
         for (int reg = 0; reg < 5; reg++) {

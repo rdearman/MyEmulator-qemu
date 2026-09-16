@@ -11,12 +11,15 @@ behaviour, then accidental quirks and bugs.
 | Primary opcode | ARCHITECTURAL | Bits 15..12 form 16 primary opcode groups. Unused encodings within a group remain reserved until needed. |
 | Memory | ARCHITECTURAL | 16-bit byte address, 8-bit data, 64 KiB. Instructions are 16-bit and occupy two bytes; sequential `PC += 2`. |
 | Endianness | ARCHITECTURAL | All 16-bit values are little endian: the low byte is stored at the lower address. |
-| Registers | ARCHITECTURAL | `R0`-`R3` and `LR` are 8-bit; `PC` and `SP` are 16-bit byte addresses; flags are `ZF`, `OF`, `CF`. |
+| Registers | ARCHITECTURAL | `R0`-`R3` and `LR` are 8-bit; `PC` and `SP` are 16-bit byte addresses. |
+| Condition flags | ARCHITECTURAL | Flags are `ZF`, `NF`, `CF`, and `OF`; reset clears all four. |
 | HALT | ARCHITECTURAL | `0xf080` is the operand-free HALT instruction. It halts QEMU. `PC == 0xff` is not special. |
 | Reset | ARCHITECTURAL | `SP=read16(0xfffc)` and `PC=read16(0xfffe)`. |
 | PUSH/POP mask | ARCHITECTURAL | Bits 0..4 select `R0`, `R1`, `R2`, `R3`, `LR`; only selected registers transfer. |
 | PUSH/POP order | ARCHITECTURAL | PUSH processes selected registers `R0` through `LR`; POP processes them in reverse. PUSH pre-decrements before each byte store; POP reads then post-increments after each byte. |
-| Conditional branches | ARCHITECTURAL | `BEQ` and `BNE` use signed 8-bit PC-relative displacements in instruction units: `target = P + 2 + sign_extend(imm8) * 2`. |
+| CMP | ARCHITECTURAL | `CMP rA,rB` performs 8-bit `rA-rB`, discards the result, and sets `ZF`, `NF`, `CF` (no borrow), and signed-subtraction `OF`. |
+| Conditional branches | ARCHITECTURAL | Opcode `0x6` uses condition bits 11..8: `0=BEQ`, `1=BNE`, `2=BLT`, `3=BGE`, `4=BLTU`, `5=BGEU`; all use signed 8-bit PC-relative instruction-unit displacements. |
+| Opcode `0x7` | RESERVED | The former BNE primary opcode is intentionally unassigned. |
 | JAL | ARCHITECTURAL | Primary opcode `0x5`; writes `LR=P+2` and branches with the same signed PC-relative displacement. |
 | Old compatibility | EXCLUDED | Old binaries, assembler workarounds, syscall meanings, and emulator bugs are not requirements. |
 | Banked RAM/EPROM | INTENDED, DEFERRED | Preserve design room for it, but use flat RAM for bring-up. |
