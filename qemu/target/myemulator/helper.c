@@ -34,6 +34,8 @@ void helper_halt(CPUMyEmulatorState *env)
 {
     CPUState *cs = env_cpu(env);
 
+    env->halted = true;
+    cs->halted = 1;
     cs->exception_index = EXCP_HLT;
     cpu_loop_exit(cs);
 }

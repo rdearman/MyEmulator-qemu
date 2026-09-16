@@ -27,6 +27,7 @@ typedef struct CPUArchState {
     uint32_t zf;
     uint32_t of;
     uint32_t cf;
+    bool halted;
 } CPUMyEmulatorState;
 
 struct ArchCPU {

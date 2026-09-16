@@ -50,7 +50,9 @@ static int myemulator_cpu_mmu_index(CPUState *cs, bool ifetch)
 
 static bool myemulator_cpu_has_work(CPUState *cs)
 {
-    return false;
+    CPUMyEmulatorState *env = cpu_env(cs);
+
+    return !env->halted || !cs->halted;
 }
 
 static void myemulator_cpu_reset_hold(Object *obj, ResetType type)

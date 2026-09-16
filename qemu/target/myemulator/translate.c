@@ -88,21 +88,27 @@ static void decode_and_translate(DisasContext *ctx)
         tcg_gen_qemu_st_i32(tmp, cpu_r[rn], MMU_PHYS_IDX, MO_UB);
         gen_next_pc(ctx);
         break;
-    case 0x5: /* JMP, with 0xff as the milestone halt convention */
+    case 0x5: /* JMP; target encoding remains an open architecture decision. */
         tcg_gen_movi_i32(cpu_lr, ctx->base.pc_next - 2);
         tcg_gen_movi_i32(cpu_pc, imm);
-        if (imm == 0xff) {
+        ctx->base.is_jmp = DISAS_EXIT;
+        break;
+    case 0xf: /* HALT is the reserved secondary encoding 0xf080. */
+        if ((insn & 0x0fff) == 0x080) {
+            gen_next_pc(ctx);
             gen_helper_halt(tcg_env);
             ctx->base.is_jmp = DISAS_NORETURN;
         } else {
-            ctx->base.is_jmp = DISAS_EXIT;
+            tcg_gen_movi_i32(cpu_pc, ctx->base.pc_next);
+            gen_helper_illegal(tcg_env);
+            ctx->base.is_jmp = DISAS_NORETURN;
         }
         break;
     case 0x0: /* Treat all-zero reset memory as a harmless NOP for monitor use. */
         gen_next_pc(ctx);
         break;
     default:
-        tcg_gen_movi_i32(cpu_pc, ctx->base.pc_next - 2);
+        tcg_gen_movi_i32(cpu_pc, ctx->base.pc_next);
         gen_helper_illegal(tcg_env);
         ctx->base.is_jmp = DISAS_NORETURN;
         break;
