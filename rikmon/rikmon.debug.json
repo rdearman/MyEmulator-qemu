@@ -45,29 +45,34 @@
     "irq7_vector": 65530,
     "initial_sp_vector": 65532,
     "reset_vector": 65534,
+    "input_buffer": 61184,
+    "input_max": 63,
     "read_char": 61696,
-    "print_msg": 61706,
-    ".loop": 61706,
-    ".done": 61718,
-    "_start": 61720,
-    "command_loop": 61752,
-    "show_prompt": 61768,
-    "quit_command": 61778,
-    "boot_command": 61788,
-    "_catchall": 61798,
-    "_irq1": 61800,
-    "_irq2": 61802,
-    "_irq3": 61804,
-    "_irq4": 61806,
-    "_irq5": 61808,
-    "_irq6": 61810,
-    "_irq7": 61812,
-    "messages": 61814,
-    "msg0": 61818,
-    "msg1": 61839,
-    "prompt": 61867,
-    "msg2": 61870,
-    "msg3": 61883
+    "read_line": 61706,
+    "read_line_loop": 61708,
+    "read_line_done": 61730,
+    "print_msg": 61742,
+    ".loop": 61742,
+    ".done": 61754,
+    "_start": 61756,
+    "command_loop": 61788,
+    "show_prompt": 61818,
+    "quit_command": 61828,
+    "boot_command": 61838,
+    "_catchall": 61848,
+    "_irq1": 61850,
+    "_irq2": 61852,
+    "_irq3": 61854,
+    "_irq4": 61856,
+    "_irq5": 61858,
+    "_irq6": 61860,
+    "_irq7": 61862,
+    "messages": 61864,
+    "msg0": 61868,
+    "msg1": 61889,
+    "prompt": 61917,
+    "msg2": 61920,
+    "msg3": 61933
   },
   "symbol_info": {
     "ram_start": {
@@ -275,7 +280,32 @@
       "global": false,
       "local": false
     },
+    "input_buffer": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "input_max": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
     "read_char": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    "read_line": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    "read_line_loop": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    "read_line_done": {
       "kind": "label",
       "global": false,
       "local": false
@@ -395,691 +425,841 @@
     {
       "address": 61696,
       "source": "rikmon.s",
-      "line": 14,
+      "line": 19,
       "text": "        ld   r0,[a3]"
     },
     {
       "address": 61698,
       "source": "rikmon.s",
-      "line": 15,
+      "line": 20,
       "text": "        and  r0,r0,#CONSOLE_RX_READY"
     },
     {
       "address": 61700,
       "source": "rikmon.s",
-      "line": 16,
+      "line": 21,
       "text": "        beq  read_char"
     },
     {
       "address": 61702,
       "source": "rikmon.s",
-      "line": 17,
+      "line": 22,
       "text": "        ld   r0,[a3-1]"
     },
     {
       "address": 61704,
       "source": "rikmon.s",
-      "line": 18,
+      "line": 23,
       "text": "        ret"
     },
     {
       "address": 61706,
       "source": "rikmon.s",
-      "line": 26,
-      "text": "        ld  r0,[a1]        ; get next character"
+      "line": 31,
+      "text": "        push {lr}"
     },
     {
       "address": 61708,
       "source": "rikmon.s",
-      "line": 27,
-      "text": "        cmp r0,r3          ; compare against register containing zero"
+      "line": 34,
+      "text": "        jal  read_char"
     },
     {
       "address": 61710,
       "source": "rikmon.s",
-      "line": 28,
-      "text": "        beq .done"
+      "line": 36,
+      "text": "        li   r1,#0x0A"
     },
     {
       "address": 61712,
       "source": "rikmon.s",
-      "line": 30,
-      "text": "        st  r0,[a0]        ; display it"
+      "line": 37,
+      "text": "        cmp  r0,r1"
     },
     {
       "address": 61714,
       "source": "rikmon.s",
-      "line": 31,
-      "text": "        ada a1,#1          ; next byte"
+      "line": 38,
+      "text": "        beq  read_line_done"
     },
     {
       "address": 61716,
       "source": "rikmon.s",
-      "line": 32,
-      "text": "        br  .loop"
+      "line": 39,
+      "text": "        li   r1,#0x0D"
     },
     {
       "address": 61718,
       "source": "rikmon.s",
-      "line": 35,
-      "text": "        ret"
+      "line": 40,
+      "text": "        cmp  r0,r1"
     },
     {
       "address": 61720,
       "source": "rikmon.s",
-      "line": 40,
-      "text": "        li  r1,#hi(CONSOLE_DATA) ; load the high part of 16 bit console data"
+      "line": 41,
+      "text": "        beq  read_line_done"
     },
     {
       "address": 61722,
       "source": "rikmon.s",
-      "line": 41,
-      "text": "        li  r2,#lo(CONSOLE_DATA) ; load the low part"
+      "line": 43,
+      "text": "        st   r0,[a2]"
     },
     {
       "address": 61724,
       "source": "rikmon.s",
-      "line": 42,
-      "text": "        lda a0,r1,r2\t\t ; move full 16 into A0"
+      "line": 44,
+      "text": "        st   r0,[a0]"
     },
     {
       "address": 61726,
       "source": "rikmon.s",
-      "line": 43,
-      "text": "\tli r3,#0\t\t ; set r3 to zero for comparisions."
+      "line": 45,
+      "text": "        ada  a2,#1"
     },
     {
       "address": 61728,
       "source": "rikmon.s",
-      "line": 45,
-      "text": "\tli  r1,#hi(msg0)\t; move high part of message"
+      "line": 46,
+      "text": "        br   read_line_loop"
     },
     {
       "address": 61730,
       "source": "rikmon.s",
-      "line": 46,
-      "text": "\tli  r2,#lo(msg0)\t; move low part of message"
+      "line": 49,
+      "text": "        li   r1,#0"
     },
     {
       "address": 61732,
       "source": "rikmon.s",
-      "line": 47,
-      "text": "\tlda a1,r1,r2\t\t; move into a1 register"
+      "line": 50,
+      "text": "        st   r1,[a2]"
     },
     {
       "address": 61734,
       "source": "rikmon.s",
-      "line": 48,
-      "text": "\tjal print_msg\t\t; print a1"
+      "line": 51,
+      "text": "        li   r0,#0x0A"
     },
     {
       "address": 61736,
       "source": "rikmon.s",
-      "line": 50,
-      "text": "\tli  r1,#hi(msg1)\t; print next message"
+      "line": 52,
+      "text": "        st   r0,[a0]"
     },
     {
       "address": 61738,
       "source": "rikmon.s",
-      "line": 51,
-      "text": "\tli  r2,#lo(msg1)"
+      "line": 53,
+      "text": "        pop  {lr}"
     },
     {
       "address": 61740,
       "source": "rikmon.s",
-      "line": 52,
-      "text": "\tlda a1,r1,r2"
+      "line": 54,
+      "text": "        ret"
     },
     {
       "address": 61742,
       "source": "rikmon.s",
-      "line": 53,
-      "text": "\tjal print_msg"
+      "line": 62,
+      "text": "        ld  r0,[a1]        ; get next character"
     },
     {
       "address": 61744,
       "source": "rikmon.s",
-      "line": 55,
-      "text": "        li  r1,#hi(CONSOLE_STATUS) ; move high bit into console status"
+      "line": 63,
+      "text": "        cmp r0,r3          ; compare against register containing zero"
     },
     {
       "address": 61746,
       "source": "rikmon.s",
-      "line": 56,
-      "text": "        li  r2,#lo(CONSOLE_STATUS) ; move low bit into console status"
+      "line": 64,
+      "text": "        beq .done"
     },
     {
       "address": 61748,
       "source": "rikmon.s",
-      "line": 57,
-      "text": "        lda a3,r1,r2\t\t   ; load into A3"
+      "line": 66,
+      "text": "        st  r0,[a0]        ; display it"
     },
     {
       "address": 61750,
       "source": "rikmon.s",
-      "line": 59,
-      "text": "        br show_prompt"
+      "line": 67,
+      "text": "        ada a1,#1          ; next byte"
     },
     {
       "address": 61752,
       "source": "rikmon.s",
-      "line": 64,
-      "text": "        jal read_char"
+      "line": 68,
+      "text": "        br  .loop"
     },
     {
       "address": 61754,
       "source": "rikmon.s",
-      "line": 66,
-      "text": "        li  r1,#'q'"
+      "line": 71,
+      "text": "        ret"
     },
     {
       "address": 61756,
       "source": "rikmon.s",
-      "line": 67,
-      "text": "        cmp r0,r1"
+      "line": 76,
+      "text": "        li  r1,#hi(CONSOLE_DATA) ; load the high part of 16 bit console data"
     },
     {
       "address": 61758,
       "source": "rikmon.s",
-      "line": 68,
-      "text": "        beq quit_command"
+      "line": 77,
+      "text": "        li  r2,#lo(CONSOLE_DATA) ; load the low part"
     },
     {
       "address": 61760,
       "source": "rikmon.s",
-      "line": 70,
-      "text": "        li  r1,#'b'"
+      "line": 78,
+      "text": "        lda a0,r1,r2\t\t ; move full 16 into A0"
     },
     {
       "address": 61762,
       "source": "rikmon.s",
-      "line": 71,
-      "text": "        cmp r0,r1"
+      "line": 79,
+      "text": "\tli r3,#0\t\t ; set r3 to zero for comparisions."
     },
     {
       "address": 61764,
       "source": "rikmon.s",
-      "line": 72,
-      "text": "        beq boot_command"
+      "line": 81,
+      "text": "\tli  r1,#hi(msg0)\t; move high part of message"
     },
     {
       "address": 61766,
       "source": "rikmon.s",
-      "line": 74,
-      "text": "        br show_prompt"
+      "line": 82,
+      "text": "\tli  r2,#lo(msg0)\t; move low part of message"
     },
     {
       "address": 61768,
       "source": "rikmon.s",
-      "line": 77,
-      "text": "        li  r1,#hi(prompt)"
+      "line": 83,
+      "text": "\tlda a1,r1,r2\t\t; move into a1 register"
     },
     {
       "address": 61770,
       "source": "rikmon.s",
-      "line": 78,
-      "text": "        li  r2,#lo(prompt)"
+      "line": 84,
+      "text": "\tjal print_msg\t\t; print a1"
     },
     {
       "address": 61772,
       "source": "rikmon.s",
-      "line": 79,
-      "text": "        lda a1,r1,r2"
+      "line": 86,
+      "text": "\tli  r1,#hi(msg1)\t; print next message"
     },
     {
       "address": 61774,
       "source": "rikmon.s",
-      "line": 80,
-      "text": "        jal print_msg"
+      "line": 87,
+      "text": "\tli  r2,#lo(msg1)"
     },
     {
       "address": 61776,
       "source": "rikmon.s",
-      "line": 81,
-      "text": "        br command_loop"
+      "line": 88,
+      "text": "\tlda a1,r1,r2"
     },
     {
       "address": 61778,
       "source": "rikmon.s",
-      "line": 84,
-      "text": "        li  r1,#hi(msg2)"
+      "line": 89,
+      "text": "\tjal print_msg"
     },
     {
       "address": 61780,
       "source": "rikmon.s",
-      "line": 85,
-      "text": "        li  r2,#lo(msg2)"
+      "line": 91,
+      "text": "        li  r1,#hi(CONSOLE_STATUS) ; move high bit into console status"
     },
     {
       "address": 61782,
       "source": "rikmon.s",
-      "line": 86,
-      "text": "        lda a1,r1,r2"
+      "line": 92,
+      "text": "        li  r2,#lo(CONSOLE_STATUS) ; move low bit into console status"
     },
     {
       "address": 61784,
       "source": "rikmon.s",
-      "line": 87,
-      "text": "        jal print_msg"
+      "line": 93,
+      "text": "        lda a3,r1,r2\t\t   ; load into A3"
     },
     {
       "address": 61786,
       "source": "rikmon.s",
-      "line": 88,
-      "text": "        halt"
+      "line": 95,
+      "text": "        br show_prompt"
     },
     {
       "address": 61788,
       "source": "rikmon.s",
-      "line": 93,
-      "text": "        li  r1,#hi(msg3)"
+      "line": 100,
+      "text": "        li  r1,#hi(INPUT_BUFFER)"
     },
     {
       "address": 61790,
       "source": "rikmon.s",
-      "line": 94,
-      "text": "        li  r2,#lo(msg3)"
+      "line": 101,
+      "text": "        li  r2,#lo(INPUT_BUFFER)"
     },
     {
       "address": 61792,
       "source": "rikmon.s",
-      "line": 95,
-      "text": "        lda a1,r1,r2"
+      "line": 102,
+      "text": "        lda  a2,r1,r2"
     },
     {
       "address": 61794,
       "source": "rikmon.s",
-      "line": 96,
-      "text": "        jal print_msg"
+      "line": 103,
+      "text": "        jal  read_line"
     },
     {
       "address": 61796,
       "source": "rikmon.s",
-      "line": 97,
-      "text": "        br show_prompt"
+      "line": 105,
+      "text": "        li  r1,#hi(INPUT_BUFFER)"
     },
     {
       "address": 61798,
       "source": "rikmon.s",
-      "line": 101,
-      "text": "        halt"
+      "line": 106,
+      "text": "        li  r2,#lo(INPUT_BUFFER)"
     },
     {
       "address": 61800,
       "source": "rikmon.s",
-      "line": 104,
-      "text": "        br _catchall"
+      "line": 107,
+      "text": "        lda  a1,r1,r2"
     },
     {
       "address": 61802,
       "source": "rikmon.s",
-      "line": 107,
-      "text": "        br _catchall"
+      "line": 108,
+      "text": "        ld   r0,[a1]"
     },
     {
       "address": 61804,
       "source": "rikmon.s",
       "line": 110,
-      "text": "        br _catchall"
+      "text": "        li  r1,#'q'"
     },
     {
       "address": 61806,
       "source": "rikmon.s",
-      "line": 113,
-      "text": "        br _catchall"
+      "line": 111,
+      "text": "        cmp r0,r1"
     },
     {
       "address": 61808,
       "source": "rikmon.s",
-      "line": 116,
-      "text": "        br _catchall"
+      "line": 112,
+      "text": "        beq quit_command"
     },
     {
       "address": 61810,
       "source": "rikmon.s",
-      "line": 119,
-      "text": "        br _catchall"
+      "line": 114,
+      "text": "        li  r1,#'b'"
     },
     {
       "address": 61812,
       "source": "rikmon.s",
-      "line": 122,
-      "text": "        br _catchall"
+      "line": 115,
+      "text": "        cmp r0,r1"
     },
     {
       "address": 61814,
       "source": "rikmon.s",
-      "line": 128,
-      "text": "        .word msg0"
+      "line": 116,
+      "text": "        beq boot_command"
     },
     {
       "address": 61816,
       "source": "rikmon.s",
-      "line": 129,
-      "text": "        .word msg1"
+      "line": 118,
+      "text": "        br show_prompt"
     },
     {
       "address": 61818,
       "source": "rikmon.s",
-      "line": 132,
-      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+      "line": 121,
+      "text": "        li  r1,#hi(prompt)"
     },
     {
       "address": 61820,
       "source": "rikmon.s",
-      "line": 132,
-      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+      "line": 122,
+      "text": "        li  r2,#lo(prompt)"
     },
     {
       "address": 61822,
       "source": "rikmon.s",
-      "line": 132,
-      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+      "line": 123,
+      "text": "        lda a1,r1,r2"
     },
     {
       "address": 61824,
       "source": "rikmon.s",
-      "line": 132,
-      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+      "line": 124,
+      "text": "        jal print_msg"
     },
     {
       "address": 61826,
       "source": "rikmon.s",
-      "line": 132,
-      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+      "line": 125,
+      "text": "        br command_loop"
     },
     {
       "address": 61828,
       "source": "rikmon.s",
-      "line": 132,
-      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+      "line": 128,
+      "text": "        li  r1,#hi(msg2)"
     },
     {
       "address": 61830,
       "source": "rikmon.s",
-      "line": 132,
-      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+      "line": 129,
+      "text": "        li  r2,#lo(msg2)"
     },
     {
       "address": 61832,
       "source": "rikmon.s",
-      "line": 132,
-      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+      "line": 130,
+      "text": "        lda a1,r1,r2"
     },
     {
       "address": 61834,
       "source": "rikmon.s",
-      "line": 132,
-      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+      "line": 131,
+      "text": "        jal print_msg"
     },
     {
       "address": 61836,
       "source": "rikmon.s",
       "line": 132,
-      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+      "text": "        halt"
     },
     {
       "address": 61838,
       "source": "rikmon.s",
-      "line": 132,
+      "line": 137,
+      "text": "        li  r1,#hi(msg3)"
+    },
+    {
+      "address": 61840,
+      "source": "rikmon.s",
+      "line": 138,
+      "text": "        li  r2,#lo(msg3)"
+    },
+    {
+      "address": 61842,
+      "source": "rikmon.s",
+      "line": 139,
+      "text": "        lda a1,r1,r2"
+    },
+    {
+      "address": 61844,
+      "source": "rikmon.s",
+      "line": 140,
+      "text": "        jal print_msg"
+    },
+    {
+      "address": 61846,
+      "source": "rikmon.s",
+      "line": 141,
+      "text": "        br show_prompt"
+    },
+    {
+      "address": 61848,
+      "source": "rikmon.s",
+      "line": 145,
+      "text": "        halt"
+    },
+    {
+      "address": 61850,
+      "source": "rikmon.s",
+      "line": 148,
+      "text": "        br _catchall"
+    },
+    {
+      "address": 61852,
+      "source": "rikmon.s",
+      "line": 151,
+      "text": "        br _catchall"
+    },
+    {
+      "address": 61854,
+      "source": "rikmon.s",
+      "line": 154,
+      "text": "        br _catchall"
+    },
+    {
+      "address": 61856,
+      "source": "rikmon.s",
+      "line": 157,
+      "text": "        br _catchall"
+    },
+    {
+      "address": 61858,
+      "source": "rikmon.s",
+      "line": 160,
+      "text": "        br _catchall"
+    },
+    {
+      "address": 61860,
+      "source": "rikmon.s",
+      "line": 163,
+      "text": "        br _catchall"
+    },
+    {
+      "address": 61862,
+      "source": "rikmon.s",
+      "line": 166,
+      "text": "        br _catchall"
+    },
+    {
+      "address": 61864,
+      "source": "rikmon.s",
+      "line": 172,
+      "text": "        .word msg0"
+    },
+    {
+      "address": 61866,
+      "source": "rikmon.s",
+      "line": 173,
+      "text": "        .word msg1"
+    },
+    {
+      "address": 61868,
+      "source": "rikmon.s",
+      "line": 176,
       "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
-    },
-    {
-      "address": 61839,
-      "source": "rikmon.s",
-      "line": 135,
-      "text": "        .asciz \"Press q to quit; b to boot\\n\""
-    },
-    {
-      "address": 61841,
-      "source": "rikmon.s",
-      "line": 135,
-      "text": "        .asciz \"Press q to quit; b to boot\\n\""
-    },
-    {
-      "address": 61843,
-      "source": "rikmon.s",
-      "line": 135,
-      "text": "        .asciz \"Press q to quit; b to boot\\n\""
-    },
-    {
-      "address": 61845,
-      "source": "rikmon.s",
-      "line": 135,
-      "text": "        .asciz \"Press q to quit; b to boot\\n\""
-    },
-    {
-      "address": 61847,
-      "source": "rikmon.s",
-      "line": 135,
-      "text": "        .asciz \"Press q to quit; b to boot\\n\""
-    },
-    {
-      "address": 61849,
-      "source": "rikmon.s",
-      "line": 135,
-      "text": "        .asciz \"Press q to quit; b to boot\\n\""
-    },
-    {
-      "address": 61851,
-      "source": "rikmon.s",
-      "line": 135,
-      "text": "        .asciz \"Press q to quit; b to boot\\n\""
-    },
-    {
-      "address": 61853,
-      "source": "rikmon.s",
-      "line": 135,
-      "text": "        .asciz \"Press q to quit; b to boot\\n\""
-    },
-    {
-      "address": 61855,
-      "source": "rikmon.s",
-      "line": 135,
-      "text": "        .asciz \"Press q to quit; b to boot\\n\""
-    },
-    {
-      "address": 61857,
-      "source": "rikmon.s",
-      "line": 135,
-      "text": "        .asciz \"Press q to quit; b to boot\\n\""
-    },
-    {
-      "address": 61859,
-      "source": "rikmon.s",
-      "line": 135,
-      "text": "        .asciz \"Press q to quit; b to boot\\n\""
-    },
-    {
-      "address": 61861,
-      "source": "rikmon.s",
-      "line": 135,
-      "text": "        .asciz \"Press q to quit; b to boot\\n\""
-    },
-    {
-      "address": 61863,
-      "source": "rikmon.s",
-      "line": 135,
-      "text": "        .asciz \"Press q to quit; b to boot\\n\""
-    },
-    {
-      "address": 61865,
-      "source": "rikmon.s",
-      "line": 135,
-      "text": "        .asciz \"Press q to quit; b to boot\\n\""
-    },
-    {
-      "address": 61867,
-      "source": "rikmon.s",
-      "line": 138,
-      "text": "        .asciz \"> \""
-    },
-    {
-      "address": 61869,
-      "source": "rikmon.s",
-      "line": 138,
-      "text": "        .asciz \"> \""
     },
     {
       "address": 61870,
       "source": "rikmon.s",
-      "line": 141,
-      "text": "        .asciz \"Goodbye ...\\n\""
+      "line": 176,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
     },
     {
       "address": 61872,
       "source": "rikmon.s",
-      "line": 141,
-      "text": "        .asciz \"Goodbye ...\\n\""
+      "line": 176,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
     },
     {
       "address": 61874,
       "source": "rikmon.s",
-      "line": 141,
-      "text": "        .asciz \"Goodbye ...\\n\""
+      "line": 176,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
     },
     {
       "address": 61876,
       "source": "rikmon.s",
-      "line": 141,
-      "text": "        .asciz \"Goodbye ...\\n\""
+      "line": 176,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
     },
     {
       "address": 61878,
       "source": "rikmon.s",
-      "line": 141,
-      "text": "        .asciz \"Goodbye ...\\n\""
+      "line": 176,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
     },
     {
       "address": 61880,
       "source": "rikmon.s",
-      "line": 141,
-      "text": "        .asciz \"Goodbye ...\\n\""
+      "line": 176,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
     },
     {
       "address": 61882,
       "source": "rikmon.s",
-      "line": 141,
-      "text": "        .asciz \"Goodbye ...\\n\""
+      "line": 176,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
     },
     {
-      "address": 61883,
+      "address": 61884,
       "source": "rikmon.s",
-      "line": 144,
-      "text": "        .asciz \"BOOT not implemented\\n\""
+      "line": 176,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
     },
     {
-      "address": 61885,
+      "address": 61886,
       "source": "rikmon.s",
-      "line": 144,
-      "text": "        .asciz \"BOOT not implemented\\n\""
+      "line": 176,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
     },
     {
-      "address": 61887,
+      "address": 61888,
       "source": "rikmon.s",
-      "line": 144,
-      "text": "        .asciz \"BOOT not implemented\\n\""
+      "line": 176,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
     },
     {
       "address": 61889,
       "source": "rikmon.s",
-      "line": 144,
-      "text": "        .asciz \"BOOT not implemented\\n\""
+      "line": 179,
+      "text": "        .asciz \"Press q to quit; b to boot\\n\""
     },
     {
       "address": 61891,
       "source": "rikmon.s",
-      "line": 144,
-      "text": "        .asciz \"BOOT not implemented\\n\""
+      "line": 179,
+      "text": "        .asciz \"Press q to quit; b to boot\\n\""
     },
     {
       "address": 61893,
       "source": "rikmon.s",
-      "line": 144,
-      "text": "        .asciz \"BOOT not implemented\\n\""
+      "line": 179,
+      "text": "        .asciz \"Press q to quit; b to boot\\n\""
     },
     {
       "address": 61895,
       "source": "rikmon.s",
-      "line": 144,
-      "text": "        .asciz \"BOOT not implemented\\n\""
+      "line": 179,
+      "text": "        .asciz \"Press q to quit; b to boot\\n\""
     },
     {
       "address": 61897,
       "source": "rikmon.s",
-      "line": 144,
-      "text": "        .asciz \"BOOT not implemented\\n\""
+      "line": 179,
+      "text": "        .asciz \"Press q to quit; b to boot\\n\""
     },
     {
       "address": 61899,
       "source": "rikmon.s",
-      "line": 144,
-      "text": "        .asciz \"BOOT not implemented\\n\""
+      "line": 179,
+      "text": "        .asciz \"Press q to quit; b to boot\\n\""
     },
     {
       "address": 61901,
       "source": "rikmon.s",
-      "line": 144,
-      "text": "        .asciz \"BOOT not implemented\\n\""
+      "line": 179,
+      "text": "        .asciz \"Press q to quit; b to boot\\n\""
     },
     {
       "address": 61903,
       "source": "rikmon.s",
-      "line": 144,
+      "line": 179,
+      "text": "        .asciz \"Press q to quit; b to boot\\n\""
+    },
+    {
+      "address": 61905,
+      "source": "rikmon.s",
+      "line": 179,
+      "text": "        .asciz \"Press q to quit; b to boot\\n\""
+    },
+    {
+      "address": 61907,
+      "source": "rikmon.s",
+      "line": 179,
+      "text": "        .asciz \"Press q to quit; b to boot\\n\""
+    },
+    {
+      "address": 61909,
+      "source": "rikmon.s",
+      "line": 179,
+      "text": "        .asciz \"Press q to quit; b to boot\\n\""
+    },
+    {
+      "address": 61911,
+      "source": "rikmon.s",
+      "line": 179,
+      "text": "        .asciz \"Press q to quit; b to boot\\n\""
+    },
+    {
+      "address": 61913,
+      "source": "rikmon.s",
+      "line": 179,
+      "text": "        .asciz \"Press q to quit; b to boot\\n\""
+    },
+    {
+      "address": 61915,
+      "source": "rikmon.s",
+      "line": 179,
+      "text": "        .asciz \"Press q to quit; b to boot\\n\""
+    },
+    {
+      "address": 61917,
+      "source": "rikmon.s",
+      "line": 182,
+      "text": "        .asciz \"> \""
+    },
+    {
+      "address": 61919,
+      "source": "rikmon.s",
+      "line": 182,
+      "text": "        .asciz \"> \""
+    },
+    {
+      "address": 61920,
+      "source": "rikmon.s",
+      "line": 185,
+      "text": "        .asciz \"Goodbye ...\\n\""
+    },
+    {
+      "address": 61922,
+      "source": "rikmon.s",
+      "line": 185,
+      "text": "        .asciz \"Goodbye ...\\n\""
+    },
+    {
+      "address": 61924,
+      "source": "rikmon.s",
+      "line": 185,
+      "text": "        .asciz \"Goodbye ...\\n\""
+    },
+    {
+      "address": 61926,
+      "source": "rikmon.s",
+      "line": 185,
+      "text": "        .asciz \"Goodbye ...\\n\""
+    },
+    {
+      "address": 61928,
+      "source": "rikmon.s",
+      "line": 185,
+      "text": "        .asciz \"Goodbye ...\\n\""
+    },
+    {
+      "address": 61930,
+      "source": "rikmon.s",
+      "line": 185,
+      "text": "        .asciz \"Goodbye ...\\n\""
+    },
+    {
+      "address": 61932,
+      "source": "rikmon.s",
+      "line": 185,
+      "text": "        .asciz \"Goodbye ...\\n\""
+    },
+    {
+      "address": 61933,
+      "source": "rikmon.s",
+      "line": 188,
+      "text": "        .asciz \"BOOT not implemented\\n\""
+    },
+    {
+      "address": 61935,
+      "source": "rikmon.s",
+      "line": 188,
+      "text": "        .asciz \"BOOT not implemented\\n\""
+    },
+    {
+      "address": 61937,
+      "source": "rikmon.s",
+      "line": 188,
+      "text": "        .asciz \"BOOT not implemented\\n\""
+    },
+    {
+      "address": 61939,
+      "source": "rikmon.s",
+      "line": 188,
+      "text": "        .asciz \"BOOT not implemented\\n\""
+    },
+    {
+      "address": 61941,
+      "source": "rikmon.s",
+      "line": 188,
+      "text": "        .asciz \"BOOT not implemented\\n\""
+    },
+    {
+      "address": 61943,
+      "source": "rikmon.s",
+      "line": 188,
+      "text": "        .asciz \"BOOT not implemented\\n\""
+    },
+    {
+      "address": 61945,
+      "source": "rikmon.s",
+      "line": 188,
+      "text": "        .asciz \"BOOT not implemented\\n\""
+    },
+    {
+      "address": 61947,
+      "source": "rikmon.s",
+      "line": 188,
+      "text": "        .asciz \"BOOT not implemented\\n\""
+    },
+    {
+      "address": 61949,
+      "source": "rikmon.s",
+      "line": 188,
+      "text": "        .asciz \"BOOT not implemented\\n\""
+    },
+    {
+      "address": 61951,
+      "source": "rikmon.s",
+      "line": 188,
+      "text": "        .asciz \"BOOT not implemented\\n\""
+    },
+    {
+      "address": 61953,
+      "source": "rikmon.s",
+      "line": 188,
       "text": "        .asciz \"BOOT not implemented\\n\""
     },
     {
       "address": 65518,
       "source": "rikmon.s",
-      "line": 147,
+      "line": 191,
       "text": "        .word _irq1"
     },
     {
       "address": 65520,
       "source": "rikmon.s",
-      "line": 148,
+      "line": 192,
       "text": "        .word _irq2"
     },
     {
       "address": 65522,
       "source": "rikmon.s",
-      "line": 149,
+      "line": 193,
       "text": "        .word _irq3"
     },
     {
       "address": 65524,
       "source": "rikmon.s",
-      "line": 150,
+      "line": 194,
       "text": "        .word _irq4"
     },
     {
       "address": 65526,
       "source": "rikmon.s",
-      "line": 151,
+      "line": 195,
       "text": "        .word _irq5"
     },
     {
       "address": 65528,
       "source": "rikmon.s",
-      "line": 152,
+      "line": 196,
       "text": "        .word _irq6"
     },
     {
       "address": 65530,
       "source": "rikmon.s",
-      "line": 153,
+      "line": 197,
       "text": "        .word _irq7"
     },
     {
       "address": 65532,
       "source": "rikmon.s",
-      "line": 156,
+      "line": 200,
       "text": "        .word STACK_TOP"
     },
     {
       "address": 65534,
       "source": "rikmon.s",
-      "line": 157,
+      "line": 201,
       "text": "        .word _start"
     }
   ]

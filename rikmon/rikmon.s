@@ -5,6 +5,11 @@
 
 .org ROM_START
 
+; Temporary command-line storage in the top 256 bytes of RAM.  The first
+; version of read_line intentionally does not enforce INPUT_MAX yet.
+.equ INPUT_BUFFER, 0xEF00
+.equ INPUT_MAX,    63
+
 ;;; ;;;;;;;;; START HERE
 
 
@@ -15,6 +20,37 @@ read_char:
         and  r0,r0,#CONSOLE_RX_READY
         beq  read_char
         ld   r0,[a3-1]
+        ret
+
+; Read a line into the zero-terminated buffer at A2.
+;
+; A2 is advanced as characters are stored.  LF and CR both terminate the
+; line.  Ordinary characters are echoed and stored in RAM.  The caller's LR
+; is saved because this routine calls read_char with JAL.
+read_line:
+        push {lr}
+
+read_line_loop:
+        jal  read_char
+
+        li   r1,#0x0A
+        cmp  r0,r1
+        beq  read_line_done
+        li   r1,#0x0D
+        cmp  r0,r1
+        beq  read_line_done
+
+        st   r0,[a2]
+        st   r0,[a0]
+        ada  a2,#1
+        br   read_line_loop
+
+read_line_done:
+        li   r1,#0
+        st   r1,[a2]
+        li   r0,#0x0A
+        st   r0,[a0]
+        pop  {lr}
         ret
 
 print_msg:
@@ -59,9 +95,17 @@ _start:
         br show_prompt
 
 ; The command loop currently implements q (quit) and reserves b for the
-; future floppy boot command. Unknown commands are ignored.
+; future floppy boot command. Unknown lines are ignored.
 command_loop:
-        jal read_char
+        li  r1,#hi(INPUT_BUFFER)
+        li  r2,#lo(INPUT_BUFFER)
+        lda  a2,r1,r2
+        jal  read_line
+
+        li  r1,#hi(INPUT_BUFFER)
+        li  r2,#lo(INPUT_BUFFER)
+        lda  a1,r1,r2
+        ld   r0,[a1]
 
         li  r1,#'q'
         cmp r0,r1
