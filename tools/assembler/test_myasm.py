@@ -2,7 +2,7 @@ import tempfile, unittest
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).parent))
-from myasm import Assembler, AsmError, main
+from myasm import Assembler, AsmError, main, resolved_symbols
 
 def assemble(src):
     return Assembler("test.asm", src).assemble()
@@ -151,5 +151,43 @@ here:
         with self.assertRaisesRegex(AsmError,'duplicate register'): assemble('push {r0,r0}')
         self.assertEqual(assemble('push {r0,r2,lr}').bytes[0],0x15)
         self.assertEqual(assemble('pop {r0,r2,lr}').bytes[1],0xf0)
+
+    def test_gas_style_firmware_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            include = directory / 'myemulator.inc'
+            source = directory / 'test-rom.s'
+            include.write_text('''.equ ROM_START, 0xF100\n.equ STACK_TOP, 0xF000\n.equ RESET_VECTOR, 0xFFFE\n''')
+            source.write_text('''.include "myemulator.inc"\n.section .text\n.global reset\n.org ROM_START\nreset:\n    li r0,#'R'\n    br 1f\n    .byte 0xaa\n    .align 2\n1:\n    halt\n.section .rodata\nmessage:\n    .asciz "RIK\\x4dON\\r\\n"\n.org RESET_VECTOR\n.word reset\n.org 0xFFFC\n.word STACK_TOP\n''')
+            assembler = Assembler(str(source), source.read_text()).assemble()
+            self.assertEqual(assembler.symbols['reset'], 0xF100)
+            self.assertEqual(assembler.symbols['message'], 0xF108)
+            self.assertEqual(bytes(assembler.bytes[x] for x in range(0xF100, 0xF104)), b'\x52\x10\x01\x66')
+            self.assertEqual(bytes(assembler.bytes[x] for x in range(0xFFFC, 0x10000)), b'\x00\xf0\x00\xf1')
+            self.assertEqual(bytes(assembler.bytes[x] for x in range(0xF108, 0xF10f)), b'RIKMON\r')
+
+    def test_constants_expressions_local_labels_and_directives(self):
+        a = assemble('''.equ BASE, 0x20\n.set COUNT, 2\n.set COUNT, COUNT + 1\n.org BASE + 1\n.byte 1, 2\n.align 4\nstart:\n1: .byte . - start\n    br 1b\n.fill 2, 2, 0x1234\n.space 2, 0xaa\n.word . - start\n''')
+        self.assertEqual(resolved_symbols(a)['count'], 3)
+        self.assertEqual(a.bytes[0x21], 1)
+        self.assertEqual(a.bytes[0x22], 2)
+        self.assertEqual(a.bytes[0x24], 0)
+        self.assertEqual(a.bytes[0x25], 0xfe)
+        self.assertEqual(a.bytes[0x26], 0x66)
+        self.assertEqual(bytes(a.bytes[x] for x in range(0x27, 0x2b)), b'4\x12\x34\x12')
+        self.assertEqual(bytes(a.bytes[x] for x in range(0x2b, 0x2d)), b'\xaa\xaa')
+        self.assertEqual(bytes(a.bytes[x] for x in range(0x2d, 0x2f)), b'\x09\x00')
+
+    def test_include_search_and_symbol_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            include = directory / 'inc'; include.mkdir()
+            (include / 'defs.inc').write_text('.equ VALUE, 0x41\n')
+            source = directory / 'source.s'; source.write_text('.include "defs.inc"\n.global entry\n.org 0\nentry: .byte VALUE\n')
+            a = Assembler(str(source), source.read_text(), [include]).assemble()
+            self.assertEqual(a.bytes[0], 0x41)
+            self.assertEqual(a.symbols['entry'], 0)
+            with self.assertRaises(AsmError):
+                Assembler(str(source), '.include "source.s"\n').assemble()
 
 if __name__ == '__main__': unittest.main()

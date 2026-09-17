@@ -1,46 +1,138 @@
-# MyEmulator assembler manual
+# MyEmulator assembler language
 
-The assembler is invoked with `./tools/myasm program.asm -o program.bin`.
-Add `--listing program.lst` for a source listing and `--symbols` or
-`--symbol-file program.sym` for the symbol table. `--flat-64k` emits a complete
-64 KiB image; otherwise the raw binary runs from address zero through the last
-emitted byte. `.org` creates zero-filled gaps by default.
+`./tools/myasm program.s -o program.bin` produces a flat MyEmulator binary.
+The assembler is two-pass and uses a GNU-as-inspired source spelling, but it
+does not produce ELF objects or perform linking. `.org` is therefore the
+authoritative placement mechanism.
 
-Source is case-insensitive for mnemonics and registers. A semicolon starts a
-comment unless it is inside a double-quoted string. Labels use `name:` and
-constants use `name = expression`. The supported registers are R0-R3, A0-A3,
-LR, SP, PC, and S0. S0 is not a data-register operand; PC is not an MVA
-operand.
+## Invocation and images
 
-Numbers may be decimal, hexadecimal (`0x2a`), binary (`0b101010`), octal
-(`0o52`), or a character literal such as `'A'`; underscores are allowed.
-Expressions support symbols, `+`, `-`, parentheses, and `hi(x)`/`lo(x)`, with
-`#` used to mark immediate operands. Undefined symbols, overflow, and cyclic
-constants are errors.
+Useful options are:
 
-The confirmed current instruction forms are LD/ST with `[An+signed8]`, LI,
-immediate and register-form ADD/SUB/AND/OR/XOR/SHL/SHR, register CMP, JAL, BR/BEQ/BNE/BLT/BGE/BLTU/BGEU,
-LDA/GTA, MVA, ADA, GF/SF, PUSH/POP lists, RET, RTI, and HALT. Branches are
-resolved in two passes using the actual instruction-unit displacement formula.
-PUSH/POP accept R0-R3 and LR, reject duplicates, and emit the architectural
-mask without changing CPU transfer order.
+```text
+--firmware, --rom       emit the compact 0xF100-0xFFFF (3840-byte) ROM image
+--flat-64k              emit a complete 64 KiB flat image
+-I DIRECTORY            search DIRECTORY for .include files (repeatable)
+--listing FILE          write address/bytes/source listing
+--symbols               print symbols
+--symbol-file FILE      write symbols to FILE
+--debug-map FILE        write JSON source/debug metadata
+--fill BYTE             fill gaps (RAM defaults to 00, firmware to FF)
+```
 
-Directives are `.byte`, `.word`, `.ascii`, `.asciz`, and `.org`. Words are
-little-endian. Strings support `\n`, `\r`, `\t`, `\\`, `\"`, and `\0`.
-Output regions are checked for overlap. Use `--firmware` (or `--rom`) for a
-compact 3840-byte firmware image: all emitted data must lie in `0xf100-0xffff`,
-the output is padded with `0xff`, and debug-map addresses remain absolute.
-For ordinary RAM programs omit this option; `--flat-64k` remains available for
-legacy full-address-space test images. The `la` pseudo-instruction takes
-`la A0,#value,R2,R3` and expands deterministically to `LI R2,#hi(value)`,
-`LI R3,#lo(value)`, and architectural `LDA A0,R2,R3`; scratch registers are
-always explicit.
+For a firmware image:
 
-The register forms are destructive two-operand operations, for example
-`and r0,r1` means `r0 = r0 & r1`; immediate forms retain all 256 values, for
-example `and r0,r1,#0xff`. No historical
-assembler syntax or encoding workaround is used.
+```sh
+./tools/myasm -I include rikmon.s -o rikmon.bin --firmware \
+    --debug-map rikmon.debug.json
+```
 
-`--debug-map file.mdbg` writes JSON metadata for `mydebug`, including resolved
-symbols, source line locations for emitted bytes, and `image_type` (`ram` or
-`firmware`).
+The output contains bytes from guest address `0xF100`; it does not contain a
+64 KiB leading gap. Emitted firmware must remain within `0xF100-0xFFFF`.
+
+## Lexical syntax
+
+Mnemonics, registers and symbol references are case-insensitive. A semicolon
+starts a comment outside a quoted string. `#` is deliberately not a comment:
+it marks instruction immediates such as `li r0,#7`. Source files conventionally
+use `.s`.
+
+Labels can stand alone or precede an instruction/directive:
+
+```asm
+reset:  li r0,#'R'
+        jal print_banner
+print_banner:
+        halt
+```
+
+Numeric local labels may be reused. `1f` means the next `1:` and `1b` means the
+previous one.
+
+## Constants and expressions
+
+Use `.equ` for a constant which cannot be redefined and `.set` for a mutable
+assembly symbol. The old `NAME = expression` spelling remains a `.set`
+compatibility form.
+
+```asm
+.equ CONSOLE_BASE,   0xF010
+.equ CONSOLE_DATA,   CONSOLE_BASE
+.set COUNT, 1
+.set COUNT, COUNT + 1
+```
+
+Numbers can be decimal, `0x` hexadecimal, `0b` binary, or `0o` octal, with
+optional underscores. Expressions support symbols, the current address `.`,
+parentheses, `+ - * / % << >> & | ^ ~`, and `hi(expr)`/`lo(expr)`. Division is
+integer division truncated toward zero. Character constants are one byte:
+`'A'`, `'\n'`, `'\r'`, `'\t'`, `'\0'`, `'\\'`, `\'`, and `'\x41'`.
+
+## Sections and visibility
+
+`.section .text`, `.section .rodata`, `.section .data`, `.section .bss`, and
+the shorthand `.text`/`.data` are accepted as source-organisation annotations.
+They do not switch output buffers or move the location counter; use `.org`
+when placement matters. There is no linker.
+
+`.global` and `.globl` mark an exported symbol; `.local` records a local
+symbol. They do not change the flat binary. Symbol/debug output includes
+symbol kind and visibility metadata.
+
+## Data and layout directives
+
+| Directive | Meaning |
+|---|---|
+| `.org EXPR` | set the absolute location counter |
+| `.byte EXPR, ...` | emit 8-bit bytes |
+| `.word EXPR, ...` | emit little-endian 16-bit words |
+| `.ascii "..."` | emit bytes without a terminator |
+| `.asciz "..."` | emit bytes followed by zero |
+| `.space COUNT[, FILL]` | emit `COUNT` fill bytes, default zero |
+| `.fill COUNT, SIZE, VALUE` | repeat a little-endian `SIZE`-byte value |
+| `.align N` | pad to an address divisible by N |
+| `.balign N` | same unambiguous byte-boundary rule as `.align` |
+| `.include "file"` | include a source file |
+
+Strings support `\n`, `\r`, `\t`, `\0`, `\\`, `\"`, and `\xNN`. `.word` is
+little-endian. `.align 2` means byte-address alignment to a multiple of two,
+not a power-of-two exponent. Padding directives default to zero; firmware
+image gaps default to `0xFF` at output time.
+
+Include lookup tries the directory containing the including file first, then
+each `-I` directory. Recursive includes and missing files are errors with
+filename/line diagnostics.
+
+## Instructions
+
+The current MyEmulator 1.0 forms are:
+
+```text
+ld/st r,[a+disp8]       li r,#imm8
+add/sub/and/or/xor/shl/shr rd,rn,#imm8
+add/sub/and/or/xor/shl/shr rd,rn
+cmp rd,rn                jal label
+beq/bne/blt/bge/bltu/bgeu/br label
+lda an,rx,ry             gta rx,ry,an       mva dst,src
+ada an,#imm8             gf r                sf r
+push/pop {r0,r1,lr}     ret                rti                halt
+```
+
+The register ALU forms are destructive two-operand operations: `and r0,r1`
+means `r0 = r0 & r1`. Immediate forms retain all 256 values. The `la`
+pseudo-instruction remains `la an,#value,r_hi,r_lo` and expands to `LI`, `LI`,
+and `LDA` using the explicitly named scratch registers.
+
+Macros and conditional assembly are intentionally not implemented. Use
+`.include`, constants and ordinary labels for reusable firmware definitions.
+
+## Debug metadata and diagnostics
+
+`--debug-map` writes absolute source locations, resolved symbols, and symbol
+kind/visibility information for `mydebug` and the Emacs integration. Included
+source locations retain their source filename. Numeric local labels are used
+for resolution but are not exported as ordinary symbols.
+
+Errors are reported as `filename:line: explanation`, including undefined
+symbols, duplicate labels, illegal `.equ` redefinitions, bad operands,
+overflow, malformed strings, recursive includes, and firmware placement errors.
