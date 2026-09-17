@@ -42,4 +42,4 @@ meaning.
 
 No unresolved questions remain from this decision set. Future jump forms and
 expanded instruction groups require separate decisions. Plain `J`, `JALR`,
-`RET`, `CALL`, long immediates, and multiword instructions are not introduced.
+`CALL`, long immediates, and multiword instructions are not introduced.

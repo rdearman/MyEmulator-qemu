@@ -8,26 +8,24 @@ with 16-bit instruction handling and small CPU state. RX is the secondary
 reference for a modern translator loop and compact machine/image wiring.
 
 The repository overlay contains `target/myemulator` and `hw/myemulator`: a TCG
-CPU, QOM machine, 64 KiB RAM, raw `-kernel` loading, monitor register dump, and
-GDB register hooks. Fetch is explicit byte-addressed, two-byte little-endian
-decode. Reset reads little-endian vectors at `0xfffc` and `0xfffe`. `LI`,
-the immediate and extended register-register ALU families, register-to-register `CMP`, the six conditional plus one
-unconditional `0x6` branches, `JAL`, `RET`, address/status-register operations
-under `0x7`, displacement `LD`/`ST`,
-mask-based `PUSH`/`POP`, and `0xf080 HALT` are the current defined bring-up
-subset. The debugger exposes R0-R3 as 8-bit and A0-A3, LR, SP, and PC as 16-bit.
-Illegal encodings stop visibly.
+CPU, QOM machine, split RAM/MMIO/firmware-ROM map, raw `-kernel` development
+loading, external `-bios` firmware loading, native debugger control, and
+disassembly. Fetch is explicit byte-addressed, two-byte little-endian decode.
+Reset reads little-endian vectors at `0xfffc` and `0xfffe`. The current ISA
+includes LD/ST, LI, immediate and `0x77xx` register-register ALU operations,
+CMP, six conditional branches plus BR, JAL, LDA/GTA/MVA/ADA, GF/SF, PUSH/POP,
+RET, RTI, and HALT. Illegal encodings stop visibly.
 
-## Staged work
+## Historical implementation plan
 
-1. Add remaining CPU instructions and proper exceptions.
-2. Add differential tests and a corrected assembler/image tool.
-3. Add ROM/EPROM, console, storage, timers, and banking as their architecture
-   is specified.
-4. Boot machine software through the new image format.
+The original bring-up plan is retained here for historical context. ROM, console,
+floppy storage, assembler image tooling, interrupts, and the native debugger
+are now implemented; timers, banking, and broader exception handling remain
+future work.
 
-The initial milestone ends at `LI; ADD; HALT`, with `R0=0x05` visible through
-`info registers`. The GDB core-register order is R0-R3, A0-A3, LR, SP, PC, S0.
+The original `LI; ADD; HALT` milestone is retained as a regression test. The
+native debugger register order is R0-R3, A0-A3, LR, SP, PC, S0. Stock GDB is
+not the supported debugger for this fictional architecture.
 
 The target exposes IRQ1-IRQ7 as level-sensitive CPU inputs through
 `myemulator_cpu_set_irq()`. The `MYEMULATOR_IRQ_MASK` environment variable is

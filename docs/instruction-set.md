@@ -16,28 +16,29 @@ primary opcode is a four-bit group; unused encodings within groups are reserved.
 For data-register fields, `00=R0` through `11=R3`. Address-register fields use
 the same two-bit numbering, with `00=A0` through `11=A3`. Instructions occupy
 `PC` and `PC+1`; ordinary execution advances `PC` by 2. All 16-bit values use
-little endian byte order.
+little-endian byte order. A field named `Rd` or `Rn` selects an 8-bit data
+register; `An` selects a 16-bit address register.
 
 ## Primary opcode groups
 
 | Op | Group | Current definition |
 | --- | --- | --- |
-| 0 | LD | `Rd = mem8[A[n] + sign_extend(disp8)]` |
-| 1 | LI | `Rd = imm8` |
-| 2 | ST | `mem8[A[n] + sign_extend(disp8)] = Rd` |
-| 3 | ADD | `Rd = Rn + imm8` |
-| 4 | SUB | `Rd = Rn - imm8` |
-| 5 | JAL | `LR = P+2`; target is `P+2 + sign_extend(imm8)*2` |
+| 0 | LD | `0000 Rd An disp8`; `Rd = mem8[A[n] + sign_extend(disp8)]` |
+| 1 | LI | `0001 Rd imm8`; `Rd = imm8` |
+| 2 | ST | `0010 Rd An disp8`; `mem8[A[n] + sign_extend(disp8)] = Rd` |
+| 3 | ADD | `0011 Rd Rn imm8`; `Rd = Rn + imm8` |
+| 4 | SUB | `0100 Rd Rn imm8`; `Rd = Rn - imm8` |
+| 5 | JAL | `0101 disp8`; `LR = P+2`; target is `P+2 + sign_extend(imm8)*2` |
 | 6 | BRANCH | condition field: `0=BEQ`, `1=BNE`, `2=BLT`, `3=BGE`, `4=BLTU`, `5=BGEU`, `6=BR` |
 | 7 | ADDRESS | `LDA`, `GTA`, `MVA`, and `ADA`; unused subencodings reserved |
-| 8 | CMP | register-to-register subtraction for flags; result discarded |
-| 9 | AND | `Rd = Rn & imm8` |
-| A | OR | `Rd = Rn \| imm8` |
-| B | XOR | `Rd = Rn ^ imm8` |
-| C | SHL | `Rd = Rn << count` |
-| D | SHR | `Rd = Rn >> count` |
+| 8 | CMP | `1000 Rd Rn 00`; 8-bit subtraction for flags; result discarded |
+| 9 | AND | `1001 Rd Rn imm8`; `Rd = Rn & imm8` |
+| A | OR | `1010 Rd Rn imm8`; `Rd = Rn \| imm8` |
+| B | XOR | `1011 Rd Rn imm8`; `Rd = Rn ^ imm8` |
+| C | SHL | `1100 Rd Rn count8`; logical left shift |
+| D | SHR | `1101 Rd Rn count8`; logical right shift |
 | E | PUSH | register-mask form, bits 0..4 defined below |
-| F | POP / extensions | POP mask form; `0xf040` is RET, `0xf060` is RTI, and `0xf080` is HALT |
+| F | POP / system | `1111 0000 mask8` is POP for masks `0x00-0x1f`; `0xf040` is RET, `0xf060` is RTI, and `0xf080` is HALT |
 
 All sixteen values are groups, not a claim that each group has only one
 instruction. Reserved encodings must remain unused until assigned deliberately.
@@ -50,6 +51,11 @@ Selectors `7` through `f` are reserved.
 
 The immediate forms retain all 256 operand values. Their syntax is
 `op rd,rn,#imm8`; the register forms use `op rd,rn`.
+
+`LD` and `ST` use a signed displacement even though the encoded byte is not
+otherwise interpreted as signed. `LI`, the immediate ALU operations, and shift
+counts accept every unsigned byte value. `CMP` requires its low two operand
+bits to be zero; other encodings in the `0x8` group are reserved.
 
 ## PUSH and POP
 
@@ -127,11 +133,18 @@ both source and destination.
 Only R0-R3 are valid GF/SF operands; the other `0x76` encodings are reserved.
 All remaining `0x7` encodings are reserved.
 
+The `0x77xx` register ALU family is selected by sub-op `0x7` within this
+primary group; it is not an address-register operation.
+
 ## S0 and flag writes
 
 S0 is an 8-bit architectural register. Bit 0 is ZF, bit 1 is NF, bit 2 is
 CF, and bit 3 is OF. Bits 4..6 are the unsigned IPL field; bit 7 is reserved.
 SF/GF preserve and expose the complete byte. Reset sets S0 to `0x00`.
+
+Arithmetic and logical instructions update only the defined flag bits. IPL and
+reserved bit 7 are preserved by ordinary ALU flag updates. `SF` is the
+intentional mechanism for writing all eight S0 bits; bit 7 remains reserved.
 
 | Instruction | ZF | NF | CF | OF |
 | --- | --- | --- | --- | --- |
@@ -151,3 +164,18 @@ hardware interrupt frame and changes no other state.
 `0xf080` (`1111 0000 1000 0000`) is operand-free `halt`. QEMU stops the virtual
 CPU through its normal halt mechanism. The historical `jmp #0xff` convention is
 not architectural. `J` and `JALR` are not defined by this specification.
+
+## Complete current mnemonic set
+
+The assembler and QEMU disassembler currently define exactly these mnemonics:
+
+```text
+ld st li add sub and or xor shl shr cmp
+jal beq bne blt bge bltu bgeu br
+lda gta mva ada gf sf
+push pop ret rti halt
+```
+
+Assembler pseudo-operations are `.byte`, `.word`, `.ascii`, `.asciz`, `.org`,
+and `la`; they do not add guest instructions. Undefined or reserved encodings
+are illegal to execute and are printed by the disassembler as `.word 0xNNNN`.
