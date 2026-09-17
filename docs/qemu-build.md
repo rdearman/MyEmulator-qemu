@@ -25,6 +25,24 @@ From the repository root, run:
 qemu/tools/build-myemulator.sh --test
 ```
 
+The repository also provides a Makefile. The usual commands are:
+
+```sh
+make build   # clone/configure/build qemu-system-myemulator
+make test    # run the complete project test set
+```
+
+The resulting binary is:
+
+```text
+.qemu-build/qemu-system-myemulator
+```
+
+Useful focused targets are `make cpu-test`, `make debug-test`,
+`make device-test`, `make firmware-test`, `make assembler-test`, and
+`make emacs-test`. Use `make help` to list them. `make clean` removes only the
+generated `.qemu-build` directory; it deliberately retains `.qemu-upstream`.
+
 The test runner is given the newly built binary explicitly, so an unrelated
 system QEMU is never used. To rebuild in different locations:
 
@@ -32,6 +50,12 @@ system QEMU is never used. To rebuild in different locations:
 QEMU_SOURCE=/path/to/qemu \
 QEMU_BUILD=/path/to/qemu-build-myemulator \
 qemu/tools/build-myemulator.sh --test
+```
+
+The same overrides work with Make:
+
+```sh
+make QEMU_SOURCE=/path/to/qemu QEMU_BUILD=/path/to/qemu-build-myemulator build
 ```
 
 `QEMU_SOURCE` may point at an existing full checkout. The overlay application
