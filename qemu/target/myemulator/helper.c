@@ -7,6 +7,8 @@
 #include "exec/target_page.h"
 #include "exec/address-spaces.h"
 #include "exec/memory.h"
+#include "hw/myemulator/myemulator-debug.h"
+#include "sysemu/runstate.h"
 
 unsigned myemulator_cpu_highest_irq(CPUMyEmulatorState *env)
 {
@@ -141,6 +143,9 @@ void helper_halt(CPUMyEmulatorState *env)
     env->halted = true;
     cs->halted = 1;
     cs->exception_index = EXCP_HLT;
+    if (myemulator_debug_is_running()) {
+        qemu_system_debug_request();
+    }
     cpu_loop_exit(cs);
 }
 

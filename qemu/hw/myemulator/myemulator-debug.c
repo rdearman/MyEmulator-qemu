@@ -16,6 +16,17 @@
 extern QmpCommandList qmp_commands;
 
 static GHashTable *myemulator_debug_breakpoints;
+static bool myemulator_debug_running;
+
+void myemulator_debug_set_running(bool running)
+{
+    myemulator_debug_running = running;
+}
+
+bool myemulator_debug_is_running(void)
+{
+    return myemulator_debug_running;
+}
 
 static CPUState *myemulator_debug_cpu(void)
 {
@@ -180,6 +191,7 @@ static void myemulator_debug_qmp(QDict *args, QObject **ret, Error **errp)
         return;
     }
     if (!strcmp(op, "reset")) {
+        myemulator_debug_set_running(false);
         qemu_system_reset(SHUTDOWN_CAUSE_GUEST_RESET);
         cpu_reset(cpu);
         vm_stop(RUN_STATE_PAUSED);
@@ -239,18 +251,21 @@ static void myemulator_debug_qmp(QDict *args, QObject **ret, Error **errp)
         return;
     }
     if (!strcmp(op, "step")) {
+        myemulator_debug_set_running(false);
         cpu_single_step(cpu, SSTEP_ENABLE);
         vm_start();
         *ret = QOBJECT(qdict_new());
         return;
     }
     if (!strcmp(op, "continue")) {
+        myemulator_debug_set_running(true);
         cpu_single_step(cpu, 0);
         vm_start();
         *ret = QOBJECT(myemulator_debug_state(cpu));
         return;
     }
     if (!strcmp(op, "stop")) {
+        myemulator_debug_set_running(false);
         vm_stop(RUN_STATE_PAUSED);
         *ret = QOBJECT(myemulator_debug_state(cpu));
         return;
