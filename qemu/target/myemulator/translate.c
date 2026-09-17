@@ -95,6 +95,140 @@ static void gen_sub_flags(TCGv_i32 lhs, TCGv_i32 rhs, TCGv_i32 result)
     tcg_gen_deposit_i32(cpu_s0, cpu_s0, tmp, 3, 1);
 }
 
+static void gen_zn_flags(TCGv_i32 result)
+{
+    TCGv_i32 result8 = tcg_temp_new_i32();
+    TCGv_i32 flag = tcg_temp_new_i32();
+
+    tcg_gen_andi_i32(result8, result, 0xff);
+    tcg_gen_setcondi_i32(TCG_COND_EQ, flag, result8, 0);
+    tcg_gen_deposit_i32(cpu_s0, cpu_s0, flag, 0, 1);
+    tcg_gen_andi_i32(flag, result8, 0x80);
+    tcg_gen_setcondi_i32(TCG_COND_NE, flag, flag, 0);
+    tcg_gen_deposit_i32(cpu_s0, cpu_s0, flag, 1, 1);
+}
+
+static void gen_set_s0_bit(int bit, TCGv_i32 value);
+static TCGv_i32 gen_s0_bit(int bit);
+
+static void gen_logic_flags(TCGv_i32 result)
+{
+    tcg_gen_andi_i32(cpu_s0, cpu_s0, 0xf3);
+    gen_zn_flags(result);
+}
+
+static void gen_add_flags(TCGv_i32 lhs, TCGv_i32 rhs, TCGv_i32 result)
+{
+    TCGv_i32 tmp = tcg_temp_new_i32();
+    TCGv_i32 result8 = tcg_temp_new_i32();
+
+    tcg_gen_andi_i32(result8, result, 0xff);
+    tcg_gen_setcondi_i32(TCG_COND_EQ, tmp, result8, 0);
+    tcg_gen_deposit_i32(cpu_s0, cpu_s0, tmp, 0, 1);
+    tcg_gen_andi_i32(tmp, result8, 0x80);
+    tcg_gen_setcondi_i32(TCG_COND_NE, tmp, tmp, 0);
+    tcg_gen_deposit_i32(cpu_s0, cpu_s0, tmp, 1, 1);
+    tcg_gen_setcondi_i32(TCG_COND_GTU, tmp, result, 255);
+    tcg_gen_deposit_i32(cpu_s0, cpu_s0, tmp, 2, 1);
+
+    tcg_gen_xor_i32(tmp, lhs, rhs);
+    tcg_gen_xor_i32(result8, lhs, result8);
+    tcg_gen_and_i32(tmp, tmp, result8);
+    tcg_gen_andi_i32(tmp, tmp, 0x80);
+    tcg_gen_setcondi_i32(TCG_COND_NE, tmp, tmp, 0);
+    tcg_gen_deposit_i32(cpu_s0, cpu_s0, tmp, 3, 1);
+}
+
+static void gen_add_reg(TCGv_i32 dst, TCGv_i32 lhs, TCGv_i32 rhs)
+{
+    TCGv_i32 result = tcg_temp_new_i32();
+    TCGv_i32 lhs8 = tcg_temp_new_i32();
+    TCGv_i32 rhs8 = tcg_temp_new_i32();
+
+    tcg_gen_andi_i32(lhs8, lhs, 0xff);
+    tcg_gen_andi_i32(rhs8, rhs, 0xff);
+    tcg_gen_add_i32(result, lhs8, rhs8);
+    tcg_gen_andi_i32(dst, result, 0xff);
+    gen_add_flags(lhs8, rhs8, result);
+}
+
+static void gen_sub_reg(TCGv_i32 dst, TCGv_i32 lhs, TCGv_i32 rhs)
+{
+    TCGv_i32 result = tcg_temp_new_i32();
+    TCGv_i32 lhs8 = tcg_temp_new_i32();
+    TCGv_i32 rhs8 = tcg_temp_new_i32();
+
+    tcg_gen_andi_i32(lhs8, lhs, 0xff);
+    tcg_gen_andi_i32(rhs8, rhs, 0xff);
+    tcg_gen_sub_i32(result, lhs8, rhs8);
+    tcg_gen_andi_i32(dst, result, 0xff);
+    gen_sub_flags(lhs8, rhs8, result);
+}
+
+static void gen_logic_reg(TCGv_i32 dst, TCGv_i32 lhs, TCGv_i32 rhs,
+                          unsigned op)
+{
+    TCGv_i32 lhs8 = tcg_temp_new_i32();
+    TCGv_i32 rhs8 = tcg_temp_new_i32();
+
+    tcg_gen_andi_i32(lhs8, lhs, 0xff);
+    tcg_gen_andi_i32(rhs8, rhs, 0xff);
+    switch (op) {
+    case 0:
+        tcg_gen_and_i32(dst, lhs8, rhs8);
+        break;
+    case 1:
+        tcg_gen_or_i32(dst, lhs8, rhs8);
+        break;
+    default:
+        tcg_gen_xor_i32(dst, lhs8, rhs8);
+        break;
+    }
+    gen_logic_flags(dst);
+}
+
+static void gen_shift_reg(TCGv_i32 dst, TCGv_i32 lhs, TCGv_i32 count,
+                          bool left)
+{
+    TCGLabel *zero = gen_new_label();
+    TCGLabel *large = gen_new_label();
+    TCGLabel *done = gen_new_label();
+    TCGv_i32 value = tcg_temp_new_i32();
+    TCGv_i32 count8 = tcg_temp_new_i32();
+    TCGv_i32 carry = tcg_temp_new_i32();
+    TCGv_i32 shift = tcg_temp_new_i32();
+
+    tcg_gen_andi_i32(count8, count, 0xff);
+    tcg_gen_mov_i32(value, lhs);
+    tcg_gen_movi_i32(carry, 0);
+    tcg_gen_brcondi_i32(TCG_COND_EQ, count8, 0, zero);
+    tcg_gen_brcondi_i32(TCG_COND_GEU, count8, 8, large);
+    if (left) {
+        tcg_gen_shl_i32(value, lhs, count8);
+        tcg_gen_movi_i32(shift, 8);
+        tcg_gen_sub_i32(shift, shift, count8);
+    } else {
+        tcg_gen_shr_i32(value, lhs, count8);
+        tcg_gen_subi_i32(shift, count8, 1);
+    }
+    tcg_gen_shr_i32(carry, lhs, shift);
+    tcg_gen_andi_i32(carry, carry, 1);
+    tcg_gen_br(done);
+
+    gen_set_label(zero);
+    tcg_gen_mov_i32(carry, gen_s0_bit(2));
+    tcg_gen_br(done);
+
+    gen_set_label(large);
+    tcg_gen_movi_i32(value, 0);
+
+    gen_set_label(done);
+    tcg_gen_andi_i32(dst, value, 0xff);
+    tcg_gen_andi_i32(cpu_s0, cpu_s0, 0xf7);
+    gen_zn_flags(dst);
+    gen_set_s0_bit(2, carry);
+}
+
 static void gen_set_s0_bit(int bit, TCGv_i32 value)
 {
     tcg_gen_deposit_i32(cpu_s0, cpu_s0, value, bit, 1);
@@ -200,6 +334,29 @@ static void decode_and_translate(DisasContext *ctx)
         tcg_gen_andi_i32(cpu_r[rd], tmp, 0xff);
         gen_next_pc(ctx);
         }
+        break;
+    case 0x9: /* AND immediate. */
+        tcg_gen_andi_i32(cpu_r[rd], cpu_r[rn], imm);
+        gen_logic_flags(cpu_r[rd]);
+        gen_next_pc(ctx);
+        break;
+    case 0xa: /* OR immediate. */
+        tcg_gen_ori_i32(cpu_r[rd], cpu_r[rn], imm);
+        gen_logic_flags(cpu_r[rd]);
+        gen_next_pc(ctx);
+        break;
+    case 0xb: /* XOR immediate. */
+        tcg_gen_xori_i32(cpu_r[rd], cpu_r[rn], imm);
+        gen_logic_flags(cpu_r[rd]);
+        gen_next_pc(ctx);
+        break;
+    case 0xc: /* SHL immediate. */
+        gen_shift_reg(cpu_r[rd], cpu_r[rn], tcg_constant_i32(imm), true);
+        gen_next_pc(ctx);
+        break;
+    case 0xd: /* SHR immediate. */
+        gen_shift_reg(cpu_r[rd], cpu_r[rn], tcg_constant_i32(imm), false);
+        gen_next_pc(ctx);
         break;
     case 0x8: /* CMP register-to-register; result is discarded. */
         {
@@ -322,6 +479,46 @@ static void decode_and_translate(DisasContext *ctx)
         break;
     case 0x7: /* Address-register operation family. */
         switch (extract32(insn, 8, 4)) {
+        case 0x7: /* Extended ALU register-register family: 0x77oo. */
+            {
+                unsigned alu = extract32(insn, 4, 4);
+                unsigned alu_rd = extract32(insn, 2, 2);
+                unsigned alu_rn = extract32(insn, 0, 2);
+
+                switch (alu) {
+                case 0x0:
+                    gen_add_reg(cpu_r[alu_rd], cpu_r[alu_rd],
+                                cpu_r[alu_rn]);
+                    break;
+                case 0x1:
+                    gen_sub_reg(cpu_r[alu_rd], cpu_r[alu_rd],
+                                cpu_r[alu_rn]);
+                    break;
+                case 0x2:
+                case 0x3:
+                case 0x4:
+                    gen_logic_reg(cpu_r[alu_rd], cpu_r[alu_rd],
+                                  cpu_r[alu_rn], alu - 0x2);
+                    break;
+                case 0x5:
+                    gen_shift_reg(cpu_r[alu_rd], cpu_r[alu_rd],
+                                  cpu_r[alu_rn], true);
+                    break;
+                case 0x6:
+                    gen_shift_reg(cpu_r[alu_rd], cpu_r[alu_rd],
+                                  cpu_r[alu_rn], false);
+                    break;
+                default:
+                    tcg_gen_movi_i32(cpu_pc, ctx->base.pc_next);
+                    gen_helper_illegal(tcg_env);
+                    ctx->base.is_jmp = DISAS_NORETURN;
+                    break;
+                }
+                if (alu <= 0x6) {
+                    gen_next_pc(ctx);
+                }
+            }
+            break;
         case 0x0: case 0x4: case 0x8: case 0xc: /* ADA */
             tcg_gen_addi_i32(cpu_a[extract32(insn, 10, 2)],
                              cpu_a[extract32(insn, 10, 2)], (int8_t)imm);

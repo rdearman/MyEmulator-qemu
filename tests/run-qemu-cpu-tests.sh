@@ -164,6 +164,17 @@ run_image high-memory ab184310741404710028000c80f0 \
 run_image address-wrap 10101004047101707f70ff70807080f0 \
     'A0: 0x0fff'
 
+run_image alu-immediate 0f10f014009180a1ffb180f0 \
+    'R0: 0x0f.*S0: 0x00.*FLAGS: ZF=0 NF=0 OF=0 CF=0'
+run_image alu-register 0f10f014217731774177017711775177617780f0 \
+    'R0: 0x00.*S0: 0x01.*FLAGS: ZF=1 NF=0 OF=0 CF=0'
+run_image shift-zero-preserves-cf 811001c000d080f0 \
+    'R0: 0x02.*FLAGS: ZF=0 NF=0 OF=0 CF=1'
+run_image shift-large-count ff1008c080f0 \
+    'R0: 0x00.*FLAGS: ZF=1 NF=0 OF=0 CF=0'
+run_image shift-register-count 01100814517780f0 \
+    'R0: 0x00.*FLAGS: ZF=1 NF=0 OF=0 CF=0'
+
 run_image s0-gf-sf a5100176001404760576001808760976001c0c760d76007680f0 \
     'R0: 0xa5.*R1: 0xa5.*R2: 0xa5.*R3: 0xa5.*S0: 0xa5.*FLAGS: ZF=1 NF=0 OF=0 CF=1'
 run_image sf-flags 0f10017680f0 \

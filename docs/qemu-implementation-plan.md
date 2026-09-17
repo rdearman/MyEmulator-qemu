@@ -11,7 +11,7 @@ The repository overlay contains `target/myemulator` and `hw/myemulator`: a TCG
 CPU, QOM machine, 64 KiB RAM, raw `-kernel` loading, monitor register dump, and
 GDB register hooks. Fetch is explicit byte-addressed, two-byte little-endian
 decode. Reset reads little-endian vectors at `0xfffc` and `0xfffe`. `LI`,
-immediate `ADD`, register-to-register `CMP`, the six conditional plus one
+the immediate and extended register-register ALU families, register-to-register `CMP`, the six conditional plus one
 unconditional `0x6` branches, `JAL`, `RET`, address/status-register operations
 under `0x7`, displacement `LD`/`ST`,
 mask-based `PUSH`/`POP`, and `0xf080 HALT` are the current defined bring-up

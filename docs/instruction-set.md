@@ -25,22 +25,31 @@ little endian byte order.
 | 0 | LD | `Rd = mem8[A[n] + sign_extend(disp8)]` |
 | 1 | LI | `Rd = imm8` |
 | 2 | ST | `mem8[A[n] + sign_extend(disp8)] = Rd` |
-| 3 | ADD | immediate arithmetic form used for bring-up |
-| 4 | SUB | reserved for cleaned-up subtract definition |
+| 3 | ADD | `Rd = Rn + imm8` |
+| 4 | SUB | `Rd = Rn - imm8` |
 | 5 | JAL | `LR = P+2`; target is `P+2 + sign_extend(imm8)*2` |
 | 6 | BRANCH | condition field: `0=BEQ`, `1=BNE`, `2=BLT`, `3=BGE`, `4=BLTU`, `5=BGEU`, `6=BR` |
 | 7 | ADDRESS | `LDA`, `GTA`, `MVA`, and `ADA`; unused subencodings reserved |
 | 8 | CMP | register-to-register subtraction for flags; result discarded |
-| 9 | AND | reserved until destination/operand form is specified |
-| A | OR | reserved until destination/operand form is specified |
-| B | XOR | reserved until destination/operand form is specified |
-| C | SHL | reserved until shift encoding is specified |
-| D | SHR | reserved until shift encoding is specified |
+| 9 | AND | `Rd = Rn & imm8` |
+| A | OR | `Rd = Rn \| imm8` |
+| B | XOR | `Rd = Rn ^ imm8` |
+| C | SHL | `Rd = Rn << count` |
+| D | SHR | `Rd = Rn >> count` |
 | E | PUSH | register-mask form, bits 0..4 defined below |
 | F | POP / extensions | POP mask form; `0xf040` is RET, `0xf060` is RTI, and `0xf080` is HALT |
 
 All sixteen values are groups, not a claim that each group has only one
 instruction. Reserved encodings must remain unused until assigned deliberately.
+
+The `0x77xx` subgroup is the extended register-register ALU family. Its low
+byte is `oooo dd nn`: `oooo` selects the operation and `dd`/`nn` select R0-R3.
+Selectors `0=ADD`, `1=SUB`, `2=AND`, `3=OR`, `4=XOR`, `5=SHL`, and `6=SHR`.
+These are destructive two-operand forms: `add rd,rn` computes `rd = rd + rn`.
+Selectors `7` through `f` are reserved.
+
+The immediate forms retain all 256 operand values. Their syntax is
+`op rd,rn,#imm8`; the register forms use `op rd,rn`.
 
 ## PUSH and POP
 
@@ -56,6 +65,19 @@ transfers two bytes little-endian (low byte first on PUSH). POP processes
 selected registers in reverse order (`LR` through `R0`), reading at `SP` then
 incrementing it; LR reconstructs its high byte followed by its low byte.
 Bit 7 is not a syscall selector; historical POP/syscall use is excluded.
+
+## ALU operations
+
+ADD, SUB, AND, OR, XOR, SHL, and SHR all operate on 8-bit data registers.
+Immediate forms compute `Rd = Rn op imm8`. Register forms in `0x77xx` compute
+`Rd = Rd op Rn`.
+
+ADD and SUB use the arithmetic flag rules below. AND, OR, and XOR recompute ZF
+and NF and clear CF and OF. SHL and SHR are logical shifts. An immediate or
+register shift count of 0 leaves the value unchanged and preserves CF. Counts
+from 1 through 7 shift normally and set CF to the last bit shifted out. Counts
+of 8 or greater produce zero and set CF to zero. Shifts recompute ZF and NF and
+clear OF.
 
 ## CMP and flags
 
@@ -116,6 +138,8 @@ SF/GF preserve and expose the complete byte. Reset sets S0 to `0x00`.
 | `ADD` | result is zero | result bit 7 | unsigned carry | signed 8-bit addition overflow |
 | `SUB` | result is zero | result bit 7 | no borrow (`lhs >= rhs`) | signed 8-bit subtraction overflow |
 | `CMP` | result is zero | result bit 7 | no borrow (`rA >= rB`) | signed 8-bit subtraction overflow |
+| `AND`, `OR`, `XOR` | result is zero | result bit 7 | cleared | cleared |
+| `SHL`, `SHR` | result is zero | result bit 7 | shifted-out bit, or preserved/zero as specified above | cleared |
 | `LD`, `LI`, `ST`, `LDA`, `GTA`, `MVA`, `ADA`, `GF`, `PUSH`, `POP`, branches, `JAL`, `RET`, `HALT` | unchanged | unchanged | unchanged | unchanged |
 | `SF` | writes S0 bit 0 | writes S0 bit 1 | writes S0 bit 2 | writes S0 bit 3 |
 

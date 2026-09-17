@@ -18,6 +18,7 @@ behaviour, then accidental quirks and bugs.
 | PUSH/POP mask | ARCHITECTURAL | Bits 0..4 select `R0`, `R1`, `R2`, `R3`, `LR`; only selected registers transfer. |
 | PUSH/POP order | ARCHITECTURAL | PUSH processes selected registers `R0` through `LR`; POP processes them in reverse. R0-R3 transfer one byte; LR transfers two little-endian bytes. PUSH pre-decrements before each byte store; POP reads then post-increments after each byte. |
 | CMP | ARCHITECTURAL | `CMP rA,rB` performs 8-bit `rA-rB`, discards the result, and sets `ZF`, `NF`, `CF` (no borrow), and signed-subtraction `OF`. |
+| Ordinary ALU | ARCHITECTURAL | ADD/SUB/AND/OR/XOR/SHL/SHR have full-range immediate forms on primary opcodes `0x3`, `0x4`, and `0x9-0xd`; destructive register-register forms use `0x77oo`, with operation selectors 0-6. Zero-count shifts preserve CF. |
 | Conditional/unconditional branches | ARCHITECTURAL | Opcode `0x6` uses condition bits 11..8: `0=BEQ`, `1=BNE`, `2=BLT`, `3=BGE`, `4=BLTU`, `5=BGEU`, `6=BR`; all use signed 8-bit PC-relative instruction-unit displacements. |
 | Opcode `0x7` | ARCHITECTURAL | Address/status-operation family containing `LDA`, `GTA`, `MVA`, `ADA`, `GF`, and `SF`; unused subencodings remain reserved. |
 | JAL | ARCHITECTURAL | Primary opcode `0x5`; writes `LR=P+2` and branches with the same signed PC-relative displacement. |

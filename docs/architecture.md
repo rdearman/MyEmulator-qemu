@@ -48,10 +48,14 @@ register-to-register comparison which updates all four S0 flag bits without
 storing a result. See [architecture-decisions.md](architecture-decisions.md)
 for details.
 
-`ADD`, `SUB`, and `CMP` update the S0 condition bits. `CMP` updates all four;
-`LD`, `LI`, `ST`, `LDA`, `GTA`, `MVA`, `ADA`, `PUSH`, `POP`, branches, `JAL`,
-and `HALT` leave them unchanged. `CF` for subtraction and comparison means no
-borrow. `RET` sets `PC=LR`.
+`ADD`, `SUB`, and `CMP` update the S0 condition bits. `CMP` updates all four.
+The immediate ALU forms use opcodes `0x3`, `0x4`, and `0x9-0xd`; destructive
+register-register forms use `0x77xx`. AND/OR/XOR recompute ZF/NF and clear
+CF/OF. SHL/SHR are logical, preserve CF for count zero, report the last bit
+shifted out for counts 1-7, and produce zero with CF clear for counts 8 and
+above. `LD`, `LI`, `ST`, `LDA`, `GTA`, `MVA`, `ADA`, `PUSH`, `POP`, branches,
+`JAL`, and `HALT` leave flags unchanged. `CF` for subtraction and comparison
+means no borrow. `RET` sets `PC=LR`.
 
 ## Hardware interrupts
 
