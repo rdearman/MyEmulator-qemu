@@ -51,6 +51,20 @@ start: li r0,#1
             subprocess.run([str(assembler), str(output_file), "-o", str(binary)], check=True)
             self.assertEqual(binary.read_bytes(), bytes((1, 0x10, 2, 0x30, 0x80, 0xF0)))
 
+    def test_preserves_multiline_block_comments(self):
+        source = '''/* firmware notes
+   keep this block intact
+*/
+.org 0
+halt
+'''
+        self.assertEqual(MODULE.format_source(source), '''/* firmware notes
+   keep this block intact
+*/
+.org 0
+\thalt
+''')
+
 
 if __name__ == "__main__":
     unittest.main()

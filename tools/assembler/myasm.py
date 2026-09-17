@@ -46,6 +46,63 @@ def no_comment(s):
     return s
 
 
+def strip_block_comments(text, filename):
+    """Blank C-style block comments while preserving newlines and literals."""
+    output = []
+    in_comment = False
+    comment_line = 1
+    quote = None
+    escaped = False
+    line = 1
+    index = 0
+    while index < len(text):
+        char = text[index]
+        next_char = text[index + 1] if index + 1 < len(text) else ""
+        if in_comment:
+            if char == '*' and next_char == '/':
+                output.extend((' ', ' '))
+                index += 2
+                in_comment = False
+                continue
+            if char == '\n':
+                output.append(char)
+                line += 1
+            else:
+                output.append(' ')
+            index += 1
+            continue
+        if quote:
+            output.append(char)
+            if escaped:
+                escaped = False
+            elif char == '\\':
+                escaped = True
+            elif char == quote:
+                quote = None
+            if char == '\n':
+                line += 1
+            index += 1
+            continue
+        if char in ('"', "'"):
+            quote = char
+            output.append(char)
+            index += 1
+            continue
+        if char == '/' and next_char == '*':
+            output.extend((' ', ' '))
+            index += 2
+            in_comment = True
+            comment_line = line
+            continue
+        output.append(char)
+        if char == '\n':
+            line += 1
+        index += 1
+    if in_comment:
+        raise AsmError("unterminated block comment", comment_line, filename)
+    return ''.join(output)
+
+
 def split_args(s):
     out, start, depth, quoted, esc = [], 0, 0, False, False
     for i, c in enumerate(s):
@@ -235,6 +292,7 @@ class Assembler:
     def err(self, msg, n, filename=None): raise AsmError(msg, n, filename or self.filename)
 
     def expand_includes(self, filename, text, stack):
+        text = strip_block_comments(text, str(filename))
         canonical = filename.resolve()
         if canonical in stack: raise AsmError("recursive include detected", None, str(filename))
         result, next_stack = [], stack + (canonical,)

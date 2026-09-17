@@ -190,4 +190,18 @@ here:
             with self.assertRaises(AsmError):
                 Assembler(str(source), '.include "source.s"\n').assemble()
 
+    def test_multiline_block_comments_preserve_line_numbers(self):
+        a = assemble('''/* comment before the program\n                         with an instruction-looking line: halt\n                      */\n.org 0\nli r0,#1 /* inline\n             comment */\nhalt\n''')
+        self.assertEqual(bytes(a.bytes[x] for x in range(4)), b'\x01\x10\x80\xf0')
+        self.assertEqual(a.sources[5].line, 6)
+
+    def test_comment_markers_inside_literals_are_data(self):
+        a = assemble('''.byte '/', '*', '/'\n.asciz "/* not a comment */"\n''')
+        self.assertEqual(bytes(a.bytes[x] for x in range(3)), b'/*/')
+        self.assertEqual(bytes(a.bytes[x] for x in range(3, 23)), b'/* not a comment */\0')
+
+    def test_unterminated_block_comment_is_diagnostic(self):
+        with self.assertRaisesRegex(AsmError, 'unterminated block comment'):
+            assemble('li r0,#1\n/* missing end\n')
+
 if __name__ == '__main__': unittest.main()

@@ -33,9 +33,10 @@ The output contains bytes from guest address `0xF100`; it does not contain a
 ## Lexical syntax
 
 Mnemonics, registers and symbol references are case-insensitive. A semicolon
-starts a comment outside a quoted string. `#` is deliberately not a comment:
-it marks instruction immediates such as `li r0,#7`. Source files conventionally
-use `.s`.
+starts a single-line comment outside a quoted string. C-style block comments
+`/* ... */` may span lines. `#` is deliberately not a comment: it marks
+instruction immediates such as `li r0,#7`. Source files conventionally use
+`.s`.
 
 Labels can stand alone or precede an instruction/directive:
 

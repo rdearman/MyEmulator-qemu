@@ -34,6 +34,27 @@ def split_comment(line: str) -> tuple[str, str]:
     return line.rstrip(), ""
 
 
+def has_block_comment_marker(line: str) -> bool:
+    """Return whether /* or */ appears outside a quoted literal."""
+    quote = None
+    escaped = False
+    for index, char in enumerate(line):
+        if quote:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            continue
+        if char in ('"', "'"):
+            quote = char
+            continue
+        if line[index:index + 2] in ("/*", "*/"):
+            return True
+    return False
+
+
 def format_code(code: str) -> str:
     """Format one comment-free source line."""
     code = code.strip()
@@ -57,10 +78,18 @@ def format_code(code: str) -> str:
 def format_source(text: str) -> str:
     """Return formatted MyEmulator assembly, always ending in one newline."""
     output = []
+    in_block_comment = False
     for raw_line in text.splitlines():
         stripped = raw_line.strip()
         if not stripped:
             output.append("")
+            continue
+        if in_block_comment or has_block_comment_marker(raw_line):
+            output.append(raw_line.rstrip())
+            if "*/" in raw_line and in_block_comment:
+                in_block_comment = False
+            elif "/*" in raw_line and "*/" not in raw_line:
+                in_block_comment = True
             continue
         if stripped.startswith(';'):
             output.append(stripped)
