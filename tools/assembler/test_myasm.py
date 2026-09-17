@@ -80,7 +80,7 @@ xor r1,r0
 shl r3,r2
 shr r0,r3
 cmp r0,r2
-jal here
+bl here
 beq here
 bne here
 blt here
@@ -90,6 +90,8 @@ bgeu here
 br here
 lda a0,r0,r1
 gta r2,r3,a0
+ja a0
+jla a3
 mva lr,sp
 ada a3,#-5
 gf r2
@@ -101,9 +103,9 @@ rti
 halt
 here:
 ''')
-        self.assertEqual(len(a.bytes), 37*2)
+        self.assertEqual(len(a.bytes), 39*2)
         self.assertEqual(a.bytes[0], 0xff)
-        self.assertEqual(a.bytes[37*2-2], 0x80)
+        self.assertEqual(a.bytes[39*2-2], 0x80)
 
     def test_literals_constants_expressions_and_strings(self):
         a=assemble("""COUNT = 2\nX = 0x4300 + 0x72\n.org 0x20\n.byte 42, 0x2A, 0b0010_1010, 0o52, 'A'\n.word X\n.ascii \"a\\n\\\";b\"\n.asciz \"z\"\n""")
@@ -120,10 +122,10 @@ here:
                 self.assertIn(text,e.exception.message)
 
     def test_branch_limits_and_all_conditions(self):
-        for mnemonic in ('br','beq','bne','blt','bge','bltu','bgeu','jal'):
+        for mnemonic in ('br','beq','bne','blt','bge','bltu','bgeu','bl'):
             with self.subTest(mnemonic=mnemonic):
                 self.assertEqual(len(assemble(f'{mnemonic} near\nnear: halt').bytes),4)
-                self.assertEqual(assemble(f'{mnemonic} far\n.org 0x100\nfar: halt').bytes.get(0), 0x7f if mnemonic != 'jal' else 0x7f)
+                self.assertEqual(assemble(f'{mnemonic} far\n.org 0x100\nfar: halt').bytes.get(0), 0x7f if mnemonic != 'bl' else 0x7f)
         self.assertEqual(assemble('.org 0x100\nbr back\n.org 0x2\nback: halt').bytes[0x100], 0x80)
 
     def test_register_variants_and_mva_set(self):
@@ -152,6 +154,17 @@ here:
         for op in ('add','and','or','xor','shl','shr'):
             with self.assertRaisesRegex(AsmError,'expects 3 operands|valid data register'):
                 assemble(f'{op} r0,#1')
+
+    def test_indirect_control_transfer_encodings_and_operands(self):
+        for mnemonic in ('ja', 'jla'):
+            for index in range(4):
+                word = 0x7500 | (index << 6) | (mnemonic == 'jla')
+                data = bytes(assemble(f'{mnemonic} a{index}').bytes[i]
+                             for i in range(2))
+                self.assertEqual(data, bytes((word & 0xff, word >> 8)))
+            for operand in ('r0', 'lr', 'sp'):
+                with self.assertRaisesRegex(AsmError, 'valid address register'):
+                    assemble(f'{mnemonic} {operand}')
 
     def test_all_immediate_values_are_representable(self):
         for op in ('add', 'sub', 'and', 'or', 'xor', 'shl', 'shr'):

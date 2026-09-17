@@ -9,6 +9,7 @@ MyEmulator has a 16-bit byte address bus and an 8-bit data bus.
 | `0xf010-0xf01f` | MyEmulator console MMIO | device |
 | `0xf020-0xf0ff` | Reserved future MMIO | unmapped/reserved |
 | `0xf100-0xffff` | External firmware ROM | read-only |
+| `0xffec-0xffed` | Instruction-alignment exception vector | architectural |
 | `0xffee-0xffef` | IRQ1 vector | architectural |
 | `0xfff0-0xfff1` | IRQ2 vector | architectural |
 | `0xfff2-0xfff3` | IRQ3 vector | architectural |
@@ -29,7 +30,8 @@ order is reverse mask order.
 
 Reset vectors and all future 16-bit values are little endian. Firmware is an
 external binary loaded at `0xf100`, padded to 3840 bytes with `0xff`; its final
-18 bytes contain the seven IRQ vectors, initial SP, and reset PC. The vectors
+20 bytes contain the alignment vector, seven IRQ vectors, initial SP, and reset
+PC. The vectors
 are therefore physically in ROM and are never manufactured in writable RAM.
 Writes to the ROM are ignored by the memory-region implementation. A floppy
 or console attachment does not alter reset vectors or reset PC.

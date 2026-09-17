@@ -1,5 +1,5 @@
-; JAL writes LR; RET returns to the instruction after the call.
-jal twice
+; BL writes LR; RET returns to the instruction after the call.
+bl twice
 halt
 twice:
 li r0,#2

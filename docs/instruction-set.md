@@ -28,9 +28,9 @@ register; `An` selects a 16-bit address register.
 | 2 | ST | `0010 Rd An disp8`; `mem8[A[n] + sign_extend(disp8)] = Rd` |
 | 3 | ADD | `0011 Rd Rn imm8`; `Rd = Rn + imm8` |
 | 4 | SUB | `0100 Rd Rn imm8`; `Rd = Rn - imm8` |
-| 5 | JAL | `0101 disp8`; `LR = P+2`; target is `P+2 + sign_extend(imm8)*2` |
+| 5 | BL | `0101 disp8`; `LR = P+2`; target is `P+2 + sign_extend(imm8)*2` |
 | 6 | BRANCH | condition field: `0=BEQ`, `1=BNE`, `2=BLT`, `3=BGE`, `4=BLTU`, `5=BGEU`, `6=BR` |
-| 7 | ADDRESS | `LDA`, `GTA`, `MVA`, and `ADA`; unused subencodings reserved |
+| 7 | ADDRESS | `ADA`, `LDA`, `GTA`, `MVA`, `JA`, `JLA`, `GF`, and `SF`; unused subencodings reserved |
 | 8 | CMP | `1000 Rd Rn 00`; 8-bit subtraction for flags; result discarded |
 | 9 | AND | `1001 Rd Rn imm8`; `Rd = Rn & imm8` |
 | A | OR | `1010 Rd Rn imm8`; `Rd = Rn \| imm8` |
@@ -48,6 +48,12 @@ byte is `oooo dd nn`: `oooo` selects the operation and `dd`/`nn` select R0-R3.
 Selectors `0=ADD`, `1=SUB`, `2=AND`, `3=OR`, `4=XOR`, `5=SHL`, and `6=SHR`.
 These are destructive two-operand forms: `add rd,rn` computes `rd = rd + rn`.
 Selectors `7` through `f` are reserved.
+
+The free low sub-encodings of the `0x75` address-family subgroup define
+indirect control transfers. `JA An` is `0x7500 | (An << 6)` and `JLA An` is
+`0x7500 | (An << 6) | 1`; all other low six-bit values are reserved. JA loads
+PC from An without changing LR or S0. JLA also writes LR with the following
+instruction address, but otherwise leaves S0 unchanged.
 
 The immediate forms retain all 256 operand values. Their syntax is
 `op rd,rn,#imm8`; the register forms use `op rd,rn`.
@@ -153,7 +159,7 @@ intentional mechanism for writing all eight S0 bits; bit 7 remains reserved.
 | `CMP` | result is zero | result bit 7 | no borrow (`rA >= rB`) | signed 8-bit subtraction overflow |
 | `AND`, `OR`, `XOR` | result is zero | result bit 7 | cleared | cleared |
 | `SHL`, `SHR` | result is zero | result bit 7 | shifted-out bit, or preserved/zero as specified above | cleared |
-| `LD`, `LI`, `ST`, `LDA`, `GTA`, `MVA`, `ADA`, `GF`, `PUSH`, `POP`, branches, `JAL`, `RET`, `HALT` | unchanged | unchanged | unchanged | unchanged |
+| `LD`, `LI`, `ST`, `LDA`, `GTA`, `MVA`, `ADA`, `GF`, `PUSH`, `POP`, branches, `BL`, `RET`, `HALT` | unchanged | unchanged | unchanged | unchanged |
 | `SF` | writes S0 bit 0 | writes S0 bit 1 | writes S0 bit 2 | writes S0 bit 3 |
 
 ## HALT
@@ -161,9 +167,17 @@ intentional mechanism for writing all eight S0 bits; bit 7 remains reserved.
 `0xf040` is operand-free `ret`; it sets `PC = LR` and changes no other state.
 `0xf060` is operand-free `rti`; it restores the saved S0 and PC from the
 hardware interrupt frame and changes no other state.
+Instruction addresses are even. An odd target from JA, JLA, or RET raises the
+synchronous instruction-alignment exception through vector `0xffec-0xffed`.
+The faulting instruction PC and S0 are saved in the normal descending frame:
+PC low at `SP-1`, PC high at `SP-2`, and S0 at `SP-3`; RTI restores it. The
+live S0/IPL is unchanged by this exception. An odd PC found in an RTI frame
+raises the same exception for the RTI instruction before that frame is
+consumed, allowing a handler to repair the saved state. An odd reset/vector
+target halts the CPU deterministically rather than causing recursive entry.
 `0xf080` (`1111 0000 1000 0000`) is operand-free `halt`. QEMU stops the virtual
 CPU through its normal halt mechanism. The historical `jmp #0xff` convention is
-not architectural. `J` and `JALR` are not defined by this specification.
+not architectural. `J` is not defined by this specification.
 
 ## Complete current mnemonic set
 
@@ -171,7 +185,7 @@ The assembler and QEMU disassembler currently define exactly these mnemonics:
 
 ```text
 ld st li add sub and or xor shl shr cmp
-jal beq bne blt bge bltu bgeu br
+bl beq bne blt bge bltu bgeu br
 lda gta mva ada gf sf
 push pop ret rti halt
 ```

@@ -167,6 +167,12 @@ static void myemulator_machine_init(MachineState *machine)
         &address_space_memory, 0xfffc, MEMTXATTRS_UNSPECIFIED, NULL);
     cpu_env(CPU(s->cpu))->pc = address_space_lduw_le(
         &address_space_memory, 0xfffe, MEMTXATTRS_UNSPECIFIED, NULL);
+    if (cpu_env(CPU(s->cpu))->pc & 1) {
+        error_report("MyEmulator reset PC vector is odd: 0x%04x; CPU halted",
+                     cpu_env(CPU(s->cpu))->pc & 0xffff);
+        cpu_env(CPU(s->cpu))->halted = true;
+        CPU(s->cpu)->halted = 1;
+    }
 
     cpu_resume(CPU(s->cpu));
 

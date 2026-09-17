@@ -752,7 +752,7 @@
 (defvar myemulator-asm-font-lock
   `(("^[[:space:]]*\\([[:alnum:]_.$]+\\):" 1 font-lock-function-name-face)
     ("\\_<\\(r[0-3]\\|a[0-3]\\|lr\\|sp\\|pc\\|s0\\)\\_>" . font-lock-variable-name-face)
-    ("\\_<\\(li\\|ld\\|st\\|add\\|sub\\|and\\|or\\|xor\\|shl\\|shr\\|cmp\\|jal\\|br\\|beq\\|bne\\|blt\\|bge\\|bltu\\|bgeu\\|mva\\|lda\\|gta\\|ada\\|push\\|pop\\|gf\\|sf\\|ret\\|rti\\|halt\\)\\_>" . font-lock-keyword-face)
+    ("\\_<\\(li\\|ld\\|st\\|add\\|sub\\|and\\|or\\|xor\\|shl\\|shr\\|cmp\\|bl\\|br\\|beq\\|bne\\|blt\\|bge\\|bltu\\|bgeu\\|mva\\|lda\\|gta\\|ada\\|push\\|pop\\|gf\\|sf\\|ret\\|rti\\|halt\\)\\_>" . font-lock-keyword-face)
     ("^[[:space:]]*\\(\\.[[:alnum:]_]+\\)" 1 font-lock-preprocessor-face)
     (";.*$" . font-lock-comment-face)))
 

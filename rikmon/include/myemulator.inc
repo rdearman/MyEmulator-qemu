@@ -76,6 +76,7 @@
 ; Interrupt vectors
 ; ------------------------------------------------------------
 
+.equ ALIGNMENT_VECTOR,       0xFFEC
 .equ IRQ1_VECTOR,            0xFFEE
 .equ IRQ2_VECTOR,            0xFFF0
 .equ IRQ3_VECTOR,            0xFFF2

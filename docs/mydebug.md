@@ -26,7 +26,7 @@ terminal debugger stop: the machine remains alive and the structured state
 reports `running: false` and `halted: true`, so registers, `reset`, and `run`
 remain available. `step` advances to a
 different assembler source line and steps into calls. `next` steps over a
-direct `JAL` using a temporary breakpoint at the return address. `finish`
+direct `BL` using a temporary breakpoint at the return address. `finish`
 uses the current LR as a temporary return breakpoint. Source stepping falls
 back to one instruction when no debug-map location is available.
 

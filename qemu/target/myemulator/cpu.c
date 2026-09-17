@@ -1,6 +1,7 @@
 #include "qemu/osdep.h"
 #include "qapi/error.h"
 #include "qemu/qemu-print.h"
+#include "qemu/log.h"
 #include "cpu.h"
 #include "exec/exec-all.h"
 #include "exec/translation-block.h"
@@ -13,6 +14,13 @@ static void myemulator_cpu_set_pc(CPUState *cs, vaddr value)
     CPUMyEmulatorState *env = cpu_env(cs);
 
     env->pc = value & 0xffff;
+    if (env->pc & 1) {
+        qemu_log_mask(LOG_GUEST_ERROR,
+                      "MyEmulator: debugger set an odd PC 0x%04x; CPU halted\n",
+                      env->pc);
+        env->halted = true;
+        cs->halted = 1;
+    }
 }
 
 static void myemulator_cpu_disas_set_info(CPUState *cpu,
@@ -73,6 +81,13 @@ static void myemulator_cpu_reset_hold(Object *obj, ResetType type)
                                     MEMTXATTRS_UNSPECIFIED, NULL);
     env->pc = address_space_lduw_le(&address_space_memory, 0xfffe,
                                     MEMTXATTRS_UNSPECIFIED, NULL);
+    if (env->pc & 1) {
+        qemu_log_mask(LOG_GUEST_ERROR,
+                      "MyEmulator: odd reset PC vector 0x%04x; CPU halted\n",
+                      env->pc);
+        env->halted = true;
+        cs->halted = 1;
+    }
     cs->exception_index = -1;
 }
 

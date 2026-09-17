@@ -13,7 +13,7 @@ loading, external `-bios` firmware loading, native debugger control, and
 disassembly. Fetch is explicit byte-addressed, two-byte little-endian decode.
 Reset reads little-endian vectors at `0xfffc` and `0xfffe`. The current ISA
 includes LD/ST, LI, immediate and `0x77xx` register-register ALU operations,
-CMP, six conditional branches plus BR, JAL, LDA/GTA/MVA/ADA, GF/SF, PUSH/POP,
+CMP, six conditional branches plus BR, BL, LDA/GTA/MVA/ADA, GF/SF, PUSH/POP,
 RET, RTI, and HALT. Illegal encodings stop visibly.
 
 ## Historical implementation plan

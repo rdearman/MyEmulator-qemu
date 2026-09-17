@@ -24,7 +24,7 @@ read_line:
         push {lr}
         li   r2,#0
 read_line_loop:
-        jal  read_char
+        bl  read_char
         li   r1,#0x0A
         cmp  r0,r1
         beq  read_line_done
@@ -130,7 +130,7 @@ match_word_ok:
 
 print_msg_start:
         push {lr}
-        jal  print_msg
+        bl  print_msg
         pop  {lr}
         ret
 
@@ -142,11 +142,11 @@ _start:
         li   r1,#hi(msg0)
         li   r2,#lo(msg0)
         lda  a1,r1,r2
-        jal  print_msg_start
+        bl  print_msg_start
         li   r1,#hi(msg1)
         li   r2,#lo(msg1)
         lda  a1,r1,r2
-        jal  print_msg_start
+        bl  print_msg_start
         li   r1,#hi(CONSOLE_STATUS)
         li   r2,#lo(CONSOLE_STATUS)
         lda  a3,r1,r2
@@ -163,7 +163,7 @@ read_line_command:
         push {lr}
         li   r2,#0
 read_line_command_loop:
-        jal  read_char_command
+        bl  read_char_command
         li   r1,#0x0A
         cmp  r0,r1
         beq  read_line_command_done
@@ -260,18 +260,18 @@ command_loop:
         li   r1,#hi(INPUT_BUFFER)
         li   r2,#lo(INPUT_BUFFER)
         lda  a2,r1,r2
-        jal  read_line_command
+        bl  read_line_command
         li   r1,#hi(INPUT_BUFFER)
         li   r2,#lo(INPUT_BUFFER)
         lda  a1,r1,r2
-        jal  normalize_line_command
+        bl  normalize_line_command
         li   r1,#hi(INPUT_BUFFER)
         li   r2,#lo(INPUT_BUFFER)
         lda  a1,r1,r2
         li   r1,#hi(cmd_help)
         li   r2,#lo(cmd_help)
         lda  a2,r1,r2
-        jal  match_word_command
+        bl  match_word_command
         li   r1,#1
         cmp  r0,r1
         beq  dispatch_help
@@ -281,7 +281,7 @@ command_loop:
         li   r1,#hi(cmd_boot)
         li   r2,#lo(cmd_boot)
         lda  a2,r1,r2
-        jal  match_word_command
+        bl  match_word_command
         li   r1,#1
         cmp  r0,r1
         beq  dispatch_boot
@@ -314,7 +314,7 @@ show_prompt:
         li   r1,#hi(prompt)
         li   r2,#lo(prompt)
         lda  a1,r1,r2
-        jal  print_msg_prompt
+        bl  print_msg_prompt
         br   command_loop
 
 print_msg_prompt:
@@ -337,7 +337,8 @@ dispatch_dump: ada a1,#1
 dispatch_fill: ada a1,#1
         br fill_bridge_a
 dispatch_registers: br registers_bridge_a
-dispatch_go: br go_bridge_a
+dispatch_go: ada a1,#1
+        br go_bridge_a
 
 boot_bridge_a: br boot_bridge_a_mid
 dump_bridge_a: br dump_bridge_a_mid
@@ -351,21 +352,21 @@ command_help:
         li   r1,#hi(msg_help)
         li   r2,#lo(msg_help)
         lda  a1,r1,r2
-        jal  print_msg_monitor
+        bl  print_msg_monitor
         br   show_prompt
 command_error:
         li   r3,#0
         li   r1,#hi(msg_error)
         li   r2,#lo(msg_error)
         lda  a1,r1,r2
-        jal  print_msg_monitor
+        bl  print_msg_monitor
         br   show_prompt
 command_quit:
         li   r3,#0
         li   r1,#hi(msg_goodbye)
         li   r2,#lo(msg_goodbye)
         lda  a1,r1,r2
-        jal  print_msg_monitor
+        bl  print_msg_monitor
         halt
 
 print_msg_monitor:
@@ -403,9 +404,9 @@ print_hex_byte:
         push {lr}
         add  r1,r0,#0
         shr  r0,r1,#4
-        jal  print_hex_nibble
+        bl  print_hex_nibble
         and  r0,r1,#0x0F
-        jal  print_hex_nibble
+        bl  print_hex_nibble
         pop  {lr}
         ret
 
@@ -413,10 +414,10 @@ print_hex_word:
         push {lr}
         gta  r0,r1,a2
         push {r1}
-        jal  print_hex_byte
+        bl  print_hex_byte
         pop  {r1}
         add  r0,r1,#0
-        jal  print_hex_byte
+        bl  print_hex_byte
         pop  {lr}
         ret
 
@@ -519,7 +520,7 @@ parse_hex_fail:
 
 parse_hex_bridge:
         push {lr}
-        jal  parse_hex
+        bl  parse_hex
         pop  {lr}
         ret
 
@@ -536,7 +537,7 @@ command_syntax:
         li   r1,#hi(msg_syntax)
         li   r2,#lo(msg_syntax)
         lda  a1,r1,r2
-        jal  print_msg_syntax
+        bl  print_msg_syntax
         br   syntax_prompt_bridge
 done_bridge_1: br done_bridge_0
 
@@ -580,16 +581,22 @@ print_hex_word_local:
         push {lr}
         gta  r0,r1,a2
         push {r1}
-        jal  print_hex_byte_local
+        bl  print_hex_byte_local
         pop  {r1}
         add  r0,r1,#0
-        jal  print_hex_byte_local
+        bl  print_hex_byte_local
         pop  {lr}
         ret
 
 parse_hex_local:
         push {lr}
-        jal  parse_hex_bridge
+        bl  parse_hex_bridge
+        pop  {lr}
+        ret
+
+go_parse_mid:
+        push {lr}
+        bl   parse_hex_local
         pop  {lr}
         ret
 
@@ -602,7 +609,7 @@ registers_bridge_b: br registers_bridge_c
 go_bridge_b: br go_bridge_c
 command_memory:
         push {lr}
-        jal  parse_hex_local
+        bl  parse_hex_local
         li   r1,#1
         cmp  r0,r1
         bne  command_syntax
@@ -612,7 +619,7 @@ command_memory:
         beq  memory_examine
 memory_values:
         push {lr}
-        jal  parse_hex_local
+        bl  parse_hex_local
         pop  {lr}
         li   r1,#1
         cmp  r0,r1
@@ -630,19 +637,21 @@ memory_values_done:
         br   command_done
 memory_examine:
         mva  a2,lr
-        jal  print_hex_word_local
+        bl  print_hex_word_local
         li   r0,#':'
         st   r0,[a0]
         li   r0,#' '
         st   r0,[a0]
         ld   r0,[a2]
-        jal  print_hex_byte_local
+        bl  print_hex_byte_local
         li   r0,#0x0A
         st   r0,[a0]
         br   command_done
 
 ; D start [end], inclusive. A missing end defaults to 15 more bytes.
 done_bridge_2: br done_bridge_1
+go_parse_mid2: br go_parse_mid
+go_syntax_mid: br syntax_fill_mid
 syntax_fill_mid: br command_syntax
 boot_bridge_c: br boot_bridge_d
 dump_bridge_c: br command_dump
@@ -651,13 +660,13 @@ registers_bridge_c: br registers_bridge_d
 go_bridge_c: br go_bridge_d
 command_dump:
         push {lr}
-        jal  parse_hex_local
+        bl  parse_hex_local
         li   r1,#1
         cmp  r0,r1
         bne  command_syntax
         mva  a3,a2
         push {lr}
-        jal  parse_hex_local
+        bl  parse_hex_local
         pop  {lr}
         li   r1,#1
         cmp  r0,r1
@@ -681,7 +690,7 @@ dump_loop:
         bne  command_done
 dump_emit:
         push {lr}
-        jal  print_hex_word_local
+        bl  print_hex_word_local
         pop  {lr}
         li   r0,#':'
         st   r0,[a0]
@@ -689,7 +698,7 @@ dump_emit:
         st   r0,[a0]
         ld   r0,[a2]
         push {lr}
-        jal  print_hex_byte_local
+        bl  print_hex_byte_local
         pop  {lr}
         li   r0,#0x0A
         st   r0,[a0]
@@ -701,20 +710,20 @@ boot_bridge_d: br boot_bridge_e
 syntax_fill_bridge: br syntax_fill_mid
 command_fill:
         push {lr}
-        jal  parse_hex_local
+        bl  parse_hex_local
         li   r1,#1
         cmp  r0,r1
         bne  syntax_fill_bridge
         mva  lr,a2
         push {lr}
-        jal  parse_hex_local
+        bl  parse_hex_local
         pop  {lr}
         li   r1,#1
         cmp  r0,r1
         bne  syntax_fill_bridge
         mva  a3,a2
         push {lr}
-        jal  parse_hex_local
+        bl  parse_hex_local
         pop  {lr}
         li   r1,#1
         cmp  r0,r1
@@ -756,6 +765,9 @@ command_return:
 
 registers_bridge_d: br command_registers
 go_bridge_d: br command_go
+go_parse_near: br go_parse_mid1
+go_parse_mid1: br go_parse_mid2
+go_syntax_near: br go_syntax_mid
 
 print_msg_late:
         ld   r0,[a1]
@@ -797,25 +809,28 @@ print_hex_word_late:
         push {lr}
         gta  r0,r1,a2
         push {r1}
-        jal  print_hex_byte_late
+        bl  print_hex_byte_late
         pop  {r1}
         add  r0,r1,#0
-        jal  print_hex_byte_late
+        bl  print_hex_byte_late
         pop  {lr}
         ret
 
 registers_return_bridge: br command_return
 
 command_go:
-        li   r3,#0
-        li   r1,#hi(msg_go_limit)
-        li   r2,#lo(msg_go_limit)
-        lda  a1,r1,r2
-        jal  print_msg_late
-        br   command_return
+        push {lr}
+        bl   go_parse_near
+        li   r1,#1
+        cmp  r0,r1
+        bne  go_syntax_near
+        ld   r0,[a1]
+        cmp  r0,r3
+        bne  go_syntax_near
+        ; parse_hex_local leaves the destination in A2. JA does not alter LR.
+        ja   a2
 
-; BOOT reads raw sector zero into RAM. Execution cannot be transferred to the
-; loaded address because ISA 1.0 has no indirect PC/JALR instruction.
+; BOOT reads raw sector zero into RAM and transfers control to it.
 boot_bridge_e: br command_boot
 command_boot:
         li   r1,#hi(FLOPPY_COMMAND)
@@ -845,28 +860,26 @@ boot_copy:
         add  r2,r2,#1
         cmp  r2,r3
         bne  boot_copy
-        li   r3,#0
-        li   r1,#hi(msg_boot_loaded)
-        li   r2,#lo(msg_boot_loaded)
-        lda  a1,r1,r2
-        jal  print_msg_late
-        br   command_return
+        li   r1,#hi(BOOT_BUFFER)
+        li   r2,#lo(BOOT_BUFFER)
+        lda  a2,r1,r2
+        ja   a2
 boot_error:
         li   r3,#0
         li   r1,#hi(msg_boot_error)
         li   r2,#lo(msg_boot_error)
         lda  a1,r1,r2
-        jal  print_msg_late
+        bl  print_msg_late
         br   command_return
 
 print_hex_word_regs:
         push {lr}
         gta  r0,r1,a2
         push {r1}
-        jal  print_hex_byte_regs
+        bl  print_hex_byte_regs
         pop  {r1}
         add  r0,r1,#0
-        jal  print_hex_byte_regs
+        bl  print_hex_byte_regs
         pop  {lr}
         ret
 
@@ -915,7 +928,7 @@ command_registers:
         st   r0,[a0]
         li   r0,#'='
         st   r0,[a0]
-        jal  print_hex_word_regs
+        bl  print_hex_word_regs
         li   r0,#' '
         st   r0,[a0]
         mva  a2,a0
@@ -926,7 +939,7 @@ command_registers:
         li   r0,#'='
         st   r0,[a0]
         mva  a2,a0
-        jal  print_hex_word_regs
+        bl  print_hex_word_regs
         li   r0,#' '
         st   r0,[a0]
         mva  a2,a1
@@ -937,7 +950,7 @@ command_registers:
         li   r0,#'='
         st   r0,[a0]
         mva  a2,a1
-        jal  print_hex_word_regs
+        bl  print_hex_word_regs
         li   r0,#' '
         st   r0,[a0]
         mva  a2,a3
@@ -948,7 +961,7 @@ command_registers:
         li   r0,#'='
         st   r0,[a0]
         mva  a2,a3
-        jal  print_hex_word_regs
+        bl  print_hex_word_regs
         li   r0,#0x0A
         st   r0,[a0]
         mva  a2,sp
@@ -959,7 +972,7 @@ command_registers:
         st   r0,[a0]
         li   r0,#'='
         st   r0,[a0]
-        jal  print_hex_word_regs
+        bl  print_hex_word_regs
         li   r0,#0x0A
         st   r0,[a0]
         mva  a2,sp
@@ -970,7 +983,7 @@ command_registers:
         li   r0,#'='
         st   r0,[a0]
         ld   r0,[a2+3]
-        jal  print_hex_byte_regs
+        bl  print_hex_byte_regs
         li   r0,#' '
         st   r0,[a0]
         li   r0,#'R'
@@ -980,7 +993,7 @@ command_registers:
         li   r0,#'='
         st   r0,[a0]
         ld   r0,[a2+2]
-        jal  print_hex_byte_regs
+        bl  print_hex_byte_regs
         li   r0,#' '
         st   r0,[a0]
         li   r0,#'R'
@@ -990,7 +1003,7 @@ command_registers:
         li   r0,#'='
         st   r0,[a0]
         ld   r0,[a2+1]
-        jal  print_hex_byte_regs
+        bl  print_hex_byte_regs
         li   r0,#' '
         st   r0,[a0]
         li   r0,#'R'
@@ -1000,7 +1013,7 @@ command_registers:
         li   r0,#'='
         st   r0,[a0]
         ld   r0,[a2]
-        jal  print_hex_byte_regs
+        bl  print_hex_byte_regs
         li   r0,#0x0A
         st   r0,[a0]
         gf   r0
@@ -1010,14 +1023,14 @@ command_registers:
         st   r1,[a0]
         li   r1,#'='
         st   r1,[a0]
-        jal  print_hex_byte_regs_tail
+        bl  print_hex_byte_regs_tail
         li   r0,#0x0A
         st   r0,[a0]
         li   r3,#0
         li   r1,#hi(msg_register_limit)
         li   r2,#lo(msg_register_limit)
         lda  a1,r1,r2
-        jal  print_msg_regs
+        bl  print_msg_regs
         pop  {r0,r1,r2,r3}
         br   registers_return_mid
 
@@ -1047,6 +1060,23 @@ print_hex_tail_lo_out:
         pop  {lr}
         ret
 
+_alignment:
+        li   r1,#hi(CONSOLE_DATA)
+        li   r2,#lo(CONSOLE_DATA)
+        lda  a0,r1,r2
+        li   r1,#hi(msg_alignment)
+        li   r2,#lo(msg_alignment)
+        lda  a1,r1,r2
+        li   r3,#0
+alignment_print:
+        ld   r0,[a1]
+        cmp  r0,r3
+        beq  alignment_halt
+        st   r0,[a0]
+        ada  a1,#1
+        br   alignment_print
+alignment_halt:
+        halt
 _catchall: halt
 _irq1: br _catchall
 _irq2: br _catchall
@@ -1068,10 +1098,11 @@ msg_error: .asciz "? unknown command\n"
 msg_syntax: .asciz "? syntax\n"
 msg_registers: .asciz "Registers: R0-R3 and A0-A3 are available\n"
 msg_register_limit: .asciz "LR/SP/PC require debugger inspection in ISA 1.0\n"
-msg_go_limit: .asciz "G unavailable: ISA 1.0 has no indirect PC transfer\n"
-msg_boot_loaded: .asciz "BOOT loaded sector 0 at 0200; G is unavailable\n"
+msg_alignment: .asciz "Alignment exception\n"
 msg_boot_error: .asciz "BOOT error: no readable sector 0\n"
 
+.org ALIGNMENT_VECTOR
+        .word _alignment
 .org IRQ1_VECTOR
         .word _irq1
         .word _irq2

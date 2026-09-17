@@ -42,7 +42,7 @@ Labels can stand alone or precede an instruction/directive:
 
 ```asm
 reset:  li r0,#'R'
-        jal print_banner
+        bl print_banner
 print_banner:
         halt
 ```
@@ -112,7 +112,7 @@ The current MyEmulator 1.0 forms are:
 ld/st r,[a+disp8]       li r,#imm8
 add/sub/and/or/xor/shl/shr rd,rn,#imm8
 add/sub/and/or/xor/shl/shr rd,rn
-cmp rd,rn                jal label
+cmp rd,rn                bl label
 beq/bne/blt/bge/bltu/bgeu/br label
 lda an,rx,ry             gta rx,ry,an       mva dst,src
 ada an,#imm8             gf r                sf r

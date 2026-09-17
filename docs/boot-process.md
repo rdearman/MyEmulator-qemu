@@ -44,7 +44,7 @@ M address [value...]   examine or deposit RAM/ROM/MMIO bytes
 D start [end]          dump an inclusive range
 F start end value      fill an inclusive RAM range
 R                      display the readable firmware register state
-G address              reports the ISA 1.0 indirect-PC limitation
+G address              transfer control with JA
 BOOT                   read raw floppy sector 0 into 0x0200
 HELP                   show the command summary
 Q                      halt the CPU
@@ -52,9 +52,10 @@ Q                      halt the CPU
 
 Commands are case-insensitive. Input is edited in a bounded 63-character
 buffer at `0xef00`; Backspace and Delete erase the previous character, and
-the completed line is zero terminated. `BOOT` deliberately does not transfer
-control to `0x0200`: ISA 1.0 has no indirect PC-transfer instruction, so the
-monitor reports that limitation rather than inventing one. `R` can display
+the completed line is zero terminated. `BOOT` loads sector 0 at `0x0200` and
+transfers control there with `JA A2`. `G` parses its address and transfers
+control with `JA A2`; an odd target enters the firmware alignment handler.
+`R` can display
 R0-R3, A0-A3, S0, and the monitor's current SP; LR and PC are not directly
 readable by firmware software and should be inspected with the native
 debugger.

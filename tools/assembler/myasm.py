@@ -479,11 +479,15 @@ class Assembler:
             an = self.areg(match.group(1), n); disp = 0 if not match.group(3) else self.imm(('-' if match.group(2) == '-' else '') + match.group(3), n, 8, True)
             return w((0 if op == 'ld' else 0x2000) | (rd << 10) | (an << 8) | disp)
         if op == 'cmp': need(2); return w(0x8000 | (self.reg(args[0], n) << 10) | (self.reg(args[1], n) << 8))
-        if op == 'jal': need(1); return w(0x5000 | self.branch_disp(args[0], n))
+        if op == 'bl': need(1); return w(0x5000 | self.branch_disp(args[0], n))
         if op in BRANCHES: need(1); return w(0x6000 | (BRANCHES[op] << 8) | self.branch_disp(args[0], n))
         if op in ('lda', 'gta'):
             need(3); an = self.areg(args[0] if op == 'lda' else args[2], n); rx = self.reg(args[1] if op == 'lda' else args[0], n); ry = self.reg(args[2] if op == 'lda' else args[1], n)
             return w((0x7100 if op == 'lda' else 0x7200) | (an << 6) | (rx << 4) | (ry << 2))
+        if op in ('ja', 'jla'):
+            need(1)
+            return w(0x7500 | (self.areg(args[0], n) << 6) |
+                     (op == 'jla'))
         if op == 'ada': need(2); return w(0x7000 | (self.areg(args[0], n) << 10) | self.imm(args[1], n, 8, True))
         if op in ('gf', 'sf'): need(1); return w(0x7600 | (self.reg(args[0], n) << 2) | (op == 'sf'))
         if op == 'mva':

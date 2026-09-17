@@ -43,7 +43,8 @@ supports LR and SP, but not PC. `GF` and `SF` transfer S0 through R0-R3.
 
 `0x6` is a branch family: conditions `0x0` through `0x5` are
 `BEQ`, `BNE`, `BLT`, `BGE`, `BLTU`, and `BGEU`, while `0x6` is unconditional
-`BR`. `0x5` is `JAL`; these branches use signed
+`BR`. `0x5` is `BL`; this is the canonical name for the existing
+branch-and-link encoding formerly called JAL. These branches use signed
 PC-relative instruction-unit displacements. `0x7` is the address-operation
 family. `CMP` is a
 register-to-register comparison which updates all four S0 flag bits without
@@ -56,8 +57,19 @@ register-register forms use `0x77xx`. AND/OR/XOR recompute ZF/NF and clear
 CF/OF. SHL/SHR are logical, preserve CF for count zero, report the last bit
 shifted out for counts 1-7, and produce zero with CF clear for counts 8 and
 above. `LD`, `LI`, `ST`, `LDA`, `GTA`, `MVA`, `ADA`, `PUSH`, `POP`, branches,
-`JAL`, and `HALT` leave flags unchanged. `CF` for subtraction and comparison
-means no borrow. `RET` sets `PC=LR`.
+`BL`, `JA`, `JLA`, and `HALT` leave flags unchanged. `CF` for subtraction and
+comparison means no borrow. `RET` sets `PC=LR`. `JA An` sets `PC=An`; `JLA An`
+also sets `LR` to the following instruction address. Their encodings are
+`0x7500 | (An << 6)` and `0x7500 | (An << 6) | 1`.
+
+Instruction addresses must be even. An odd JA, JLA, or RET target raises the
+synchronous instruction-alignment exception at `0xffec`; bit 0 is never
+masked or rounded. The exception is independent of IPL, saves the faulting
+instruction PC and S0 in the normal descending three-byte frame (PC low,
+PC high, S0), and transfers to its vector. RTI restores that frame and retries
+the faulting instruction. If RTI finds an odd saved PC, it raises the same
+exception before consuming the frame so the handler can repair it. An odd
+reset/vector target halts deterministically rather than recursively faulting.
 
 ## Hardware interrupts
 
@@ -79,6 +91,9 @@ and loads the handler PC from the little-endian vector table:
 | IRQ5 | `0xfff6-0xfff7` |
 | IRQ6 | `0xfff8-0xfff9` |
 | IRQ7 | `0xfffa-0xfffb` |
+
+The instruction-alignment exception vector is `0xffec-0xffed`, immediately
+before IRQ1.
 
 The stack frame follows the existing descending PUSH convention. Starting with
 SP=`S`, entry stores PC low at `S-1`, PC high at `S-2`, and S0 at `S-3`, leaving

@@ -45,24 +45,24 @@ _start:
 	li  r1,#hi(msg0)
 	li  r2,#lo(msg0)
 	lda a1,r1,r2
-	jal print_msg
+	bl print_msg
 
 	li  r1,#hi(msg1)
 	li  r2,#lo(msg1)
 	lda a1,r1,r2
-	jal print_msg
+	bl print_msg
 
         li  r1,#hi(CONSOLE_STATUS)
         li  r2,#lo(CONSOLE_STATUS)
         lda a3,r1,r2
 
 	li r3, #'q'
-	jal wait_key
+	bl wait_key
 
 	li  r1,#hi(msg2)
 	li  r2,#lo(msg2)
 	lda a1,r1,r2
-	jal print_msg
+	bl print_msg
 	
 	
         halt

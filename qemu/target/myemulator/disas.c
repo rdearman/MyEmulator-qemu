@@ -98,7 +98,7 @@ int myemulator_print_insn(bfd_vma address, disassemble_info *info)
                            data_regs[rn], operand);
         break;
     case 0x5:
-        info->fprintf_func(info->stream, "jal 0x%04x",
+        info->fprintf_func(info->stream, "bl 0x%04x",
                            branch_target(address, operand));
         break;
     case 0x6: {
@@ -156,6 +156,15 @@ int myemulator_print_insn(bfd_vma address, disassemble_info *info)
                                wide_regs[dst], wide_regs[src]);
             break;
         }
+        case 0x5:
+            if ((insn & 0x3f) > 1) {
+                known = false;
+                break;
+            }
+            info->fprintf_func(info->stream, "%s %s",
+                               (insn & 1) ? "jla" : "ja",
+                               address_regs[(insn >> 6) & 3]);
+            break;
         case 0x6:
             if ((insn & 3) > 1) {
                 known = false;

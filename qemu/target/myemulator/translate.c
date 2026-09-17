@@ -55,6 +55,26 @@ static void gen_next_pc(DisasContext *ctx)
     tcg_gen_movi_i32(cpu_pc, ctx->base.pc_next & 0xffff);
 }
 
+static void gen_checked_control_transfer(DisasContext *ctx, TCGv_i32 target,
+                                         bool link)
+{
+    TCGLabel *aligned = gen_new_label();
+    TCGv_i32 bit = tcg_temp_new_i32();
+    uint32_t fault_pc = (ctx->base.pc_next - 2) & 0xffff;
+
+    tcg_gen_andi_i32(bit, target, 1);
+    tcg_gen_brcondi_i32(TCG_COND_EQ, bit, 0, aligned);
+    tcg_gen_movi_i32(cpu_pc, fault_pc);
+    gen_helper_alignment_exception(tcg_env, tcg_constant_i32(fault_pc));
+    ctx->base.is_jmp = DISAS_NORETURN;
+    gen_set_label(aligned);
+    if (link) {
+        tcg_gen_movi_i32(cpu_lr, ctx->base.pc_next);
+    }
+    tcg_gen_andi_i32(cpu_pc, target, 0xffff);
+    ctx->base.is_jmp = DISAS_EXIT;
+}
+
 static void gen_pc_relative_branch(DisasContext *ctx, uint8_t imm,
                                    TCGCond condition, TCGv_i32 lhs,
                                    TCGv_i32 rhs)
@@ -390,7 +410,7 @@ static void decode_and_translate(DisasContext *ctx)
         }
         gen_next_pc(ctx);
         break;
-    case 0x5: /* JAL, signed PC-relative displacement in instruction units. */
+    case 0x5: /* BL, signed PC-relative displacement in instruction units. */
         tcg_gen_movi_i32(cpu_lr, ctx->base.pc_next);
         tcg_gen_movi_i32(cpu_pc,
                          (ctx->base.pc_next + ((int8_t)imm * 2)) & 0xffff);
@@ -448,21 +468,34 @@ static void decode_and_translate(DisasContext *ctx)
             gen_helper_halt(tcg_env);
             ctx->base.is_jmp = DISAS_NORETURN;
         } else if ((insn & 0x0fff) == 0x040) { /* RET. */
-            tcg_gen_mov_i32(cpu_pc, cpu_lr);
-            ctx->base.is_jmp = DISAS_EXIT;
+            gen_checked_control_transfer(ctx, cpu_lr, false);
         } else if ((insn & 0x0fff) == 0x060) { /* RTI. */
-            TCGv_i32 low = tcg_temp_new_i32();
+            TCGv_i32 frame_sp = tcg_temp_new_i32();
+            TCGv_i32 saved_s0 = tcg_temp_new_i32();
+            TCGv_i32 saved_high = tcg_temp_new_i32();
+            TCGv_i32 saved_low = tcg_temp_new_i32();
+            TCGv_i32 saved_pc = tcg_temp_new_i32();
+            TCGLabel *aligned = gen_new_label();
+            TCGv_i32 bit = tcg_temp_new_i32();
+            uint32_t fault_pc = (ctx->base.pc_next - 2) & 0xffff;
 
-            tmp = tcg_temp_new_i32();
-            tcg_gen_qemu_ld_i32(tmp, cpu_sp, MMU_PHYS_IDX, MO_UB);
-            tcg_gen_addi_i32(cpu_sp, cpu_sp, 1);
-            tcg_gen_andi_i32(cpu_s0, tmp, 0xff);
-            tcg_gen_qemu_ld_i32(tmp, cpu_sp, MMU_PHYS_IDX, MO_UB);
-            tcg_gen_addi_i32(cpu_sp, cpu_sp, 1);
-            tcg_gen_shli_i32(tmp, tmp, 8);
-            tcg_gen_qemu_ld_i32(low, cpu_sp, MMU_PHYS_IDX, MO_UB);
-            tcg_gen_addi_i32(cpu_sp, cpu_sp, 1);
-            tcg_gen_or_i32(cpu_pc, tmp, low);
+            tcg_gen_mov_i32(frame_sp, cpu_sp);
+            tcg_gen_qemu_ld_i32(saved_s0, frame_sp, MMU_PHYS_IDX, MO_UB);
+            tcg_gen_addi_i32(frame_sp, frame_sp, 1);
+            tcg_gen_qemu_ld_i32(saved_high, frame_sp, MMU_PHYS_IDX, MO_UB);
+            tcg_gen_addi_i32(frame_sp, frame_sp, 1);
+            tcg_gen_qemu_ld_i32(saved_low, frame_sp, MMU_PHYS_IDX, MO_UB);
+            tcg_gen_shli_i32(saved_high, saved_high, 8);
+            tcg_gen_or_i32(saved_pc, saved_high, saved_low);
+            tcg_gen_andi_i32(bit, saved_pc, 1);
+            tcg_gen_brcondi_i32(TCG_COND_EQ, bit, 0, aligned);
+            tcg_gen_movi_i32(cpu_pc, fault_pc);
+            gen_helper_alignment_exception(tcg_env, tcg_constant_i32(fault_pc));
+            ctx->base.is_jmp = DISAS_NORETURN;
+            gen_set_label(aligned);
+            tcg_gen_addi_i32(cpu_sp, cpu_sp, 3);
+            tcg_gen_andi_i32(cpu_s0, saved_s0, 0xff);
+            tcg_gen_andi_i32(cpu_pc, saved_pc, 0xffff);
             ctx->base.is_jmp = DISAS_EXIT;
         } else if (imm < 0x20) { /* POP, reverse LR..R0. */
             for (int reg = 4; reg >= 0; reg--) {
@@ -559,6 +592,16 @@ static void decode_and_translate(DisasContext *ctx)
                 tcg_gen_mov_i32(mva_regs[dst], mva_regs[src]);
                 gen_next_pc(ctx);
             }
+            break;
+        case 0x5: /* JA/JLA: 0x7500 | (An << 6) | operation. */
+            if ((insn & 0x3f) > 1) {
+                tcg_gen_movi_i32(cpu_pc, ctx->base.pc_next);
+                gen_helper_illegal(tcg_env);
+                ctx->base.is_jmp = DISAS_NORETURN;
+                break;
+            }
+            gen_checked_control_transfer(ctx, cpu_a[extract32(insn, 6, 2)],
+                                         (insn & 1) != 0);
             break;
         case 0x6: /* GF/SF: 0x7600 | (Rn << 2) | op. */
             if ((insn & 0x3) == 0) {

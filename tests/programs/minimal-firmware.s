@@ -4,6 +4,8 @@ reset:
     li r0,#42
     halt
 
+.org 0xFFEC
+    .word reset
 .org 0xFFFC
     .word 0xF000
     .word reset

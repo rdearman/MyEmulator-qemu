@@ -30,6 +30,7 @@ device-test: build
 
 firmware-test: build
 	QEMU_MYEMULATOR="$(QEMU_BINARY)" $(PROJECT_ROOT)/tests/run-myemulator-firmware-test.sh
+	QEMU_MYEMULATOR="$(QEMU_BINARY)" $(PROJECT_ROOT)/tests/run-myemulator-alignment-test.sh
 
 assembler-test: build
 	python3 $(PROJECT_ROOT)/tools/assembler/test_myasm.py

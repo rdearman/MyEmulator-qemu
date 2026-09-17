@@ -152,7 +152,9 @@ run_irq_vector()
 run_image basic 0210033080f0 'R0: 0x05.*S0: 0x00.*FLAGS: ZF=0 NF=0 OF=0 CF=0'
 run_image branch-forward 0010003001600110071080f0 'R0: 0x07.*FLAGS: ZF=1 NF=0 OF=0 CF=0'
 run_image branch-backward 0210ff30fe6180f0 'R0: 0x00.*FLAGS: ZF=1 NF=0 OF=0 CF=1'
-run_image jal 01500110071080f0 'LR: 0x0002.*R0: 0x07'
+run_image bl 01500110071080f0 'LR: 0x0002.*R0: 0x07'
+run_image ja 0010081404710075421880f0 'R2: 0x42'
+run_image jla 0010081404710175421880f0 '(?s)LR: 0x0008.*R2: 0x42'
 run_image push-pop 0150ff100b101614211817e0001000140018001c17f080f0 \
     'LR: 0x0002.*R0: 0x0b.*R1: 0x16.*R2: 0x21'
 run_image address-ops a5100176121034140471ab18cd1c6c7110732a731d732373047380f0 \
@@ -186,13 +188,13 @@ run_image ret 0250047680f0071040f0 'LR: 0x0002.*R0: 0x07'
 run_image nested-ret 0250047680f010e0025010f040f0421040f0 \
     'SP: 0xf000.*LR: 0x0002.*R0: 0x42'
 
-high_jal=7f50
+high_bl=7f50
 i=0
 while test "$i" -lt 254; do
-    high_jal=${high_jal}00
+    high_bl=${high_bl}00
     i=$((i + 1))
 done
-run_image high-jal "${high_jal}005080f0" 'PC: 0x0104.*LR: 0x0102'
+run_image high-bl "${high_bl}005080f0" 'PC: 0x0104.*LR: 0x0102'
 
 high_ret=7f66
 i=0

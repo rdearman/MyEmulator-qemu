@@ -92,7 +92,7 @@ class Debugger:
         "regs": "regs; info registers; i r",
         "stepi": "stepi/si: one CPU instruction",
         "step": "step/s: source line, stepping into calls",
-        "next": "next/n: source line, stepping over JAL",
+        "next": "next/n: source line, stepping over BL",
         "continue": "continue/c: resume until stopped",
         "finish": "finish/fin: run to LR return address",
         "reset": "reset: reset and leave stopped",
@@ -199,7 +199,7 @@ class Debugger:
         before = self.state()
         pc = before["registers"]["pc"]
         insn = self.dis_one(pc)
-        if insn and insn["text"].strip().lower().startswith("jal "):
+        if insn and insn["text"].strip().lower().startswith(("bl ", "jla ")):
             self.call_history.append((pc + 2) & 0xffff)
         elif insn and insn["text"].strip().lower() == "ret" and self.call_history:
             self.call_history.pop()
@@ -242,7 +242,7 @@ class Debugger:
     def next(self):
         state = self.state()
         insn = self.dis_one(state["registers"]["pc"])
-        if insn and insn["text"].strip().lower().startswith("jal "):
+        if insn and insn["text"].strip().lower().startswith(("bl ", "jla ")):
             return self.temporary_run((state["registers"]["pc"] + 2) & 0xffff)
         return self.source_step()
 
