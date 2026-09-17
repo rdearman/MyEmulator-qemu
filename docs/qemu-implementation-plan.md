@@ -20,7 +20,7 @@ RET, RTI, and HALT. Illegal encodings stop visibly.
 
 The original bring-up plan is retained here for historical context. ROM, console,
 floppy storage, assembler image tooling, interrupts, and the native debugger
-are now implemented; timers, banking, and broader exception handling remain
+are now implemented; banking and broader exception handling remain
 future work.
 
 The original `LI; ADD; HALT` milestone is retained as a regression test. The

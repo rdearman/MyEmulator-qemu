@@ -50,12 +50,24 @@
 .equ CONSOLE_CONTROL,        0xF012
 .equ CONSOLE_IRQ_STATUS,     0xF013
 
+.equ TIMER_CONTROL,          0xF020
+.equ TIMER_STATUS,           0xF021
+.equ TIMER_COUNT_LO,         0xF022
+.equ TIMER_COUNT_HI,         0xF023
+.equ TIMER_RELOAD_LO,        0xF024
+.equ TIMER_RELOAD_HI,        0xF025
+.equ TIMER_ENABLE,           0x01
+.equ TIMER_PERIODIC,         0x02
+.equ TIMER_IRQ_ENABLE,       0x04
+.equ TIMER_EXPIRED,          0x01
+.equ TIMER_RUNNING,          0x02
+
 
 ; ------------------------------------------------------------
 ; Reserved MMIO
 ; ------------------------------------------------------------
 
-.equ MMIO_RESERVED_START,    0xF020
+.equ MMIO_RESERVED_START,    0xF026
 .equ MMIO_RESERVED_END,      0xF0FF
 
 

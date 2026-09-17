@@ -27,15 +27,11 @@ deciding whether and how to read sector 0.
 
 The old built-in floppy bootstrap is no longer in the normal boot path.
 
-The repository's `rikmon/rikmon.s` is currently only a small console bring-up
-program, not the RIKMON monitor. It prints a prompt and reads a complete line
-into RAM at `0xef00`, echoing characters as they arrive and accepting LF or CR
-as Enter. The line is zero terminated; the first byte is then used for the
-small command stub: `q` prints a goodbye message and halts; `b` is wired to a
-placeholder handler that reports that boot is not implemented and returns to
-the prompt. Other lines are ignored. The fixed 64-byte input area currently
-has no overflow or backspace handling and is deliberately a starting point
-for writing the real monitor in MyEmulator assembly.
+The repository's `rikmon/rikmon.s` is a small ROM monitor. It prints a prompt
+and reads a complete line into RAM at `0xef00`, with bounded input, backspace
+editing, and case-insensitive commands. At reset it starts a 30-second
+virtual-time autoboot countdown; pressing a key cancels it and enters the
+monitor, while expiry invokes the normal raw sector-0 boot path.
 
 The current bring-up monitor also provides these software commands:
 
@@ -59,6 +55,13 @@ control with `JA A2`; an odd target enters the firmware alignment handler.
 R0-R3, A0-A3, S0, and the monitor's current SP; LR and PC are not directly
 readable by firmware software and should be inspected with the native
 debugger.
+
+At reset RIKMON starts a one-shot 30,000 ms virtual-time timer. It displays
+that autoboot is pending and polls both the console and timer. A key cancels
+autoboot and is consumed; otherwise expiry stops the timer and enters the
+same raw sector-0 `BOOT` path used by the manual command. A failed automatic
+boot reports the normal boot error and returns to the monitor without retrying
+until the next machine reset.
 
 To create and boot the example:
 

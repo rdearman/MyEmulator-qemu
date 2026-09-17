@@ -107,3 +107,7 @@ sensitive, so a source that remains asserted can be accepted again after RTI
 if the restored IPL permits it. A halted CPU wakes for an eligible asserted IRQ;
 a masked IRQ does not wake it. Future QEMU devices should call the CPU-side
 per-level assert/deassert interface and deassert their level after servicing it.
+
+The virtual timer is the IRQ1 device; the console remains on IRQ4. The timer
+is a 16-bit, 1-ms-resolution countdown at `0xf020-0xf025` and uses QEMU guest
+virtual time, so debugger pauses do not consume timer time.

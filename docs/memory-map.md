@@ -7,7 +7,8 @@ MyEmulator has a 16-bit byte address bus and an 8-bit data bus.
 | `0x0000-0xefff` | RAM: program, data, and stack | writable RAM |
 | `0xf000-0xf00f` | MyEmulator floppy-controller MMIO | device |
 | `0xf010-0xf01f` | MyEmulator console MMIO | device |
-| `0xf020-0xf0ff` | Reserved future MMIO | unmapped/reserved |
+| `0xf020-0xf025` | MyEmulator virtual countdown timer MMIO | device |
+| `0xf026-0xf0ff` | Reserved future MMIO | unmapped/reserved |
 | `0xf100-0xffff` | External firmware ROM | read-only |
 | `0xffec-0xffed` | Instruction-alignment exception vector | architectural |
 | `0xffee-0xffef` | IRQ1 vector | architectural |

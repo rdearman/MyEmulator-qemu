@@ -16,6 +16,7 @@
 #include "myemulator-debug.h"
 #include "myemulator-floppy.h"
 #include "myemulator-console.h"
+#include "myemulator-timer.h"
 
 #define TYPE_MYEMULATOR_MACHINE MACHINE_TYPE_NAME("myemulator")
 #define MYEMULATOR_RAM_SIZE 0xf000
@@ -140,6 +141,13 @@ static void myemulator_machine_init(MachineState *machine)
     if (console_chr) {
         qdev_prop_set_chr(console, "chardev", console_chr);
     }
+
+    DeviceState *timer = qdev_new(TYPE_MYEMULATOR_TIMER);
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(timer), &error_fatal);
+    sysbus_mmio_map(SYS_BUS_DEVICE(timer), 0, MYEMULATOR_TIMER_BASE);
+    sysbus_connect_irq(SYS_BUS_DEVICE(timer), 0,
+                       qemu_allocate_irq(myemulator_machine_irq, s->cpu,
+                                         MYEMULATOR_TIMER_IRQ));
     sysbus_realize_and_unref(SYS_BUS_DEVICE(console), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(console), 0, MYEMULATOR_CONSOLE_BASE);
     if (console_chr) {

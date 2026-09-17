@@ -9,6 +9,7 @@
 .equ INPUT_BUFFER, 0xEF00
 .equ INPUT_MAX,    63
 .equ BOOT_BUFFER,  0x0200
+.equ AUTOBOOT_TIMEOUT_MS, 30000
 
 ; A3 points at CONSOLE_STATUS and A0 points at CONSOLE_DATA.
 read_char:
@@ -147,6 +148,59 @@ _start:
         li   r2,#lo(msg1)
         lda  a1,r1,r2
         bl  print_msg_start
+        li   r1,#hi(msg2)
+        li   r2,#lo(msg2)
+        lda  a1,r1,r2
+        bl  print_msg_start
+
+        li   r1,#hi(CONSOLE_STATUS)
+        li   r2,#lo(CONSOLE_STATUS)
+        lda  a3,r1,r2
+
+        ; Start the 30-second virtual-time autoboot countdown.
+        li   r1,#hi(TIMER_RELOAD_LO)
+        li   r2,#lo(TIMER_RELOAD_LO)
+        lda  a1,r1,r2
+        li   r0,#lo(AUTOBOOT_TIMEOUT_MS)
+        st   r0,[a1]
+        ada  a1,#1
+        li   r0,#hi(AUTOBOOT_TIMEOUT_MS)
+        st   r0,[a1]
+        li   r1,#hi(TIMER_CONTROL)
+        li   r2,#lo(TIMER_CONTROL)
+        lda  a2,r1,r2
+        li   r0,#TIMER_ENABLE
+        st   r0,[a2]
+        li   r1,#hi(TIMER_STATUS)
+        li   r2,#lo(TIMER_STATUS)
+        lda  a1,r1,r2
+autoboot_wait:
+        ld   r0,[a3]
+        and  r0,r0,#CONSOLE_RX_READY
+        bne  autoboot_key
+        ld   r0,[a1]
+        and  r0,r0,#TIMER_EXPIRED
+        bne  autoboot_expired
+        br   autoboot_wait
+autoboot_key:
+        ; Consume the key used to cancel autoboot.
+        ld   r0,[a3-1]
+        li   r0,#0
+        st   r0,[a2]
+        li   r0,#TIMER_EXPIRED
+        st   r0,[a1]
+        br   start_show_prompt
+autoboot_expired:
+        li   r0,#0
+        st   r0,[a2]
+        li   r0,#TIMER_EXPIRED
+        st   r0,[a1]
+        ; Reuse the normal BOOT implementation; no duplicate loader exists.
+        li   r1,#hi(command_boot)
+        li   r2,#lo(command_boot)
+        lda  a2,r1,r2
+        ja   a2
+
         li   r1,#hi(CONSOLE_STATUS)
         li   r2,#lo(CONSOLE_STATUS)
         lda  a3,r1,r2
@@ -1091,6 +1145,7 @@ cmd_help: .asciz "help"
 cmd_boot: .asciz "boot"
 msg0: .asciz "RIKMON Monitor v1.0\n"
 msg1: .asciz "Type HELP for commands\n"
+msg2: .asciz "Autoboot in 30 seconds - press any key for monitor\n"
 prompt: .asciz "> "
 msg_goodbye: .asciz "Goodbye ...\n"
 msg_help: .asciz "M addr [value...]  D start [end]  F start end value\nR  G addr  BOOT  HELP  Q\n"

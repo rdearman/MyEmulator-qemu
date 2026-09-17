@@ -27,6 +27,7 @@ debug-test: build
 device-test: build
 	QEMU_MYEMULATOR="$(QEMU_BINARY)" $(PROJECT_ROOT)/tests/run-myemulator-console-test.sh
 	$(PROJECT_ROOT)/tests/run-myemulator-floppy-test.sh
+	QEMU_MYEMULATOR="$(QEMU_BINARY)" $(PROJECT_ROOT)/tests/run-myemulator-timer-test.sh
 
 firmware-test: build
 	QEMU_MYEMULATOR="$(QEMU_BINARY)" $(PROJECT_ROOT)/tests/run-myemulator-firmware-test.sh

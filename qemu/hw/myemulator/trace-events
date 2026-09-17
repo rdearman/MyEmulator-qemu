@@ -8,3 +8,7 @@ myemulator_console_received(uint8_t byte) "received byte=0x%02x"
 myemulator_console_transmitted(uint8_t byte) "transmitted byte=0x%02x"
 myemulator_console_irq(bool asserted) "rx irq asserted=%d"
 myemulator_console_overflow(uint8_t byte) "fifo overflow dropped byte=0x%02x"
+# MyEmulator virtual timer
+myemulator_timer_start(uint16_t reload) "start reload_ms=%u"
+myemulator_timer_expired(uint16_t reload) "expired reload_ms=%u"
+myemulator_timer_irq(bool asserted) "timer irq asserted=%d"

@@ -23,7 +23,7 @@ cat >"$tmp/commands" <<'EOF'
 {"command":"x","args":{"address":61696,"length":4}}
 {"command":"w","args":{"address":61439,"data":"aa"}}
 {"command":"x","args":{"address":61439,"length":1}}
-{"command":"x","args":{"address":61472,"length":1}}
+{"command":"x","args":{"address":61472,"length":6}}
 {"command":"stepi"}
 EOF
 "$root/tools/mydebug" --machine --qmp "$tmp/qmp.sock" \
@@ -37,7 +37,7 @@ assert r[1]["data"] == "2a1080f0"
 assert r[2]["data"] == "00f000f1"
 assert r[4]["data"] == "2a1080f0"  # ROM write did not change it.
 assert r[6]["data"] == "aa"       # 0xEFFF is writable RAM.
-assert r[7].get("error")            # 0xF020 is reserved/unmapped.
+assert r[7]["data"] == "000000000000" # timer reset state.
 assert r[8]["registers"]["pc"] == 0xf102
 assert r[8]["registers"]["r0"] == 42
 '
