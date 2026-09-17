@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!DOCTYPE feature SYSTEM "gdb-target.dtd">
+<feature name="org.gnu.gdb.myemulator.core">
+  <reg name="r0" bitsize="8" type="uint8"/>
+  <reg name="r1" bitsize="8" type="uint8"/>
+  <reg name="r2" bitsize="8" type="uint8"/>
+  <reg name="r3" bitsize="8" type="uint8"/>
+  <reg name="a0" bitsize="16" type="uint16"/>
+  <reg name="a1" bitsize="16" type="uint16"/>
+  <reg name="a2" bitsize="16" type="uint16"/>
+  <reg name="a3" bitsize="16" type="uint16"/>
+  <reg name="lr" bitsize="16" type="uint16"/>
+  <reg name="sp" bitsize="16" type="data_ptr"/>
+  <reg name="pc" bitsize="16" type="code_ptr"/>
+  <reg name="s0" bitsize="8" type="uint8"/>
+</feature>

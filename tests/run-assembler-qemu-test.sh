@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-qemu=${QEMU_MYEMULATOR:-../qemu-build-myemulator/qemu-system-myemulator}
+qemu=${QEMU_MYEMULATOR:-.qemu-build/qemu-system-myemulator}
 test -x "$qemu" || { echo "qemu-system-myemulator is not available" >&2; exit 2; }
 tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/myasm-qemu.XXXXXX")
 trap 'rm -rf "$tmpdir"' EXIT HUP INT TERM

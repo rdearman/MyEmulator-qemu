@@ -4,6 +4,7 @@
 #include "cpu-qom.h"
 #include "target/myemulator/cpu-param.h"
 #include "exec/cpu-defs.h"
+#include "disas/dis-asm.h"
 
 #ifdef CONFIG_USER_ONLY
 #error "MyEmulator only supports system emulation"
@@ -62,6 +63,7 @@ bool myemulator_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
 hwaddr myemulator_cpu_get_phys_addr_debug(CPUState *cs, vaddr addr);
 int myemulator_cpu_gdb_read_register(CPUState *cs, GByteArray *mem_buf, int n);
 int myemulator_cpu_gdb_write_register(CPUState *cs, uint8_t *mem_buf, int n);
+int myemulator_print_insn(bfd_vma addr, disassemble_info *info);
 void myemulator_cpu_do_interrupt(CPUState *cs);
 bool myemulator_cpu_exec_interrupt(CPUState *cs, int interrupt_request);
 void myemulator_cpu_set_irq(CPUState *cs, unsigned level, bool asserted);

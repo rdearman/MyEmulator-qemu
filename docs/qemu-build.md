@@ -5,8 +5,8 @@ workflow uses a full upstream QEMU source tree beside this repository and an
 out-of-tree build directory. The defaults are:
 
 ```text
-source: /home/rick/Development/Active/qemu
-build:  /home/rick/Development/Active/qemu-build-myemulator
+source: /path/to/MyEmulator-qemu/.qemu-upstream
+build:  /path/to/MyEmulator-qemu/.qemu-build
 ```
 
 The source checkout is cloned from the QEMU project at `v9.2.0` by

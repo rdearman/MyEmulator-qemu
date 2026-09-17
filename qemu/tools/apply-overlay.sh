@@ -18,12 +18,14 @@ mkdir -p "$qemu_tree/target/myemulator"
 mkdir -p "$qemu_tree/hw/myemulator"
 mkdir -p "$qemu_tree/configs/targets"
 mkdir -p "$qemu_tree/configs/devices/myemulator-softmmu"
+mkdir -p "$qemu_tree/gdb-xml"
 
 cp "$overlay_root/target/myemulator/"* "$qemu_tree/target/myemulator/"
 cp "$overlay_root/hw/myemulator/"* "$qemu_tree/hw/myemulator/"
 cp "$overlay_root/configs/targets/myemulator-softmmu.mak" "$qemu_tree/configs/targets/"
 cp "$overlay_root/configs/devices/myemulator-softmmu/default.mak" \
     "$qemu_tree/configs/devices/myemulator-softmmu/"
+cp "$overlay_root/gdb-xml/myemulator-core.xml" "$qemu_tree/gdb-xml/"
 
 grep -qxF "subdir('myemulator')" "$qemu_tree/target/meson.build" || \
     printf "subdir('myemulator')\n" >> "$qemu_tree/target/meson.build"

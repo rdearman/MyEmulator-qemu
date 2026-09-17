@@ -13,6 +13,12 @@ static void myemulator_cpu_set_pc(CPUState *cs, vaddr value)
     env->pc = value & 0xffff;
 }
 
+static void myemulator_cpu_disas_set_info(CPUState *cpu,
+                                          disassemble_info *info)
+{
+    info->print_insn = myemulator_print_insn;
+}
+
 static vaddr myemulator_cpu_get_pc(CPUState *cs)
 {
     CPUMyEmulatorState *env = cpu_env(cs);
@@ -147,7 +153,9 @@ static void myemulator_cpu_class_init(ObjectClass *oc, void *data)
     cc->sysemu_ops = &myemulator_sysemu_ops;
     cc->gdb_read_register = myemulator_cpu_gdb_read_register;
     cc->gdb_write_register = myemulator_cpu_gdb_write_register;
-    cc->gdb_num_core_regs = 12;
+    cc->gdb_num_core_regs = 0;
+    cc->gdb_core_xml_file = "myemulator-core.xml";
+    cc->disas_set_info = myemulator_cpu_disas_set_info;
     cc->tcg_ops = &myemulator_tcg_ops;
 }
 

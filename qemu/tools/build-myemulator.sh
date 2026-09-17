@@ -4,8 +4,8 @@ set -euo pipefail
 project_root="$(cd "$(dirname "$0")/../.." && pwd)"
 qemu_repo="${QEMU_REPO:-https://gitlab.com/qemu-project/qemu.git}"
 qemu_ref="${QEMU_REF:-v9.2.0}"
-qemu_source="${QEMU_SOURCE:-$project_root/../qemu}"
-qemu_build="${QEMU_BUILD:-$project_root/../qemu-build-myemulator}"
+qemu_source="${QEMU_SOURCE:-$project_root/.qemu-upstream}"
+qemu_build="${QEMU_BUILD:-$project_root/.qemu-build}"
 jobs="${JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || printf '1')}"
 run_tests=0
 

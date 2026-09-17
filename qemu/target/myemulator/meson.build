@@ -3,6 +3,7 @@ myemulator_system_ss = ss.source_set()
 
 myemulator_ss.add(files(
   'cpu.c',
+  'disas.c',
   'gdbstub.c',
   'helper.c',
   'translate.c',

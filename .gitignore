@@ -1,0 +1,3 @@
+.qemu-upstream/
+.qemu-build/
+__pycache__/
