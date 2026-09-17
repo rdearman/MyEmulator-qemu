@@ -24,4 +24,30 @@
     (myemulator-asm-mode)
     (should (eq major-mode 'myemulator-asm-mode))))
 
+(ert-deftest mydebug-artifact-paths-follow-source ()
+  (let ((paths (mydebug--artifact-paths "/tmp/demo/arithmetic.s")))
+    (should (equal (plist-get paths :source) "/tmp/demo/arithmetic.s"))
+    (should (equal (plist-get paths :binary) "/tmp/demo/arithmetic.bin"))
+    (should (equal (plist-get paths :debug-map) "/tmp/demo/arithmetic.debug.json"))))
+
+(ert-deftest mydebug-project-root-is-repository-root ()
+  (let ((root (locate-dominating-file default-directory ".git"))
+        (source (expand-file-name "examples/asm/arithmetic.asm"
+                                 (locate-dominating-file default-directory ".git"))))
+    (should (equal (file-truename (mydebug--repository-root source))
+                   (file-truename root)))))
+
+(ert-deftest mydebug-qemu-startup-configuration ()
+  (let ((root (mydebug--repository-root))
+        (command (mydebug--qemu-command
+                  (mydebug--repository-root)
+                  "/tmp/arithmetic.bin"
+                  "/tmp/session/debug.qmp")))
+    (should (equal (car command)
+                   (expand-file-name ".qemu-build/qemu-system-myemulator" root)))
+    (should (member "-S" command))
+    (should (member "-kernel" command))
+    (should (member "-qmp" command))
+    (should (string-match-p "debug.qmp" (car (last command))))))
+
 ;;; mydebug-tests.el ends here

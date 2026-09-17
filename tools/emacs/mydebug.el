@@ -4,14 +4,20 @@
 ;; mydebug console remains available in a separate comint buffer.
 
 (require 'asm-mode)
+(require 'cl-lib)
 (require 'comint)
 (require 'json)
 (require 'seq)
 
 (defgroup mydebug nil "MyEmulator native debugger." :group 'tools)
 (defcustom mydebug-program nil "Path to tools/mydebug." :type '(choice (const nil) file))
-(defcustom mydebug-qmp-socket "/tmp/myemulator-debug.sock" "QMP socket used by mydebug." :type 'file)
+(defcustom mydebug-assembler-program nil "Assembler command, or nil to use the project assembler." :type '(choice (const nil) file))
+(defcustom mydebug-qemu-program nil "QEMU command, or nil to use the project build." :type '(choice (const nil) file))
+(defcustom mydebug-qmp-socket nil
+  "Configured QMP socket for explicit attach, or nil for an automatic session."
+  :type '(choice (const nil) file))
 (defcustom mydebug-symbols-file nil "Default MyEmulator debug-map file." :type '(choice (const nil) file))
+(defcustom mydebug-auto-start-qemu t "Whether `mydebug-start' starts the project QEMU automatically." :type 'boolean)
 (defcustom mydebug-source-face 'highlight "Face for the current guest source line." :type 'face)
 
 (defconst mydebug--directory
@@ -23,6 +29,12 @@
 (defvar mydebug--partial "")
 (defvar mydebug--metadata nil)
 (defvar mydebug--metadata-file nil)
+(defvar mydebug--source-file nil)
+(defvar mydebug--binary-file nil)
+(defvar mydebug--qemu-process nil)
+(defvar mydebug--qemu-temp-dir nil)
+(defvar mydebug--qemu-owned nil)
+(defvar mydebug--session-qmp-socket nil)
 (defvar mydebug--pc-overlay nil)
 (defvar mydebug--breakpoint-overlays nil)
 (defvar mydebug--previous-registers nil)
@@ -31,6 +43,117 @@
 (defun mydebug--program ()
   (or mydebug-program
       (expand-file-name "../mydebug" mydebug--directory)))
+
+(defun mydebug--repository-root (&optional file)
+  "Find the MyEmulator project root for FILE or the current buffer."
+  (let* ((name (or file buffer-file-name default-directory))
+         (directory (file-name-directory (expand-file-name name))))
+    (or (locate-dominating-file directory "tools/myasm")
+        (locate-dominating-file directory ".git")
+        (expand-file-name "../.." mydebug--directory))))
+
+(defun mydebug--source (&optional required)
+  (or buffer-file-name
+      (and required (user-error "Save the assembly buffer before starting MyEmulator"))))
+
+(defun mydebug--artifact-paths (&optional source)
+  "Return plist paths for SOURCE's binary and JSON debug map."
+  (let* ((source (or source (mydebug--source t)))
+         (stem (file-name-sans-extension (expand-file-name source))))
+    (list :source (expand-file-name source)
+          :binary (concat stem ".bin")
+          :debug-map (concat stem ".debug.json"))))
+
+(defun mydebug--assembler-command (root)
+  (let ((wrapper (or mydebug-assembler-program
+                     (expand-file-name "tools/myasm" root))))
+    (if (file-executable-p wrapper)
+        (list wrapper)
+      (let ((python (or (executable-find "python3") (executable-find "python")))
+            (script (expand-file-name "tools/assembler/myasm.py" root)))
+        (unless (and python (file-exists-p script))
+          (user-error "Cannot find the MyEmulator assembler under %s" root))
+        (list python script)))))
+
+(defun mydebug--assemble (source binary debug-map)
+  "Assemble SOURCE into BINARY and DEBUG-MAP, showing failures in a buffer."
+  (let* ((root (mydebug--repository-root source))
+         (command (mydebug--assembler-command root))
+         (buffer (get-buffer-create "*MyEmulator Build*"))
+         (program (car command))
+         (args (append (cdr command) (list source "-o" binary "--debug-map" debug-map))))
+    (with-current-buffer buffer
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert (format "$ %s\n\n" (mapconcat #'identity (cons program args) " ")))))
+    (let ((status (apply #'call-process program nil buffer t args)))
+      (with-current-buffer buffer (compilation-mode))
+      (unless (and (integerp status) (= status 0))
+        (display-buffer buffer)
+        (user-error "Assembly failed; see *MyEmulator Build*"))
+      status)))
+
+(defun mydebug--ensure-artifacts (source)
+  (let* ((paths (mydebug--artifact-paths source))
+         (binary (plist-get paths :binary))
+         (debug-map (plist-get paths :debug-map)))
+    (when (or (not (file-exists-p binary))
+              (not (file-exists-p debug-map))
+              (file-newer-than-file-p source binary)
+              (file-newer-than-file-p source debug-map))
+      (message "Assembling %s" (file-name-nondirectory source))
+      (mydebug--assemble source binary debug-map))
+    paths))
+
+(defun mydebug-build ()
+  "Assemble the current MyEmulator source and generate its debug map."
+  (interactive)
+  (let* ((source (mydebug--source t))
+         (paths (mydebug--artifact-paths source)))
+    (mydebug--assemble source (plist-get paths :binary) (plist-get paths :debug-map))
+    (message "Built %s and %s" (file-name-nondirectory (plist-get paths :binary))
+             (file-name-nondirectory (plist-get paths :debug-map)))))
+
+(defun mydebug--qemu-command (root binary socket)
+  (let ((qemu (or mydebug-qemu-program
+                  (expand-file-name ".qemu-build/qemu-system-myemulator" root)
+                  (executable-find "qemu-system-myemulator"))))
+    (unless (and qemu (file-executable-p qemu))
+      (user-error "Cannot find qemu-system-myemulator; build .qemu-build first"))
+    (list qemu "-M" "myemulator" "-S" "-display" "none" "-serial" "none"
+          "-kernel" binary "-qmp" (concat "unix:" socket ",server=on,wait=off"))))
+
+(defun mydebug--active-qmp-socket ()
+  (or mydebug--session-qmp-socket mydebug-qmp-socket))
+
+(defun mydebug--start-qemu (root binary)
+  (unless mydebug-auto-start-qemu
+    (user-error "Automatic QEMU startup is disabled; use `mydebug-start-attach'"))
+  (setq mydebug--qemu-temp-dir (make-temp-file "myemulator-qmp-" t)
+        mydebug--session-qmp-socket (expand-file-name "debug.qmp" mydebug--qemu-temp-dir)
+        mydebug--qemu-owned t)
+  (let ((command (mydebug--qemu-command root binary mydebug--session-qmp-socket)))
+    (setq mydebug--qemu-process
+          (apply #'start-process "myemulator-qemu" "*MyEmulator QEMU*" command))
+    (set-process-query-on-exit-flag mydebug--qemu-process nil)
+    (let ((deadline (+ (float-time) 5.0)))
+      (while (and (not (file-exists-p mydebug--session-qmp-socket))
+                  (process-live-p mydebug--qemu-process)
+                  (< (float-time) deadline))
+        (accept-process-output mydebug--qemu-process 0.05)))
+    (unless (file-exists-p mydebug--session-qmp-socket)
+      (mydebug--shutdown-session)
+      (user-error "QEMU did not create its debugger socket"))))
+
+(defun mydebug--shutdown-session ()
+  (when (process-live-p mydebug--process) (delete-process mydebug--process))
+  (setq mydebug--process nil mydebug--responses nil mydebug--partial "")
+  (when (and mydebug--qemu-owned (process-live-p mydebug--qemu-process))
+    (delete-process mydebug--qemu-process))
+  (when (and mydebug--qemu-temp-dir (file-directory-p mydebug--qemu-temp-dir))
+    (delete-directory mydebug--qemu-temp-dir t))
+  (setq mydebug--qemu-process nil mydebug--qemu-temp-dir nil
+        mydebug--qemu-owned nil mydebug--session-qmp-socket nil))
 
 (defun mydebug--filter (process output)
   (when (process-live-p process)
@@ -46,7 +169,10 @@
 (defun mydebug--ensure-process ()
   (unless (process-live-p mydebug--process)
     (setq mydebug--responses nil mydebug--partial "")
-    (let ((args (list "--machine" "--qmp" mydebug-qmp-socket)))
+    (let ((socket (mydebug--active-qmp-socket)))
+      (unless (and socket (file-exists-p socket))
+        (user-error "QMP socket is unavailable: %s" (or socket "none")))
+      (let ((args (list "--machine" "--qmp" socket)))
       (when mydebug--metadata-file (setq args (append args (list "--symbols" mydebug--metadata-file))))
       (setq mydebug--process
             (make-process :name "mydebug-machine" :buffer mydebug--buffer
@@ -55,7 +181,7 @@
                           :filter #'mydebug--filter
                           :sentinel (lambda (p event)
                                       (unless (process-live-p p)
-                                        (message "mydebug: backend exited (%s)" (string-trim event))))))))
+                                        (message "mydebug: backend exited (%s)" (string-trim event)))))))))
   mydebug--process)
 
 (defun mydebug--request (command &optional args)
@@ -194,15 +320,49 @@
     (mydebug--handle-state result)
     result))
 
-(defun mydebug-start (qmp symbols)
-  (interactive (list (read-file-name "QMP socket: " nil mydebug-qmp-socket nil)
-                     (read-string "Debug map (optional): " mydebug-symbols-file)))
-  (setq mydebug-qmp-socket qmp)
-  (mydebug--load-map (unless (string-empty-p symbols) symbols))
+(defun mydebug--start-session (source paths &optional attach)
+  (setq mydebug--source-file source
+        mydebug--binary-file (plist-get paths :binary))
+  (mydebug--load-map (plist-get paths :debug-map))
+  (unless attach
+    (mydebug--start-qemu (mydebug--repository-root source) mydebug--binary-file))
   (mydebug--ensure-process)
+  (with-current-buffer (find-file-noselect source) (mydebug-mode 1))
   (mydebug--command "registers")
   (mydebug--refresh-breakpoints)
-  (message "MyEmulator debugger connected"))
+  (message "MyEmulator debugger connected: %s" (file-name-nondirectory source)))
+
+(defun mydebug-start ()
+  "Build, launch and attach to MyEmulator for the current source buffer."
+  (interactive)
+  (let* ((source (mydebug--source t))
+         (paths (mydebug--ensure-artifacts source)))
+    (when (process-live-p mydebug--process)
+      (mydebug--command "registers")
+      (message "MyEmulator debugger already connected")
+      (cl-return-from mydebug-start))
+    (when mydebug-qmp-socket
+      (unless (file-exists-p mydebug-qmp-socket)
+        (user-error "Configured QMP socket is missing: %s" mydebug-qmp-socket))
+      (setq mydebug--session-qmp-socket mydebug-qmp-socket)
+      (mydebug--start-session source paths t)
+      (cl-return-from mydebug-start))
+    (mydebug--start-session source paths)))
+
+(defun mydebug-start-attach (qmp symbols)
+  "Attach to an already-running QEMU using explicitly selected files."
+  (interactive
+   (list (read-file-name "QMP socket: " nil nil t)
+         (read-file-name "Debug map: "
+                         (file-name-directory (or buffer-file-name default-directory))
+                         nil t)))
+  (let ((source (mydebug--source t)))
+    (setq mydebug-qmp-socket (expand-file-name qmp))
+    (unless (file-exists-p symbols)
+      (user-error "Debug map is missing: %s" symbols))
+    (setq mydebug--session-qmp-socket mydebug-qmp-socket)
+    (mydebug--start-session source (list :source source :binary nil
+                                         :debug-map (expand-file-name symbols)) t)))
 
 (defun mydebug-step-instruction () (interactive) (mydebug--command "stepi"))
 (defun mydebug-step () (interactive) (mydebug--command "step"))
@@ -211,7 +371,16 @@
 (defun mydebug-interrupt () (interactive) (mydebug--command "stop"))
 (defun mydebug-finish () (interactive) (mydebug--command "finish"))
 (defun mydebug-reset () (interactive) (mydebug--command "reset"))
-(defun mydebug-run () (interactive) (mydebug--command "run"))
+(defun mydebug-run ()
+  "Rebuild if needed, restart the owned QEMU session, and run from reset."
+  (interactive)
+  (let* ((source (or mydebug--source-file (mydebug--source t)))
+         (paths (mydebug--ensure-artifacts source)))
+    (unless mydebug--qemu-owned
+      (user-error "Cannot reload an attached QEMU; use `mydebug-start' with an owned session"))
+    (mydebug--shutdown-session)
+    (mydebug--start-session source paths)
+    (mydebug--command "run")))
 (defun mydebug-list () (interactive) (let ((result (mydebug--command "list")))
                                        (with-current-buffer (get-buffer-create "*MyEmulator Source*")
                                          (let ((inhibit-read-only t)) (erase-buffer)
@@ -242,7 +411,7 @@
   (let ((buffer (get-buffer-create "*MyEmulator Console*")))
     (unless (comint-check-proc buffer)
       (apply #'make-comint-in-buffer "mydebug-console" buffer (mydebug--program)
-             nil (append (list "--qmp" mydebug-qmp-socket)
+             nil (append (list "--qmp" (mydebug--active-qmp-socket))
                          (when mydebug--metadata-file (list "--symbols" mydebug--metadata-file)))))
     (pop-to-buffer buffer) (comint-mode)))
 

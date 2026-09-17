@@ -64,10 +64,27 @@ it does not screen-scrape the interactive console. Load it locally with:
 (require 'mydebug)
 ```
 
-With an arithmetic source buffer open, use `M-x mydebug-start`, enter the QMP
-socket and `.mdbg` file, then enable `M-x mydebug-mode` in the source buffer.
-The package supplies `M-x mydebug-layout` for console/register/breakpoint
-windows. Useful source-buffer bindings are:
+With an assembly source buffer open, `M-x mydebug-start` is the normal
+workflow. It derives `NAME.bin` and `NAME.debug.json` beside the source,
+assembles them when missing or stale, starts the project build at
+`.qemu-build/qemu-system-myemulator` stopped with a private temporary QMP
+socket, and connects `tools/mydebug --machine`. The source buffer, current
+line overlay, and registers are then displayed automatically. No path prompts
+are used in this normal workflow.
+
+`M-x mydebug-build` explicitly assembles the current source and writes both
+derived artifacts. Errors appear in `*MyEmulator Build*` using Emacs
+compilation-mode. `M-x mydebug-start-attach` is the advanced workflow for an
+already-running QEMU; it uses standard `read-file-name` completion for the
+QMP socket and debug map. Set `mydebug-qemu-program`,
+`mydebug-assembler-program`, or `mydebug-qmp-socket` in Emacs customization
+when using non-project locations.
+
+`C-c C-r` rebuilds stale source, replaces an automatically launched QEMU
+session so the new binary is loaded, and starts from reset. `C-c C-0` performs
+a hardware reset in the existing session without rebuilding. The package
+supplies `M-x mydebug-layout` for console/register/breakpoint windows. Useful
+source-buffer bindings are:
 
 | Binding | Action |
 | --- | --- |
@@ -85,6 +102,6 @@ windows. Useful source-buffer bindings are:
 
 `*MyEmulator Registers*` and `*MyEmulator Breakpoints*` are read-only views;
 the current source line is highlighted with an overlay. `.s` is not globally
-associated with the mode; `myemulator-asm-mode` must be enabled explicitly.
-The Emacs package assumes QEMU is already running and does not rebuild or
-launch QEMU.
+associated with the mode; `myemulator-asm-mode` can be enabled explicitly.
+The package does not install anything globally and does not manage an
+unrelated or explicitly attached QEMU process.
