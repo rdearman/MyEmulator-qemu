@@ -275,7 +275,7 @@ def resolved_symbols(assembler):
             pass
     return result
 
-def write_debug_map(path, assembler, source):
+def write_debug_map(path, assembler, source, image_type="ram"):
     locations = []
     for src in assembler.sources:
         if src.address is None or not src.data:
@@ -285,19 +285,29 @@ def write_debug_map(path, assembler, source):
                               "source": str(source), "line": src.line,
                               "text": src.text.rstrip()})
     data = {"format": "myemulator-debug-v1", "source": str(source),
+            "image_type": image_type,
             "symbols": resolved_symbols(assembler), "locations": locations}
     Path(path).write_text(json.dumps(data, indent=2) + "\n")
 
 def main(argv=None):
-    p=argparse.ArgumentParser(prog='myasm'); p.add_argument('source'); p.add_argument('-o','--output',required=True); p.add_argument('--listing'); p.add_argument('--symbols',action='store_true'); p.add_argument('--symbol-file'); p.add_argument('--debug-map'); p.add_argument('--flat-64k',action='store_true'); p.add_argument('--fill',default='0')
+    p=argparse.ArgumentParser(prog='myasm'); p.add_argument('source'); p.add_argument('-o','--output',required=True); p.add_argument('--listing'); p.add_argument('--symbols',action='store_true'); p.add_argument('--symbol-file'); p.add_argument('--debug-map'); p.add_argument('--flat-64k',action='store_true'); p.add_argument('--firmware','--rom',dest='firmware',action='store_true'); p.add_argument('--fill')
     ns=p.parse_args(argv)
     try:
         a=Assembler(ns.source,Path(ns.source).read_text()).assemble()
-        fill=int(ns.fill,0)
+        fill=int(ns.fill,0) if ns.fill is not None else (0xff if ns.firmware else 0)
         if not 0<=fill<=255: raise AsmError("fill byte must be 0..255")
         if a.bytes:
-            end=0x10000 if ns.flat_64k else max(a.bytes)+1
-            blob=bytes(a.bytes.get(i,fill) for i in range(end))
+            if ns.firmware:
+                firmware_start, firmware_end = 0xf100, 0x10000
+                outside = [address for address in a.bytes
+                           if not firmware_start <= address < firmware_end]
+                if outside:
+                    raise AsmError("firmware output requires all data in 0xf100-0xffff")
+                blob=bytes(a.bytes.get(address,fill)
+                           for address in range(firmware_start, firmware_end))
+            else:
+                end=0x10000 if ns.flat_64k else max(a.bytes)+1
+                blob=bytes(a.bytes.get(i,fill) for i in range(end))
         else: blob=b''
         Path(ns.output).write_bytes(blob)
         if ns.listing:
@@ -313,7 +323,8 @@ def main(argv=None):
             if ns.symbols: print('\n'.join(lines))
             if ns.symbol_file: Path(ns.symbol_file).write_text('\n'.join(lines)+'\n')
         if ns.debug_map:
-            write_debug_map(ns.debug_map, a, ns.source)
+            write_debug_map(ns.debug_map, a, ns.source,
+                            "firmware" if ns.firmware else "ram")
         return 0
     except (AsmError, OSError) as e:
         if isinstance(e,AsmError): print(f"{ns.source}:{e.line}: {e.message}" if e.line else f"{ns.source}: {e.message}",file=sys.stderr)

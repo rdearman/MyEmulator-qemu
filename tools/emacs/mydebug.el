@@ -18,6 +18,9 @@
   :type '(choice (const nil) file))
 (defcustom mydebug-symbols-file nil "Default MyEmulator debug-map file." :type '(choice (const nil) file))
 (defcustom mydebug-auto-start-qemu t "Whether `mydebug-start' starts the project QEMU automatically." :type 'boolean)
+(defcustom mydebug-image-type 'auto
+  "Image type for automatic sessions: `auto', `ram', or `firmware'."
+  :type '(choice (const auto) (const ram) (const firmware)))
 (defcustom mydebug-source-face 'highlight "Face for the current guest source line." :type 'face)
 
 (defconst mydebug--directory
@@ -66,6 +69,17 @@
           :binary (concat stem ".bin")
           :debug-map (concat stem ".debug.json"))))
 
+(defun mydebug--source-image-type (source)
+  "Return the image type for SOURCE, honoring `mydebug-image-type'."
+  (if (not (eq mydebug-image-type 'auto))
+      mydebug-image-type
+    (with-temp-buffer
+      (insert-file-contents source)
+      (if (re-search-forward
+           "^[[:space:]]*\\.org[[:space:]]+\\(?:0[xX]\\)?[fF]100\\b" nil t)
+          'firmware
+        'ram))))
+
 (defun mydebug--assembler-command (root)
   (let ((wrapper (or mydebug-assembler-program
                      (expand-file-name "tools/myasm" root))))
@@ -77,13 +91,14 @@
           (user-error "Cannot find the MyEmulator assembler under %s" root))
         (list python script)))))
 
-(defun mydebug--assemble (source binary debug-map)
+(defun mydebug--assemble (source binary debug-map &optional image-type)
   "Assemble SOURCE into BINARY and DEBUG-MAP, showing failures in a buffer."
   (let* ((root (mydebug--repository-root source))
          (command (mydebug--assembler-command root))
          (buffer (get-buffer-create "*MyEmulator Build*"))
          (program (car command))
-         (args (append (cdr command) (list source "-o" binary "--debug-map" debug-map))))
+         (args (append (cdr command) (list source "-o" binary "--debug-map" debug-map)
+                       (when (eq image-type 'firmware) (list "--firmware")))))
     (with-current-buffer buffer
       (let ((inhibit-read-only t))
         (erase-buffer)
@@ -97,6 +112,7 @@
 
 (defun mydebug--ensure-artifacts (source)
   (let* ((paths (mydebug--artifact-paths source))
+         (image-type (mydebug--source-image-type source))
          (binary (plist-get paths :binary))
          (debug-map (plist-get paths :debug-map)))
     (when (or (not (file-exists-p binary))
@@ -104,37 +120,41 @@
               (file-newer-than-file-p source binary)
               (file-newer-than-file-p source debug-map))
       (message "Assembling %s" (file-name-nondirectory source))
-      (mydebug--assemble source binary debug-map))
+      (mydebug--assemble source binary debug-map image-type))
+    (setq paths (plist-put paths :image-type image-type))
     paths))
 
 (defun mydebug-build ()
   "Assemble the current MyEmulator source and generate its debug map."
   (interactive)
   (let* ((source (mydebug--source t))
-         (paths (mydebug--artifact-paths source)))
-    (mydebug--assemble source (plist-get paths :binary) (plist-get paths :debug-map))
+         (paths (mydebug--artifact-paths source))
+         (image-type (mydebug--source-image-type source)))
+    (mydebug--assemble source (plist-get paths :binary) (plist-get paths :debug-map)
+                        image-type)
     (message "Built %s and %s" (file-name-nondirectory (plist-get paths :binary))
              (file-name-nondirectory (plist-get paths :debug-map)))))
 
-(defun mydebug--qemu-command (root binary socket)
+(defun mydebug--qemu-command (root binary socket &optional image-type)
   (let ((qemu (or mydebug-qemu-program
                   (expand-file-name ".qemu-build/qemu-system-myemulator" root)
                   (executable-find "qemu-system-myemulator"))))
     (unless (and qemu (file-executable-p qemu))
       (user-error "Cannot find qemu-system-myemulator; build .qemu-build first"))
     (list qemu "-M" "myemulator" "-S" "-display" "none" "-serial" "none"
-          "-kernel" binary "-qmp" (concat "unix:" socket ",server=on,wait=off"))))
+          (if (eq image-type 'firmware) "-bios" "-kernel") binary
+          "-qmp" (concat "unix:" socket ",server=on,wait=off"))))
 
 (defun mydebug--active-qmp-socket ()
   (or mydebug--session-qmp-socket mydebug-qmp-socket))
 
-(defun mydebug--start-qemu (root binary)
+(defun mydebug--start-qemu (root binary &optional image-type)
   (unless mydebug-auto-start-qemu
     (user-error "Automatic QEMU startup is disabled; use `mydebug-start-attach'"))
   (setq mydebug--qemu-temp-dir (make-temp-file "myemulator-qmp-" t)
         mydebug--session-qmp-socket (expand-file-name "debug.qmp" mydebug--qemu-temp-dir)
         mydebug--qemu-owned t)
-  (let ((command (mydebug--qemu-command root binary mydebug--session-qmp-socket)))
+  (let ((command (mydebug--qemu-command root binary mydebug--session-qmp-socket image-type)))
     (setq mydebug--qemu-process
           (apply #'start-process "myemulator-qemu" "*MyEmulator QEMU*" command))
     (set-process-query-on-exit-flag mydebug--qemu-process nil)
@@ -528,7 +548,8 @@
         mydebug--binary-file (plist-get paths :binary))
   (mydebug--load-map (plist-get paths :debug-map))
   (unless attach
-    (mydebug--start-qemu (mydebug--repository-root source) mydebug--binary-file))
+    (mydebug--start-qemu (mydebug--repository-root source) mydebug--binary-file
+                          (plist-get paths :image-type)))
   (mydebug--ensure-process)
   (with-current-buffer (find-file-noselect source) (mydebug-mode 1))
   (mydebug--command "registers")

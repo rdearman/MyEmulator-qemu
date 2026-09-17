@@ -9,13 +9,23 @@ PC = read16(0xfffe)
 
 General registers and S0 reset to zero. The vectors are little endian.
 
-With `-kernel`, QEMU loads a raw image at `0x0000` into flat RAM and supplies
-the reset vectors. For a disk boot, use `-drive file=disk.img,format=raw,if=none,id=myemulator-floppy`
-without `-kernel`. The machine maps the floppy controller at `0xf000`, places
-the built-in bootstrap ROM at `0x0180`, and sets the reset PC to `0x0180`.
-The bootstrap writes sector 0 to the controller, polls READY, copies all 256
-DATA bytes to `0x0100`, and branches to `0x0100`; QEMU does not preload that
-sector into guest RAM.
+With `-kernel`, QEMU loads a development raw image into RAM at `0x0000`.
+For real firmware, assemble a compact ROM image and pass it with `-bios`:
+
+```sh
+./tools/myasm rikmon.s -o rikmon.bin --firmware --debug-map rikmon.debug.json
+.qemu-build/qemu-system-myemulator -M myemulator -bios rikmon.bin \
+  -drive file=disk.img,format=raw,if=none,id=myemulator-floppy
+```
+
+The firmware binary represents `0xf100-0xffff`, is exactly 3840 bytes after
+assembly, and defaults missing bytes to `0xff`. It owns the IRQ, SP, and reset
+vectors. Reset reads SP from `0xfffc` and PC from `0xfffe`; the expected
+initial SP is `0xf000`. Attaching a floppy only makes the peripheral available:
+it does not install a bootstrap or change reset PC. RIKMON is responsible for
+deciding whether and how to read sector 0.
+
+The old built-in floppy bootstrap is no longer in the normal boot path.
 
 To create and boot the example:
 

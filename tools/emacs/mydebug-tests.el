@@ -50,6 +50,15 @@
     (should (member "-qmp" command))
     (should (string-match-p "debug.qmp" (car (last command))))))
 
+(ert-deftest mydebug-firmware-startup-configuration ()
+  (let ((command (mydebug--qemu-command
+                  (mydebug--repository-root)
+                  "/tmp/rikmon.bin"
+                  "/tmp/session/debug.qmp"
+                  'firmware)))
+    (should (member "-bios" command))
+    (should-not (member "-kernel" command))))
+
 (defun mydebug-test--state (&optional halted)
   `((registers . ((r0 . 7) (r1 . 0) (r2 . 0) (r3 . 0)
                   (a0 . 0) (a1 . 0) (a2 . 0) (a3 . 0)

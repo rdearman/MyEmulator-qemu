@@ -2,12 +2,46 @@ import tempfile, unittest
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).parent))
-from myasm import Assembler, AsmError
+from myasm import Assembler, AsmError, main
 
 def assemble(src):
     return Assembler("test.asm", src).assemble()
 
 class AssemblerTests(unittest.TestCase):
+    def test_firmware_image_is_compact_and_absolute(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            source = directory / "firmware.s"
+            output = directory / "firmware.bin"
+            debug = directory / "firmware.debug.json"
+            source.write_text(""".org 0xF100
+reset:
+    li r0,#7
+    halt
+.org 0xFFFC
+.word 0xF000
+.word reset
+""")
+            self.assertEqual(main([str(source), "-o", str(output), "--firmware",
+                                   "--debug-map", str(debug)]), 0)
+            image = output.read_bytes()
+            self.assertEqual(len(image), 0x0f00)
+            self.assertEqual(image[:4], bytes([0x07, 0x10, 0x80, 0xf0]))
+            self.assertEqual(image[-4:], bytes([0x00, 0xf0, 0x00, 0xf1]))
+            self.assertEqual(image[4:-4], b'\xff' * (0x0f00 - 8))
+            metadata = __import__('json').loads(debug.read_text())
+            self.assertEqual(metadata['image_type'], 'firmware')
+            self.assertEqual(metadata['symbols']['reset'], 0xf100)
+            self.assertEqual(metadata['locations'][0]['address'], 0xf100)
+
+    def test_firmware_rejects_data_outside_rom_window(self):
+        with tempfile.TemporaryDirectory() as directory:
+            directory = Path(directory)
+            source = directory / "bad.s"
+            output = directory / "bad.bin"
+            source.write_text(".org 0xF000\n.byte 1\n")
+            self.assertEqual(main([str(source), "-o", str(output), "--firmware"]), 1)
+
     def test_all_confirmed_instruction_families(self):
         a=assemble('''
 li r0,#0xff

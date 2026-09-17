@@ -184,7 +184,7 @@ run_image br-forward 01660010071080f0 'R0: 0x07'
 run_image br-backward 01100266021080f0fd6680f0 'R0: 0x02'
 run_image ret 0250047680f0071040f0 'LR: 0x0002.*R0: 0x07'
 run_image nested-ret 0250047680f010e0025010f040f0421040f0 \
-    'SP: 0xffff.*LR: 0x0002.*R0: 0x42'
+    'SP: 0xf000.*LR: 0x0002.*R0: 0x42'
 
 high_jal=7f50
 i=0

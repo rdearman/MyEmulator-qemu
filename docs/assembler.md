@@ -27,7 +27,11 @@ mask without changing CPU transfer order.
 
 Directives are `.byte`, `.word`, `.ascii`, `.asciz`, and `.org`. Words are
 little-endian. Strings support `\n`, `\r`, `\t`, `\\`, `\"`, and `\0`.
-Output regions are checked for overlap. The `la` pseudo-instruction takes
+Output regions are checked for overlap. Use `--firmware` (or `--rom`) for a
+compact 3840-byte firmware image: all emitted data must lie in `0xf100-0xffff`,
+the output is padded with `0xff`, and debug-map addresses remain absolute.
+For ordinary RAM programs omit this option; `--flat-64k` remains available for
+legacy full-address-space test images. The `la` pseudo-instruction takes
 `la A0,#value,R2,R3` and expands deterministically to `LI R2,#hi(value)`,
 `LI R3,#lo(value)`, and architectural `LDA A0,R2,R3`; scratch registers are
 always explicit.
@@ -38,4 +42,5 @@ example `and r0,r1,#0xff`. No historical
 assembler syntax or encoding workaround is used.
 
 `--debug-map file.mdbg` writes JSON metadata for `mydebug`, including resolved
-symbols and source line locations for emitted bytes.
+symbols, source line locations for emitted bytes, and `image_type` (`ram` or
+`firmware`).

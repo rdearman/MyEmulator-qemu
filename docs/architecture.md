@@ -25,9 +25,11 @@ the lower address.
 | `SP` | 16 | `read16(0xfffc)` |
 | `PC` | 16 | `read16(0xfffe)` |
 
-The reset vectors are architectural. Initial QEMU testing maps flat RAM across
-the full address space and places the little-endian vectors in its top four
-bytes.
+The reset vectors are architectural and physically reside in the external
+firmware ROM. The normal machine map is documented in
+[memory-map.md](memory-map.md); QEMU does not manufacture vector bytes in RAM.
+Development `-kernel` mode remains available with a compatibility ROM, but
+real firmware is selected with `-bios`.
 
 The Python post-branch increment, branch-label workaround, unsupported-opcode
 double increment, `PC == 0xff` halt convention, old syscall meanings, and old
