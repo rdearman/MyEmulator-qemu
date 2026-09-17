@@ -19,6 +19,7 @@ cpu-test: build
 	QEMU_MYEMULATOR="$(QEMU_BINARY)" $(PROJECT_ROOT)/tests/run-qemu-cpu-tests.sh
 
 debug-test: build
+	python3 $(PROJECT_ROOT)/tools/test_mydebug_paths.py
 	QEMU_MYEMULATOR="$(QEMU_BINARY)" $(PROJECT_ROOT)/tests/run-qemu-debug-tests.sh
 	$(PROJECT_ROOT)/tests/run-mydebug-tests.sh
 	$(PROJECT_ROOT)/tests/run-mydebug-halt-test.sh

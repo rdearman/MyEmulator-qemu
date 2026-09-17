@@ -129,10 +129,17 @@ Macros and conditional assembly are intentionally not implemented. Use
 
 ## Debug metadata and diagnostics
 
-`--debug-map` writes absolute source locations, resolved symbols, and symbol
-kind/visibility information for `mydebug` and the Emacs integration. Included
-source locations retain their source filename. Numeric local labels are used
-for resolution but are not exported as ordinary symbols.
+`--debug-map` writes absolute guest locations, resolved symbols, and
+symbol kind/visibility information for `mydebug` and the Emacs integration.
+The map contains `source_path_base: "debug-map-directory"`; every relative
+source path in `locations` is relative to the directory containing the debug
+map. Thus a map at `rikmon/rikmon.debug.json` names its main source as
+`rikmon.s`, and an included file at `rikmon/include/myemulator.inc` as
+`include/myemulator.inc`, regardless of the directory from which `myasm` was
+invoked. Absolute paths remain absolute. `mydebug` also accepts older maps
+without this field and tries both map-directory and invocation-directory
+resolution. Numeric local labels are used for resolution but are not exported
+as ordinary symbols.
 
 Errors are reported as `filename:line: explanation`, including undefined
 symbols, duplicate labels, illegal `.equ` redefinitions, bad operands,

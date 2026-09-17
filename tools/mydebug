@@ -19,6 +19,26 @@ OPS = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
        ast.LShift: operator.lshift, ast.RShift: operator.rshift}
 
 
+def resolve_source_path(source, symbol_path, metadata=None):
+    """Resolve a debug-map source using explicit and legacy path semantics.
+
+    Current maps store paths relative to the debug-map directory.  The later
+    candidates retain compatibility with older maps that stored the assembler
+    invocation's working-directory-relative path.
+    """
+    path = Path(source)
+    if path.is_absolute():
+        return path
+    candidates = []
+    if metadata and metadata.get("source_path_base") == "debug-map-directory":
+        candidates.append(symbol_path.parent / path)
+    candidates.extend((symbol_path.parent / path, Path.cwd() / path))
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate.resolve()
+    return candidates[0].resolve()
+
+
 class QMP:
     def __init__(self, path):
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -92,10 +112,12 @@ class Debugger:
     def __init__(self, args):
         self.qmp = QMP(args.qmp)
         self.symbol_path = Path(args.symbols).resolve() if args.symbols else None
+        self.metadata = {}
         self.symbols, self.locations, self.sources = {}, {}, {}
         if args.symbols:
             with open(args.symbols, encoding="utf-8") as stream:
                 metadata = json.load(stream)
+            self.metadata = metadata
             self.symbols = {key.lower(): int(value)
                             for key, value in metadata.get("symbols", {}).items()}
             self.locations = {int(item["address"]): item
@@ -265,9 +287,7 @@ class Debugger:
             if not loc:
                 return {"available": False, "message": "no source mapping for target"}
             source, line = loc["source"], int(loc["line"])
-        path = Path(source)
-        if not path.is_absolute() and self.symbol_path:
-            path = self.symbol_path.parent / path
+        path = resolve_source_path(source, self.symbol_path, self.metadata) if self.symbol_path else Path(source)
         try:
             lines = self.sources.setdefault(str(path), path.read_text().splitlines())
         except OSError as exc:

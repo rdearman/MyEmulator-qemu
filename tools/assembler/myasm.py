@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from dataclasses import dataclass
@@ -543,17 +544,31 @@ def resolved_symbols(assembler):
 
 
 def write_debug_map(path, assembler, source, image_type="ram"):
+    map_directory = Path(path).resolve().parent
+
+    def source_name(filename):
+        source_path = Path(filename)
+        if not source_path.is_absolute():
+            source_path = Path.cwd() / source_path
+        try:
+            return os.path.relpath(source_path.resolve(), map_directory).replace(os.sep, '/')
+        except ValueError:
+            # This is mainly relevant to Windows drives.  Absolute paths are
+            # unambiguous when a relative path cannot be formed.
+            return str(source_path.resolve())
+
     locations = []
     for src in assembler.sources:
         if src.address is None or not src.data: continue
         for offset in range(0, len(src.data), 2):
-            locations.append({"address": src.address + offset, "source": src.filename,
+            locations.append({"address": src.address + offset, "source": source_name(src.filename),
                               "line": src.line, "text": src.text.rstrip()})
     symbols = resolved_symbols(assembler)
     symbol_info = {name: {"kind": assembler.symbol_kinds.get(name, "label"),
                           "global": name in assembler.exports, "local": name in assembler.locals}
                    for name in symbols}
-    data = {"format": "myemulator-debug-v1", "source": str(source), "image_type": image_type,
+    data = {"format": "myemulator-debug-v1", "source": source_name(source),
+            "source_path_base": "debug-map-directory", "image_type": image_type,
             "symbols": symbols, "symbol_info": symbol_info, "locations": locations}
     Path(path).write_text(json.dumps(data, indent=2) + "\n")
 

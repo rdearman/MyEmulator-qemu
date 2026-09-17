@@ -33,6 +33,24 @@ reset:
             self.assertEqual(metadata['image_type'], 'firmware')
             self.assertEqual(metadata['symbols']['reset'], 0xf100)
             self.assertEqual(metadata['locations'][0]['address'], 0xf100)
+            self.assertEqual(metadata['source'], 'firmware.s')
+            self.assertEqual(metadata['locations'][0]['source'], 'firmware.s')
+
+    def test_nested_firmware_debug_map_paths_are_relative_to_map(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            project = root / 'rikmon'; project.mkdir()
+            include = project / 'include'; include.mkdir()
+            source = project / 'rikmon.s'
+            output = project / 'rikmon.bin'
+            debug = project / 'rikmon.debug.json'
+            (include / 'defs.inc').write_text('.equ RESET_ADDR, 0xF100\n')
+            source.write_text('''.include "include/defs.inc"\n.org RESET_ADDR\nreset: halt\n''')
+            self.assertEqual(main([str(source), '-o', str(output), '--firmware', '--debug-map', str(debug)]), 0)
+            metadata = __import__('json').loads(debug.read_text())
+            self.assertEqual(metadata['source_path_base'], 'debug-map-directory')
+            self.assertEqual(metadata['source'], 'rikmon.s')
+            self.assertEqual(metadata['locations'][0]['source'], 'rikmon.s')
 
     def test_firmware_rejects_data_outside_rom_window(self):
         with tempfile.TemporaryDirectory() as directory:

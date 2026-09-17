@@ -240,8 +240,13 @@
   (seq-find (lambda (item) (= (mydebug--get item 'address) address)) (mydebug--locations)))
 
 (defun mydebug--source-path (source)
-  (let ((path (expand-file-name source (file-name-directory mydebug--metadata-file))))
-    (if (file-exists-p path) path source)))
+  (if (file-name-absolute-p source)
+      source
+    (let ((candidates (list
+                       (expand-file-name source (file-name-directory mydebug--metadata-file))
+                       (expand-file-name source default-directory))))
+      (or (seq-find #'file-exists-p candidates)
+          (car candidates)))))
 
 (defun mydebug--same-source-p (source file)
   (let ((candidates (list source
