@@ -3,3 +3,8 @@ myemulator_floppy_command(uint8_t command, uint16_t sector) "command=0x%02x sect
 myemulator_floppy_read(uint16_t sector) "read sector=%u"
 myemulator_floppy_write(uint16_t sector) "write sector=%u"
 myemulator_floppy_error(uint8_t error) "error=%u"
+# MyEmulator fictional console
+myemulator_console_received(uint8_t byte) "received byte=0x%02x"
+myemulator_console_transmitted(uint8_t byte) "transmitted byte=0x%02x"
+myemulator_console_irq(bool asserted) "rx irq asserted=%d"
+myemulator_console_overflow(uint8_t byte) "fifo overflow dropped byte=0x%02x"

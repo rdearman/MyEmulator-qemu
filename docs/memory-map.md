@@ -15,6 +15,7 @@ MyEmulator has a 16-bit byte address bus and an 8-bit data bus.
 | `0xfffc-0xfffd` | Initial SP reset vector | architectural |
 | `0xfffe-0xffff` | Reset PC vector | architectural |
 | `0xf000-0xf00f` | MyEmulator floppy-controller MMIO | device |
+| `0xf010-0xf01f` | MyEmulator console MMIO | device |
 
 Every address identifies one byte. Data `LD` and `ST` access one byte. A 16-bit
 instruction occupies `PC` and `PC+1`; ordinary execution advances `PC` by 2.

@@ -1,11 +1,13 @@
 #include "qemu/osdep.h"
 #include "qapi/error.h"
+#include "chardev/char.h"
 #include "qemu/error-report.h"
 #include "hw/boards.h"
 #include "hw/core/cpu.h"
 #include "hw/loader.h"
 #include "hw/qdev-properties-system.h"
 #include "hw/sysbus.h"
+#include "hw/irq.h"
 #include "exec/address-spaces.h"
 #include "exec/memory.h"
 #include "qom/object.h"
@@ -15,6 +17,7 @@
 #include "myemulator-debug.h"
 #include "myemulator-bootrom.h"
 #include "myemulator-floppy.h"
+#include "myemulator-console.h"
 
 #define TYPE_MYEMULATOR_MACHINE MACHINE_TYPE_NAME("myemulator")
 #define MYEMULATOR_RAM_SIZE 0x10000
@@ -24,6 +27,11 @@ typedef struct MyEmulatorMachineState {
     MyEmulatorCPU *cpu;
     MemoryRegion ram;
 } MyEmulatorMachineState;
+
+static void myemulator_machine_irq(void *opaque, int number, int level)
+{
+    myemulator_cpu_set_irq(CPU(opaque), number, level != 0);
+}
 
 DECLARE_INSTANCE_CHECKER(MyEmulatorMachineState, MYEMULATOR_MACHINE,
                          TYPE_MYEMULATOR_MACHINE)
@@ -47,6 +55,19 @@ static void myemulator_machine_init(MachineState *machine)
     }
     sysbus_realize_and_unref(SYS_BUS_DEVICE(fdc), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(fdc), 0, MYEMULATOR_FLOPPY_BASE);
+
+    Chardev *console_chr = qemu_chr_find("console");
+    DeviceState *console = qdev_new(TYPE_MYEMULATOR_CONSOLE);
+    if (console_chr) {
+        qdev_prop_set_chr(console, "chardev", console_chr);
+    }
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(console), &error_fatal);
+    sysbus_mmio_map(SYS_BUS_DEVICE(console), 0, MYEMULATOR_CONSOLE_BASE);
+    if (console_chr) {
+        sysbus_connect_irq(SYS_BUS_DEVICE(console), 0,
+                           qemu_allocate_irq(myemulator_machine_irq, s->cpu,
+                                             MYEMULATOR_CONSOLE_IRQ));
+    }
 
     if (floppy && !machine->kernel_filename) {
         rom_add_blob_fixed("myemulator.bootrom", myemulator_bootrom,

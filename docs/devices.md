@@ -18,11 +18,16 @@ images. `COMMAND` values `1` and `2` read and write the selected linear sector;
 `STATUS` bits are BUSY=1, READY=2, ERROR=4. Error codes are 1=no media,
 2=out of range, 3=I/O error, and 4=short write.
 
+The console is a raw byte device at `0xf010-0xf01f`; its full register map,
+FIFO, IRQ4 behaviour, and chardev commands are documented in
+`docs/console.md`. It is independent of the floppy controller and does not
+provide prompts, echo policy, editing, or monitor commands.
+
 The old Python CLI queue and its POP bit-7 services (`SYS_EXIT`, `SYS_PRINT`,
 and `SYS_UNAME`) are historical host conveniences, not current hardware. The
 new architecture assigns no syscall meaning to POP or `0xf080`; the latter is
-HALT. Console, storage, timers, interrupts, and banking will be designed as
-real QEMU devices when their interfaces are defined.
+HALT. Storage, timers, and banking will be designed as real QEMU devices when
+their interfaces are defined.
 
 The old `harddrive` directory, monitor commands, and direct RAM inspection are
 development tooling only, not guest-visible devices.
