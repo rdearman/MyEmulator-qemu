@@ -432,6 +432,9 @@ class Assembler:
         if op == 'la':
             if len(args) != 4: self.err("la requires address, value, high scratch, low scratch", n)
             return 6
+        if op == 'call':
+            if len(args) != 1: self.err("call requires one target", n)
+            return 12
         return 2
 
     def encode(self, op, args, n):
@@ -467,6 +470,12 @@ class Assembler:
             high = self.encode('li', [args[2], '#hi(' + args[1].strip()[1:] + ')'], n)
             low = self.encode('li', [args[3], '#lo(' + args[1].strip()[1:] + ')'], n)
             return high + low + self.encode('lda', [dst, args[2], args[3]], n)
+        if op == 'call':
+            need(1)
+            return (self.encode('push', ['{lr}'], n) +
+                    self.encode('la', ['a2', '#' + args[0], 'r2', 'r3'], n) +
+                    self.encode('jla', ['a2'], n) +
+                    self.encode('pop', ['{lr}'], n))
         if op == 'li': need(2); return w(0x1000 | (self.reg(args[0], n) << 10) | self.imm(args[1], n, 8))
         if op in ALU_OPS:
             if len(args) == 2: return w(0x7700 | (ALU_OPS[op] << 4) | (self.reg(args[0], n) << 2) | self.reg(args[1], n))

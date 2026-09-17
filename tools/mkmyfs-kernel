@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+"""Make a -kernel development image which runs a MyFS boot sector at 0x0200."""
+import argparse
+from pathlib import Path
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument("boot")
+    p.add_argument("output")
+    ns = p.parse_args()
+    boot = Path(ns.boot).read_bytes()
+    if len(boot) > 256:
+        p.error("boot sector exceeds 256 bytes")
+    image = bytearray(65536)
+    image[0x0200:0x0200 + len(boot)] = boot
+    image[0xfffc:0xfffe] = (0xf000).to_bytes(2, "little")
+    image[0xfffe:0x10000] = (0x0200).to_bytes(2, "little")
+    Path(ns.output).write_bytes(image)
+
+if __name__ == "__main__":
+    main()

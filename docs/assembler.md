@@ -127,6 +127,10 @@ and `LDA` using the explicitly named scratch registers.
 Macros and conditional assembly are intentionally not implemented. Use
 `.include`, constants and ordinary labels for reusable firmware definitions.
 
+The small `call SYMBOL` pseudo-operation expands to a saved-link `JLA`
+sequence; it adds no CPU instruction. Absolute flat sources should use `.org`
+matching their runtime load address before a raw range is extracted.
+
 ## Debug metadata and diagnostics
 
 `--debug-map` writes absolute guest locations, resolved symbols, and

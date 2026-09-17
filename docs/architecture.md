@@ -111,3 +111,9 @@ per-level assert/deassert interface and deassert their level after servicing it.
 The virtual timer is the IRQ1 device; the console remains on IRQ4. The timer
 is a 16-bit, 1-ms-resolution countdown at `0xf020-0xf025` and uses QEMU guest
 virtual time, so debugger pauses do not consume timer time.
+
+The optional MyFS v1 floppy image is read-only to guest software. Sector 0 is
+the loader, sector 1 the header, sector 2 the fixed directory, and sector 3
+onward contiguous file data. The loader runs at `0x0200`, `COMMAND.COM` at
+`0x0400`, its sector buffer at `0x0300`, and transient `.COM` programs at
+`0x2000`. See [myfs.md](myfs.md).

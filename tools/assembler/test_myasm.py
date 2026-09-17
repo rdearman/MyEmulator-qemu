@@ -115,6 +115,11 @@ here:
         a=assemble('''la a0,#message,r2,r3\nmessage:\n.byte 1''')
         self.assertEqual(bytes(a.bytes[i] for i in range(7)), bytes([0,0x18,6,0x1c,0x2c,0x71,1]))
 
+    def test_call_pseudo_saves_and_restores_link(self):
+        a = assemble('call target\nhalt\ntarget: ret\n')
+        self.assertEqual(len(a.bytes), 16)
+        self.assertEqual(bytes(a.bytes[i] for i in range(2)), b'\x10\xe0')
+
     def test_range_and_alignment_errors(self):
         for src, text in [('li r0,#256','unsigned 8-bit'), ('ld r0,[a0+129]','signed 8-bit'), ('br far\n.org 0x200\nfar: halt','out of range'), ('br odd\n.org 3\nodd: halt','aligned')]:
             with self.subTest(text=text):
