@@ -1,0 +1,852 @@
+{
+  "format": "myemulator-debug-v1",
+  "source": "rikmon.s",
+  "source_path_base": "debug-map-directory",
+  "image_type": "firmware",
+  "symbols": {
+    "ram_start": 0,
+    "ram_end": 61439,
+    "stack_top": 61440,
+    "mmio_start": 61440,
+    "mmio_end": 61695,
+    "rom_start": 61696,
+    "rom_end": 65535,
+    "rom_size": 3840,
+    "floppy_command": 61440,
+    "floppy_status": 61441,
+    "floppy_sector_lo": 61442,
+    "floppy_sector_hi": 61443,
+    "floppy_data": 61444,
+    "floppy_error": 61445,
+    "floppy_cmd_read": 1,
+    "floppy_cmd_write": 2,
+    "floppy_status_busy": 1,
+    "floppy_status_ready": 2,
+    "floppy_status_error": 4,
+    "console_data": 61456,
+    "console_status": 61457,
+    "console_control": 61458,
+    "console_irq_status": 61459,
+    "console_rx_ready": 1,
+    "console_tx_ready": 2,
+    "mmio_reserved_start": 61472,
+    "mmio_reserved_end": 61695,
+    "s0_zf": 1,
+    "s0_nf": 2,
+    "s0_cf": 4,
+    "s0_of": 8,
+    "s0_ipl_mask": 112,
+    "irq1_vector": 65518,
+    "irq2_vector": 65520,
+    "irq3_vector": 65522,
+    "irq4_vector": 65524,
+    "irq5_vector": 65526,
+    "irq6_vector": 65528,
+    "irq7_vector": 65530,
+    "initial_sp_vector": 65532,
+    "reset_vector": 65534,
+    "wait_key": 61696,
+    "print_msg": 61710,
+    ".loop": 61710,
+    ".done": 61722,
+    "_start": 61724,
+    "_catchall": 61768,
+    "_irq1": 61770,
+    "_irq2": 61772,
+    "_irq3": 61774,
+    "_irq4": 61776,
+    "_irq5": 61778,
+    "_irq6": 61780,
+    "_irq7": 61782,
+    "messages": 61784,
+    "msg0": 61788,
+    "msg1": 61809,
+    "msg2": 61826
+  },
+  "symbol_info": {
+    "ram_start": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "ram_end": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "stack_top": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "mmio_start": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "mmio_end": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "rom_start": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "rom_end": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "rom_size": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "floppy_command": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "floppy_status": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "floppy_sector_lo": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "floppy_sector_hi": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "floppy_data": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "floppy_error": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "floppy_cmd_read": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "floppy_cmd_write": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "floppy_status_busy": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "floppy_status_ready": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "floppy_status_error": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "console_data": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "console_status": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "console_control": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "console_irq_status": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "console_rx_ready": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "console_tx_ready": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "mmio_reserved_start": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "mmio_reserved_end": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "s0_zf": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "s0_nf": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "s0_cf": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "s0_of": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "s0_ipl_mask": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "irq1_vector": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "irq2_vector": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "irq3_vector": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "irq4_vector": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "irq5_vector": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "irq6_vector": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "irq7_vector": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "initial_sp_vector": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "reset_vector": {
+      "kind": "equ",
+      "global": false,
+      "local": false
+    },
+    "wait_key": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    "print_msg": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    ".loop": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    ".done": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    "_start": {
+      "kind": "label",
+      "global": true,
+      "local": false
+    },
+    "_catchall": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    "_irq1": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    "_irq2": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    "_irq3": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    "_irq4": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    "_irq5": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    "_irq6": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    "_irq7": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    "messages": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    "msg0": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    "msg1": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    },
+    "msg2": {
+      "kind": "label",
+      "global": false,
+      "local": false
+    }
+  },
+  "locations": [
+    {
+      "address": 61696,
+      "source": "rikmon.s",
+      "line": 12,
+      "text": "        ld   r0,[a3]"
+    },
+    {
+      "address": 61698,
+      "source": "rikmon.s",
+      "line": 13,
+      "text": "        and  r0,r0,#CONSOLE_RX_READY"
+    },
+    {
+      "address": 61700,
+      "source": "rikmon.s",
+      "line": 14,
+      "text": "        beq  wait_key"
+    },
+    {
+      "address": 61702,
+      "source": "rikmon.s",
+      "line": 15,
+      "text": "\tld   r0,[a3-1]"
+    },
+    {
+      "address": 61704,
+      "source": "rikmon.s",
+      "line": 16,
+      "text": "\tcmp  r0, r3"
+    },
+    {
+      "address": 61706,
+      "source": "rikmon.s",
+      "line": 17,
+      "text": "\tbne  wait_key"
+    },
+    {
+      "address": 61708,
+      "source": "rikmon.s",
+      "line": 18,
+      "text": "\tret"
+    },
+    {
+      "address": 61710,
+      "source": "rikmon.s",
+      "line": 26,
+      "text": "        ld  r0,[a1]        ; get next character"
+    },
+    {
+      "address": 61712,
+      "source": "rikmon.s",
+      "line": 27,
+      "text": "        cmp r0,r3          ; compare against register containing zero"
+    },
+    {
+      "address": 61714,
+      "source": "rikmon.s",
+      "line": 28,
+      "text": "        beq .done"
+    },
+    {
+      "address": 61716,
+      "source": "rikmon.s",
+      "line": 30,
+      "text": "        st  r0,[a0]        ; display it"
+    },
+    {
+      "address": 61718,
+      "source": "rikmon.s",
+      "line": 31,
+      "text": "        ada a1,#1          ; next byte"
+    },
+    {
+      "address": 61720,
+      "source": "rikmon.s",
+      "line": 32,
+      "text": "        br  .loop"
+    },
+    {
+      "address": 61722,
+      "source": "rikmon.s",
+      "line": 35,
+      "text": "        ret"
+    },
+    {
+      "address": 61724,
+      "source": "rikmon.s",
+      "line": 40,
+      "text": "        li  r1,#hi(CONSOLE_DATA)"
+    },
+    {
+      "address": 61726,
+      "source": "rikmon.s",
+      "line": 41,
+      "text": "        li  r2,#lo(CONSOLE_DATA)"
+    },
+    {
+      "address": 61728,
+      "source": "rikmon.s",
+      "line": 42,
+      "text": "        lda a0,r1,r2"
+    },
+    {
+      "address": 61730,
+      "source": "rikmon.s",
+      "line": 43,
+      "text": "\tli r3,#0"
+    },
+    {
+      "address": 61732,
+      "source": "rikmon.s",
+      "line": 45,
+      "text": "\tli  r1,#hi(msg0)"
+    },
+    {
+      "address": 61734,
+      "source": "rikmon.s",
+      "line": 46,
+      "text": "\tli  r2,#lo(msg0)"
+    },
+    {
+      "address": 61736,
+      "source": "rikmon.s",
+      "line": 47,
+      "text": "\tlda a1,r1,r2"
+    },
+    {
+      "address": 61738,
+      "source": "rikmon.s",
+      "line": 48,
+      "text": "\tjal print_msg"
+    },
+    {
+      "address": 61740,
+      "source": "rikmon.s",
+      "line": 50,
+      "text": "\tli  r1,#hi(msg1)"
+    },
+    {
+      "address": 61742,
+      "source": "rikmon.s",
+      "line": 51,
+      "text": "\tli  r2,#lo(msg1)"
+    },
+    {
+      "address": 61744,
+      "source": "rikmon.s",
+      "line": 52,
+      "text": "\tlda a1,r1,r2"
+    },
+    {
+      "address": 61746,
+      "source": "rikmon.s",
+      "line": 53,
+      "text": "\tjal print_msg"
+    },
+    {
+      "address": 61748,
+      "source": "rikmon.s",
+      "line": 55,
+      "text": "        li  r1,#hi(CONSOLE_STATUS)"
+    },
+    {
+      "address": 61750,
+      "source": "rikmon.s",
+      "line": 56,
+      "text": "        li  r2,#lo(CONSOLE_STATUS)"
+    },
+    {
+      "address": 61752,
+      "source": "rikmon.s",
+      "line": 57,
+      "text": "        lda a3,r1,r2"
+    },
+    {
+      "address": 61754,
+      "source": "rikmon.s",
+      "line": 59,
+      "text": "\tli r3, #'q'"
+    },
+    {
+      "address": 61756,
+      "source": "rikmon.s",
+      "line": 60,
+      "text": "\tjal wait_key"
+    },
+    {
+      "address": 61758,
+      "source": "rikmon.s",
+      "line": 62,
+      "text": "\tli  r1,#hi(msg2)"
+    },
+    {
+      "address": 61760,
+      "source": "rikmon.s",
+      "line": 63,
+      "text": "\tli  r2,#lo(msg2)"
+    },
+    {
+      "address": 61762,
+      "source": "rikmon.s",
+      "line": 64,
+      "text": "\tlda a1,r1,r2"
+    },
+    {
+      "address": 61764,
+      "source": "rikmon.s",
+      "line": 65,
+      "text": "\tjal print_msg"
+    },
+    {
+      "address": 61766,
+      "source": "rikmon.s",
+      "line": 68,
+      "text": "        halt"
+    },
+    {
+      "address": 61768,
+      "source": "rikmon.s",
+      "line": 72,
+      "text": "        halt"
+    },
+    {
+      "address": 61770,
+      "source": "rikmon.s",
+      "line": 75,
+      "text": "        br _catchall"
+    },
+    {
+      "address": 61772,
+      "source": "rikmon.s",
+      "line": 78,
+      "text": "        br _catchall"
+    },
+    {
+      "address": 61774,
+      "source": "rikmon.s",
+      "line": 81,
+      "text": "        br _catchall"
+    },
+    {
+      "address": 61776,
+      "source": "rikmon.s",
+      "line": 84,
+      "text": "        br _catchall"
+    },
+    {
+      "address": 61778,
+      "source": "rikmon.s",
+      "line": 87,
+      "text": "        br _catchall"
+    },
+    {
+      "address": 61780,
+      "source": "rikmon.s",
+      "line": 90,
+      "text": "        br _catchall"
+    },
+    {
+      "address": 61782,
+      "source": "rikmon.s",
+      "line": 93,
+      "text": "        br _catchall"
+    },
+    {
+      "address": 61784,
+      "source": "rikmon.s",
+      "line": 99,
+      "text": "        .word msg0"
+    },
+    {
+      "address": 61786,
+      "source": "rikmon.s",
+      "line": 100,
+      "text": "        .word msg1"
+    },
+    {
+      "address": 61788,
+      "source": "rikmon.s",
+      "line": 103,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+    },
+    {
+      "address": 61790,
+      "source": "rikmon.s",
+      "line": 103,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+    },
+    {
+      "address": 61792,
+      "source": "rikmon.s",
+      "line": 103,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+    },
+    {
+      "address": 61794,
+      "source": "rikmon.s",
+      "line": 103,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+    },
+    {
+      "address": 61796,
+      "source": "rikmon.s",
+      "line": 103,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+    },
+    {
+      "address": 61798,
+      "source": "rikmon.s",
+      "line": 103,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+    },
+    {
+      "address": 61800,
+      "source": "rikmon.s",
+      "line": 103,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+    },
+    {
+      "address": 61802,
+      "source": "rikmon.s",
+      "line": 103,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+    },
+    {
+      "address": 61804,
+      "source": "rikmon.s",
+      "line": 103,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+    },
+    {
+      "address": 61806,
+      "source": "rikmon.s",
+      "line": 103,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+    },
+    {
+      "address": 61808,
+      "source": "rikmon.s",
+      "line": 103,
+      "text": "        .asciz \"RIKMON Monitor v1.0\\n\""
+    },
+    {
+      "address": 61809,
+      "source": "rikmon.s",
+      "line": 106,
+      "text": "        .asciz \"Press q to quit\\n\""
+    },
+    {
+      "address": 61811,
+      "source": "rikmon.s",
+      "line": 106,
+      "text": "        .asciz \"Press q to quit\\n\""
+    },
+    {
+      "address": 61813,
+      "source": "rikmon.s",
+      "line": 106,
+      "text": "        .asciz \"Press q to quit\\n\""
+    },
+    {
+      "address": 61815,
+      "source": "rikmon.s",
+      "line": 106,
+      "text": "        .asciz \"Press q to quit\\n\""
+    },
+    {
+      "address": 61817,
+      "source": "rikmon.s",
+      "line": 106,
+      "text": "        .asciz \"Press q to quit\\n\""
+    },
+    {
+      "address": 61819,
+      "source": "rikmon.s",
+      "line": 106,
+      "text": "        .asciz \"Press q to quit\\n\""
+    },
+    {
+      "address": 61821,
+      "source": "rikmon.s",
+      "line": 106,
+      "text": "        .asciz \"Press q to quit\\n\""
+    },
+    {
+      "address": 61823,
+      "source": "rikmon.s",
+      "line": 106,
+      "text": "        .asciz \"Press q to quit\\n\""
+    },
+    {
+      "address": 61825,
+      "source": "rikmon.s",
+      "line": 106,
+      "text": "        .asciz \"Press q to quit\\n\""
+    },
+    {
+      "address": 61826,
+      "source": "rikmon.s",
+      "line": 109,
+      "text": "        .asciz \"Goodbye ... \\n\""
+    },
+    {
+      "address": 61828,
+      "source": "rikmon.s",
+      "line": 109,
+      "text": "        .asciz \"Goodbye ... \\n\""
+    },
+    {
+      "address": 61830,
+      "source": "rikmon.s",
+      "line": 109,
+      "text": "        .asciz \"Goodbye ... \\n\""
+    },
+    {
+      "address": 61832,
+      "source": "rikmon.s",
+      "line": 109,
+      "text": "        .asciz \"Goodbye ... \\n\""
+    },
+    {
+      "address": 61834,
+      "source": "rikmon.s",
+      "line": 109,
+      "text": "        .asciz \"Goodbye ... \\n\""
+    },
+    {
+      "address": 61836,
+      "source": "rikmon.s",
+      "line": 109,
+      "text": "        .asciz \"Goodbye ... \\n\""
+    },
+    {
+      "address": 61838,
+      "source": "rikmon.s",
+      "line": 109,
+      "text": "        .asciz \"Goodbye ... \\n\""
+    },
+    {
+      "address": 65518,
+      "source": "rikmon.s",
+      "line": 112,
+      "text": "        .word _irq1"
+    },
+    {
+      "address": 65520,
+      "source": "rikmon.s",
+      "line": 113,
+      "text": "        .word _irq2"
+    },
+    {
+      "address": 65522,
+      "source": "rikmon.s",
+      "line": 114,
+      "text": "        .word _irq3"
+    },
+    {
+      "address": 65524,
+      "source": "rikmon.s",
+      "line": 115,
+      "text": "        .word _irq4"
+    },
+    {
+      "address": 65526,
+      "source": "rikmon.s",
+      "line": 116,
+      "text": "        .word _irq5"
+    },
+    {
+      "address": 65528,
+      "source": "rikmon.s",
+      "line": 117,
+      "text": "        .word _irq6"
+    },
+    {
+      "address": 65530,
+      "source": "rikmon.s",
+      "line": 118,
+      "text": "        .word _irq7"
+    },
+    {
+      "address": 65532,
+      "source": "rikmon.s",
+      "line": 121,
+      "text": "        .word STACK_TOP"
+    },
+    {
+      "address": 65534,
+      "source": "rikmon.s",
+      "line": 122,
+      "text": "        .word _start"
+    }
+  ]
+}
