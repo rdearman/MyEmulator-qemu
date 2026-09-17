@@ -143,8 +143,10 @@ void helper_halt(CPUMyEmulatorState *env)
     env->halted = true;
     cs->halted = 1;
     cs->exception_index = EXCP_HLT;
-    if (myemulator_debug_is_running()) {
-        qemu_system_debug_request();
+    if (myemulator_debug_is_running() || cs->singlestep_enabled) {
+        /* vm_stop() is safe from the vCPU thread and emits the QMP STOP
+         * transition even when HALT was reached during single-step. */
+        vm_stop(RUN_STATE_DEBUG);
     }
     cpu_loop_exit(cs);
 }

@@ -300,7 +300,7 @@ class Debugger:
         if command in ("run", "r"):
             if args.get("argv"):
                 raise ValueError("run arguments are unsupported for bare-metal MyEmulator")
-            self.q("reset"); self.q("continue")
+            self.q("reset"); self.q("continue"); self.qmp.wait_event("STOP")
             return self.state()
         if command in ("continue", "c"):
             self.q("continue"); self.qmp.wait_event("STOP"); return self.state()
@@ -396,7 +396,7 @@ class Debugger:
         if cmd == "reset": self.print_regs(self.q("reset")); return True
         if cmd in ("r", "run"):
             if rest: raise ValueError("run does not accept arguments")
-            self.q("reset"); self.q("continue"); self.print_regs(self.state()); return True
+            self.q("reset"); self.q("continue"); self.qmp.wait_event("STOP"); self.print_regs(self.state()); return True
         if cmd in ("l", "list"):
             result = self.list_source(rest or None)
             if result.get("available"):

@@ -50,4 +50,54 @@
     (should (member "-qmp" command))
     (should (string-match-p "debug.qmp" (car (last command))))))
 
+(defun mydebug-test--state (&optional halted)
+  `((registers . ((r0 . 7) (r1 . 0) (r2 . 0) (r3 . 0)
+                  (a0 . 0) (a1 . 0) (a2 . 0) (a3 . 0)
+                  (lr . 0) (sp . 65535) (pc . 8) (s0 . 0)))
+    (flags . ((zf . :false) (nf . :false) (cf . :false)
+              (of . :false) (ipl . 0)))
+    (halted . ,(if halted t :false))))
+
+(ert-deftest mydebug-console-prompt-and-history ()
+  (let (seen)
+    (cl-letf (((symbol-function 'mydebug--console-dispatch)
+               (lambda (line) (push line seen) "ok")))
+      (with-temp-buffer
+        (mydebug-console-mode)
+        (goto-char (point-max))
+        (insert "s")
+        (mydebug-console-send-input)
+        (mydebug-console-send-input)
+        (should (string-match-p "^(mydebug) s" (buffer-string)))
+        (should (= (length seen) 2))
+        (should (equal seen '("s" "s")))
+        (should (lookup-key mydebug-console-mode-map (kbd "M-p")))
+        (should (lookup-key mydebug-console-mode-map (kbd "M-n")))))))
+
+(ert-deftest mydebug-console-command-aliases-use-machine-commands ()
+  (let (seen)
+    (cl-letf (((symbol-function 'mydebug--command)
+               (lambda (command &optional _args)
+                 (push command seen)
+                 (mydebug-test--state))))
+      (dolist (line '("s" "si" "n" "fin" "c" "reset" "i r"))
+        (mydebug--console-dispatch line))
+      (should (equal (nreverse seen)
+                     '("step" "stepi" "next" "finish" "continue"
+                       "reset" "info registers"))))))
+
+(ert-deftest mydebug-console-identifies-halt-and-refreshes-state ()
+  (let ((mydebug--metadata nil))
+    (should (string-match-p "HALT at 0x0008"
+                            (mydebug--console-format "stepi"
+                                                      (mydebug-test--state t))))))
+
+(ert-deftest mydebug-console-keymap-is-session-local ()
+  (with-temp-buffer
+    (mydebug-mode 1)
+    (should (eq (lookup-key mydebug-mode-map (kbd "C-c C-o")) #'mydebug-switch))
+    (mydebug-mode -1)
+    (should-not (eq (lookup-key (current-local-map) (kbd "C-c C-o"))
+                    #'mydebug-switch))))
+
 ;;; mydebug-tests.el ends here

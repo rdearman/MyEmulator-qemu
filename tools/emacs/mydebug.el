@@ -39,6 +39,8 @@
 (defvar mydebug--breakpoint-overlays nil)
 (defvar mydebug--previous-registers nil)
 (defvar mydebug--breakpoints nil)
+(defvar mydebug--console-last-command nil)
+(defvar mydebug--console-running nil)
 
 (defun mydebug--program ()
   (or mydebug-program
@@ -166,6 +168,12 @@
               (push (json-parse-string line :object-type 'alist :array-type 'list) mydebug--responses)
             (error (message "mydebug: malformed response: %s" err))))))))
 
+(defun mydebug--send-request (command &optional args)
+  (let ((process (mydebug--ensure-process)))
+    (process-send-string process
+                         (concat (json-encode `((command . ,command)
+                                                (args . ,(or args (make-hash-table))))) "\n"))))
+
 (defun mydebug--ensure-process ()
   (unless (process-live-p mydebug--process)
     (setq mydebug--responses nil mydebug--partial "")
@@ -186,9 +194,7 @@
 
 (defun mydebug--request (command &optional args)
   (let ((process (mydebug--ensure-process)))
-    (process-send-string process
-                         (concat (json-encode `((command . ,command)
-                                                (args . ,(or args (make-hash-table))))) "\n"))
+    (mydebug--send-request command args)
     (while (and (null mydebug--responses) (process-live-p process))
       (accept-process-output process 0.1))
     (or (pop mydebug--responses) (error "mydebug did not return a response"))))
@@ -248,7 +254,7 @@
               (setq mydebug--pc-overlay (make-overlay (line-beginning-position)
                                                       (line-beginning-position 2) buffer))
               (overlay-put mydebug--pc-overlay 'face mydebug-source-face)
-              (pop-to-buffer buffer))))))))
+              (display-buffer buffer))))))))
 
 (defun mydebug--refresh-registers (state)
   (let ((buffer (get-buffer-create "*MyEmulator Registers*"))
@@ -272,6 +278,8 @@
                           (if (mydebug--bool (mydebug--get flags 'cf)) 1 0)
                           (if (mydebug--bool (mydebug--get flags 'of)) 1 0)
                           (mydebug--get flags 'ipl))))
+        (when (mydebug--bool (mydebug--get state 'halted))
+          (insert "\nStopped: HALT\n"))
         (special-mode)))
     (display-buffer buffer)
     (setq mydebug--previous-registers registers)))
@@ -314,6 +322,201 @@
     (mydebug--refresh-registers state)
     (mydebug--show-location (mydebug--get state 'registers)))
   state)
+
+(defun mydebug--location-text (state)
+  (let* ((registers (mydebug--get state 'registers))
+         (pc (and registers (mydebug--get registers 'pc)))
+         (location (and pc (mydebug--location-for-address pc))))
+    (concat (if (mydebug--bool (mydebug--get state 'halted)) "HALT at " "")
+            (if location
+                (format "0x%04x %s:%d" pc (mydebug--get location 'source)
+                        (mydebug--get location 'line))
+              (format "0x%04x" (or pc 0))))))
+
+(defun mydebug--format-registers (state)
+  (let ((registers (mydebug--get state 'registers))
+        (flags (mydebug--get state 'flags)))
+    (concat
+     (mapconcat
+      (lambda (name)
+        (let ((value (mydebug--get registers name)))
+          (format "%-3s  %s" (upcase (symbol-name name))
+                  (if (or (string-prefix-p "r" (symbol-name name))
+                          (eq name 's0))
+                      (format "0x%02x" value)
+                    (format "0x%04x" value)))))
+      '(r0 r1 r2 r3 a0 a1 a2 a3 lr sp pc s0) "\n")
+     (format "\nZF=%d NF=%d CF=%d OF=%d IPL=%d"
+             (if (mydebug--bool (mydebug--get flags 'zf)) 1 0)
+             (if (mydebug--bool (mydebug--get flags 'nf)) 1 0)
+             (if (mydebug--bool (mydebug--get flags 'cf)) 1 0)
+             (if (mydebug--bool (mydebug--get flags 'of)) 1 0)
+             (mydebug--get flags 'ipl)))))
+
+(defun mydebug--console-help (&optional command)
+  (let ((help '("s/step       source-line step"
+                "si/stepi     one-instruction step"
+                "n/next       step over a call"
+                "c/continue   continue execution"
+                "fin/finish   run to LR return"
+                "r/run        rebuild, restart and run"
+                "reset        reset and stop"
+                "b/break A    set breakpoint"
+                "d/delete ID  delete breakpoint"
+                "bt           backtrace"
+                "l/list       list source"
+                "p EXPR       print expression"
+                "set R = E    set register"
+                "i r|b|l      info registers/breakpoints/locals"
+                "?            show this help")))
+    (if command
+        (or (seq-find (lambda (line) (string-prefix-p command line)) help)
+            (format "No help for %s" command))
+      (mapconcat #'identity help "\n"))))
+
+(defun mydebug--console-format (command result)
+  (cond
+   ((member command '("?" "help")) result)
+   ((member command '("regs" "registers" "info registers" "i r"))
+    (mydebug--format-registers result))
+   ((member command '("s" "step" "si" "stepi" "n" "next" "fin" "finish"))
+    (format "stopped at %s" (mydebug--location-text result)))
+   ((member command '("c" "continue" "reset" "run" "r" "stop"))
+    (format "stopped at %s" (mydebug--location-text result)))
+   ((member command '("b" "break"))
+    (format "Breakpoint %d at 0x%04x%s"
+            (mydebug--get result 'number) (mydebug--get result 'address)
+            (if (mydebug--get result 'location)
+                (format " (%s:%d)" (mydebug--get (mydebug--get result 'location) 'source)
+                        (mydebug--get (mydebug--get result 'location) 'line)) "")))
+   ((member command '("d" "delete"))
+    (format "Deleted %s" (if (stringp (mydebug--get result 'deleted))
+                              "all breakpoints"
+                            (mydebug--get (mydebug--get result 'deleted) 'number))))
+   ((member command '("i b" "info breakpoints" "breakpoints"))
+    (if (null (mydebug--get result 'breakpoints))
+        "No breakpoints."
+      (concat "Num  Address  Location\n"
+              (mapconcat
+               (lambda (item)
+                 (let ((location (mydebug--get item 'location)))
+                   (format "%-4d 0x%04x  %s%s" (mydebug--get item 'number)
+                           (mydebug--get item 'address)
+                           (or (mydebug--get item 'symbol) "")
+                           (if location (format " (%s:%d)" (mydebug--get location 'source)
+                                                 (mydebug--get location 'line)) ""))))
+               (mydebug--get result 'breakpoints) "\n"))))
+   ((member command '("i l" "info locals")) (or (mydebug--get result 'message) "No locals."))
+   ((member command '("l" "list"))
+    (if (mydebug--bool (mydebug--get result 'available))
+        (mapconcat (lambda (item)
+                     (format "%s %4d  %s" (if (mydebug--get item 'current) "=>" "  ")
+                             (mydebug--get item 'line) (mydebug--get item 'text)))
+                   (mydebug--get result 'lines) "\n")
+      (or (mydebug--get result 'message) "No source mapping.")))
+   ((member command '("p" "print"))
+    (let ((value (mydebug--get result 'value)))
+      (format "0x%x" value)))
+   ((member command '("x" "examine"))
+    (format "%04x: %s" (mydebug--get result 'address) (mydebug--get result 'data)))
+   ((member command '("dis" "disassemble"))
+    (mapconcat (lambda (item) (format "%04x: %s" (mydebug--get item 'address)
+                                      (mydebug--get item 'text)))
+               (mydebug--get result 'instructions) "\n"))
+   ((member command '("bt" "backtrace"))
+    (mapconcat (lambda (frame)
+                 (format "#%d %s" (mydebug--get frame 'level)
+                         (mydebug--location-text `((registers . ((pc . ,(mydebug--get frame 'address))))))))
+               (mydebug--get result 'frames) "\n"))
+   ((member command '("set")) (mydebug--format-registers result))
+   (t (format "%S" result))))
+
+(defun mydebug--console-dispatch (line)
+  "Dispatch a human console LINE through the structured machine protocol."
+  (let* ((line (string-trim line))
+         (parts (split-string line "[ \t]+" t))
+         (command (downcase (or (car parts) "")))
+         (rest (string-trim (substring line (min (length line)
+                                                 (length (or (car parts) "")))))))
+    (cond
+     ((or (string-empty-p line) (member command '("?" "help")))
+      (mydebug--console-help (and (string= command "help") rest)))
+     ((member command '("i" "info"))
+      (let ((topic (downcase (or (car (split-string rest "[ \t]+" t)) ""))))
+        (unless (member topic '("r" "registers" "b" "breakpoints" "l" "locals"))
+          (user-error "Use: i r, i b, or i l"))
+        (let ((full (cond ((member topic '("r" "registers")) "info registers")
+                          ((member topic '("b" "breakpoints")) "info breakpoints")
+                          (t "info locals"))))
+          (mydebug--console-format full (mydebug--command full)))))
+     ((member command '("regs" "registers"))
+      (mydebug--console-format command (mydebug--command "registers")))
+     ((member command '("s" "step" "si" "stepi" "n" "next" "fin" "finish" "c" "continue" "stop" "reset"))
+      (let ((result (pcase command
+                      ((or "s" "step") (mydebug--command "step"))
+                      ((or "si" "stepi") (mydebug--command "stepi"))
+                      ((or "n" "next") (mydebug--command "next"))
+                      ((or "fin" "finish") (mydebug--command "finish"))
+                      ((or "c" "continue") (mydebug--command "continue"))
+                      ("stop" (mydebug--command "stop"))
+                      ("reset" (mydebug--command "reset")))))
+        (mydebug--console-format command result)))
+     ((member command '("r" "run"))
+      (when (not (string-empty-p rest)) (user-error "run does not accept arguments"))
+      (mydebug--console-format "run" (mydebug-run)))
+     ((member command '("b" "break"))
+      (when (string-empty-p rest) (user-error "break requires an address or symbol"))
+      (let ((result (mydebug--command "break" `((address . ,rest)))))
+        (mydebug--refresh-breakpoints)
+        (mydebug--console-format command result)))
+     ((member command '("d" "delete"))
+      (if (string-empty-p rest)
+          (if (y-or-n-p "Delete all MyEmulator breakpoints? ")
+              (let ((result (mydebug--command "delete")))
+                (mydebug--refresh-breakpoints)
+                (mydebug--console-format command result))
+            "Delete cancelled")
+        (let ((result (mydebug--command "delete" `((number . ,(string-to-number rest))))))
+          (mydebug--refresh-breakpoints)
+          (mydebug--console-format command result))))
+     ((member command '("p" "print"))
+      (let ((format "x") (expression rest)))
+        (when (string-match "^/\([xdot]\)[ \t]+\(.+\)$" rest)
+          (setq format (match-string 1 rest) expression (match-string 2 rest)))
+        (let ((result (mydebug--command "print" `((expression . ,expression)
+                                                   (format . ,format))))
+          (format (pcase format
+                    ("d" "%d") ("o" "0o%o") ("t" "0b%b") (_ "0x%x"))
+                  (mydebug--get result 'value)))))
+     ((string= command "set")
+      (unless (string-match "^\([[:alnum:]_]+\)[ \t]*=[ \t]*\(.+\)$" rest)
+        (user-error "Use: set REGISTER = EXPRESSION"))
+      (mydebug--console-format command
+                                (mydebug--command "set"
+                                                  `((register . ,(match-string 1 rest))
+                                                    (expression . ,(match-string 2 rest))))))
+     ((member command '("l" "list"))
+      (mydebug--console-format command
+                               (mydebug--command "list"
+                                                 (unless (string-empty-p rest)
+                                                   `((target . ,rest))))))
+     ((member command '("bt" "backtrace"))
+      (mydebug--console-format command (mydebug--command "backtrace")))
+     ((member command '("x" "examine"))
+      (let ((args (split-string rest "[ \t]+" t)))
+        (unless (car args) (user-error "Use: x ADDRESS [LENGTH]"))
+        (mydebug--console-format command
+                                 (mydebug--command "x"
+                                                   `((address . ,(car args))
+                                                     (length . ,(string-to-number (or (cadr args) "16"))))))))
+     ((member command '("dis" "disassemble"))
+      (let ((args (split-string rest "[ \t]+" t)))
+        (unless (car args) (user-error "Use: dis ADDRESS [COUNT]"))
+        (mydebug--console-format command
+                                 (mydebug--command "dis"
+                                                   `((address . ,(car args))
+                                                     (count . ,(string-to-number (or (cadr args) "8"))))))))
+     (t (user-error "Unknown command; type ? for help")))))
 
 (defun mydebug--command (command &optional args)
   (let ((result (mydebug--request command args)))
@@ -406,14 +609,88 @@
 (defun mydebug-print-expression (expression) (interactive "sExpression: ")
   (message "%s" (mydebug--get (mydebug--command "print" `((expression . ,expression))) 'value)))
 
+(defvar mydebug-console-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map comint-mode-map)
+    (define-key map (kbd "RET") #'mydebug-console-send-input)
+    (define-key map (kbd "C-m") #'mydebug-console-send-input)
+    (define-key map (kbd "C-c C-c") #'mydebug-console-interrupt)
+    (define-key map (kbd "C-c C-x") #'mydebug-console-interrupt)
+    (define-key map (kbd "C-c C-o") #'mydebug-switch)
+    (define-key map (kbd "<f5>") #'mydebug-continue)
+    (define-key map (kbd "<f10>") #'mydebug-next)
+    (define-key map (kbd "<f11>") #'mydebug-step)
+    (define-key map (kbd "S-<f11>") #'mydebug-finish)
+    map))
+
+(define-derived-mode mydebug-console-mode comint-mode "MyDebug"
+  "GDB-like command transcript for the structured MyEmulator debugger."
+  (setq-local comint-prompt-regexp "^(mydebug) ")
+  (setq-local comint-prompt-read-only t)
+  (setq-local comint-input-ignoredups t)
+  (setq-local comint-input-ring (make-ring comint-input-ring-size))
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (insert (propertize "(mydebug) " 'read-only t 'rear-nonsticky '(read-only))))
+  (setq-local comint-last-input-end (copy-marker (point))))
+
+(defun mydebug-console--insert-prompt ()
+  (let ((inhibit-read-only t))
+    (goto-char (point-max))
+    (insert (propertize "(mydebug) " 'read-only t 'rear-nonsticky '(read-only)))
+    (setq comint-last-input-end (copy-marker (point)))))
+
+(defun mydebug-console-send-input ()
+  "Execute the current console line through mydebug's machine protocol."
+  (interactive)
+  (let* ((start (or comint-last-input-end (point-min)))
+         (input (string-trim (buffer-substring-no-properties start (point-max)))))
+    (when (string-empty-p input)
+      (setq input mydebug--console-last-command)
+      (unless input (user-error "No previous debugger command"))
+      (let ((inhibit-read-only t)) (goto-char (point-max)) (insert input)))
+    (setq mydebug--console-last-command input)
+    (comint-add-to-input-history input)
+    (let ((inhibit-read-only t)
+          (input-end (point-max))
+          output)
+      (add-text-properties start input-end '(read-only t))
+      (goto-char input-end)
+      (insert "\n")
+      (condition-case err
+          (setq output (mydebug--console-dispatch input))
+        (error (setq output (format "error: %s" (error-message-string err)))))
+      (insert (or output ""))
+      (insert "\n")
+      (mydebug-console--insert-prompt)
+      (goto-char (point-max)))))
+
+(defun mydebug-console-interrupt ()
+  "Stop the guest without killing the debugger command buffer."
+  (interactive)
+  (let ((output (condition-case err
+                    (mydebug--console-format "stop" (mydebug--command "stop"))
+                  (error (format "error: %s" (error-message-string err))))))
+    (let ((inhibit-read-only t))
+      (goto-char (point-max))
+      (insert "^C\n" output "\n")
+      (mydebug-console--insert-prompt))))
+
 (defun mydebug-console ()
   (interactive)
   (let ((buffer (get-buffer-create "*MyEmulator Console*")))
-    (unless (comint-check-proc buffer)
-      (apply #'make-comint-in-buffer "mydebug-console" buffer (mydebug--program)
-             nil (append (list "--qmp" (mydebug--active-qmp-socket))
-                         (when mydebug--metadata-file (list "--symbols" mydebug--metadata-file)))))
-    (pop-to-buffer buffer) (comint-mode)))
+    (unless (derived-mode-p 'mydebug-console-mode)
+      (with-current-buffer buffer (mydebug-console-mode)))
+    (pop-to-buffer buffer)))
+
+(defun mydebug-switch ()
+  "Switch between the current source buffer and the MyEmulator console."
+  (interactive)
+  (if (derived-mode-p 'mydebug-console-mode)
+      (if (buffer-live-p (get-file-buffer mydebug--source-file))
+          (pop-to-buffer (get-file-buffer mydebug--source-file))
+        (mydebug-console))
+    (mydebug-console)))
 
 (defun mydebug-layout ()
   (interactive)
@@ -434,7 +711,12 @@
     (define-key map (kbd "C-c C-b") #'mydebug-toggle-breakpoint)
     (define-key map (kbd "C-c C-l") #'mydebug-list)
     (define-key map (kbd "C-c C-p") #'mydebug-print-expression)
-    (define-key map (kbd "C-c C-b") #'mydebug-toggle-breakpoint)
+    (define-key map (kbd "C-c C-o") #'mydebug-switch)
+    (define-key map (kbd "C-x SPC") #'mydebug-toggle-breakpoint)
+    (define-key map (kbd "<f5>") #'mydebug-continue)
+    (define-key map (kbd "<f10>") #'mydebug-next)
+    (define-key map (kbd "<f11>") #'mydebug-step)
+    (define-key map (kbd "S-<f11>") #'mydebug-finish)
     map))
 
 (define-minor-mode mydebug-mode

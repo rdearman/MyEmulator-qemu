@@ -21,7 +21,10 @@ Interactive commands include `help`/`?`, `regs`, `info registers`,
 returns to the prompt. Breakpoints have stable debugger-session IDs and are
 QEMU execution breakpoints that stop before the instruction at their address.
 
-`stepi` executes exactly one guest instruction. `step` advances to a
+`stepi` executes exactly one guest instruction. Reaching `HALT` is a normal
+terminal debugger stop: the machine remains alive and the structured state
+reports `running: false` and `halted: true`, so registers, `reset`, and `run`
+remain available. `step` advances to a
 different assembler source line and steps into calls. `next` steps over a
 direct `JAL` using a temporary breakpoint at the return address. `finish`
 uses the current LR as a temporary return breakpoint. Source stepping falls
