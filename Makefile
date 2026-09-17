@@ -32,6 +32,7 @@ firmware-test: build
 
 assembler-test: build
 	python3 $(PROJECT_ROOT)/tools/assembler/test_myasm.py
+	python3 $(PROJECT_ROOT)/tools/test_format_asm.py
 	QEMU_MYEMULATOR="$(QEMU_BINARY)" $(PROJECT_ROOT)/tests/run-assembler-qemu-test.sh
 
 emacs-test:
