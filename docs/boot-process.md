@@ -37,6 +37,28 @@ the prompt. Other lines are ignored. The fixed 64-byte input area currently
 has no overflow or backspace handling and is deliberately a starting point
 for writing the real monitor in MyEmulator assembly.
 
+The current bring-up monitor also provides these software commands:
+
+```text
+M address [value...]   examine or deposit RAM/ROM/MMIO bytes
+D start [end]          dump an inclusive range
+F start end value      fill an inclusive RAM range
+R                      display the readable firmware register state
+G address              reports the ISA 1.0 indirect-PC limitation
+BOOT                   read raw floppy sector 0 into 0x0200
+HELP                   show the command summary
+Q                      halt the CPU
+```
+
+Commands are case-insensitive. Input is edited in a bounded 63-character
+buffer at `0xef00`; Backspace and Delete erase the previous character, and
+the completed line is zero terminated. `BOOT` deliberately does not transfer
+control to `0x0200`: ISA 1.0 has no indirect PC-transfer instruction, so the
+monitor reports that limitation rather than inventing one. `R` can display
+R0-R3, A0-A3, S0, and the monitor's current SP; LR and PC are not directly
+readable by firmware software and should be inspected with the native
+debugger.
+
 To create and boot the example:
 
 ```sh
