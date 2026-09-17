@@ -9,6 +9,11 @@ fi
 qemu_tree="$1"
 overlay_root="$(cd "$(dirname "$0")/.." && pwd)"
 
+if [ ! -x "$qemu_tree/configure" ]; then
+    echo "not a full QEMU checkout: $qemu_tree" >&2
+    exit 1
+fi
+
 mkdir -p "$qemu_tree/target/myemulator"
 mkdir -p "$qemu_tree/hw/myemulator"
 mkdir -p "$qemu_tree/configs/targets"
@@ -31,6 +36,20 @@ grep -qxF "subdir('myemulator')" "$qemu_tree/hw/meson.build" || \
 
 grep -qxF "source myemulator/Kconfig" "$qemu_tree/hw/Kconfig" || \
     printf "source myemulator/Kconfig\n" >> "$qemu_tree/hw/Kconfig"
+
+python3 - "$qemu_tree/include/sysemu/arch_init.h" <<'PY'
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+text = path.read_text()
+needle = "    QEMU_ARCH_LOONGARCH = (1 << 23),"
+replacement = needle + "\n    QEMU_ARCH_MYEMULATOR = (1 << 24),"
+if "QEMU_ARCH_MYEMULATOR" not in text:
+    if needle not in text:
+        raise SystemExit("could not find QEMU architecture enum insertion point")
+    path.write_text(text.replace(needle, replacement))
+PY
 
 python3 - "$qemu_tree/qapi/machine.json" <<'PY'
 import pathlib

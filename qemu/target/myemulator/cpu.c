@@ -2,8 +2,9 @@
 #include "qapi/error.h"
 #include "qemu/qemu-print.h"
 #include "cpu.h"
+#include "exec/exec-all.h"
 #include "exec/translation-block.h"
-#include "accel/tcg/cpu-ops.h"
+#include "hw/core/tcg-cpu-ops.h"
 
 static void myemulator_cpu_set_pc(CPUState *cs, vaddr value)
 {
@@ -17,13 +18,6 @@ static vaddr myemulator_cpu_get_pc(CPUState *cs)
     CPUMyEmulatorState *env = cpu_env(cs);
 
     return env->pc;
-}
-
-static TCGTBCPUState myemulator_get_tb_cpu_state(CPUState *cs)
-{
-    CPUMyEmulatorState *env = cpu_env(cs);
-
-    return (TCGTBCPUState){ .pc = env->pc, .flags = 0 };
 }
 
 static void myemulator_cpu_synchronize_from_tb(CPUState *cs,
@@ -52,7 +46,7 @@ static bool myemulator_cpu_has_work(CPUState *cs)
 {
     CPUMyEmulatorState *env = cpu_env(cs);
 
-    return !env->halted || !cs->halted;
+    return !env->halted || myemulator_cpu_highest_irq(env) != 0;
 }
 
 static void myemulator_cpu_reset_hold(Object *obj, ResetType type)
@@ -77,7 +71,7 @@ static void myemulator_cpu_realizefn(DeviceState *dev, Error **errp)
     MyEmulatorCPUClass *mcc = MYEMULATOR_CPU_GET_CLASS(dev);
     Error *local_err = NULL;
 
-    cpu_common_realize(cs, &local_err);
+    cpu_exec_realizefn(cs, &local_err);
     if (local_err != NULL) {
         error_propagate(errp, local_err);
         return;
@@ -101,37 +95,38 @@ static void myemulator_cpu_dump_state(CPUState *cs, FILE *f, int flags)
 
     qemu_fprintf(f, "PC: 0x%04x\n", env->pc & 0xffff);
     qemu_fprintf(f, "SP: 0x%04x\n", env->sp & 0xffff);
-    qemu_fprintf(f, "LR: 0x%02x\n", env->lr & 0xff);
+    qemu_fprintf(f, "LR: 0x%04x\n", env->lr & 0xffff);
     qemu_fprintf(f, "R0: 0x%02x  R1: 0x%02x  R2: 0x%02x  R3: 0x%02x\n",
                  env->r[0] & 0xff, env->r[1] & 0xff,
                  env->r[2] & 0xff, env->r[3] & 0xff);
+    qemu_fprintf(f, "A0: 0x%04x  A1: 0x%04x  A2: 0x%04x  A3: 0x%04x\n",
+                 env->a[0] & 0xffff, env->a[1] & 0xffff,
+                 env->a[2] & 0xffff, env->a[3] & 0xffff);
+    qemu_fprintf(f, "S0: 0x%02x\n", env->s0 & 0xff);
     qemu_fprintf(f, "FLAGS: ZF=%u NF=%u OF=%u CF=%u\n",
-                 env->zf & 1, env->nf & 1, env->of & 1, env->cf & 1);
+                 !!(env->s0 & MYEMULATOR_S0_ZF),
+                 !!(env->s0 & MYEMULATOR_S0_NF),
+                 !!(env->s0 & MYEMULATOR_S0_OF),
+                 !!(env->s0 & MYEMULATOR_S0_CF));
 }
 
 #include "hw/core/sysemu-cpu-ops.h"
 
 static const struct SysemuCPUOps myemulator_sysemu_ops = {
-    .has_work = myemulator_cpu_has_work,
-    .get_phys_addr_debug = myemulator_cpu_get_phys_addr_debug,
+    .get_phys_page_debug = myemulator_cpu_get_phys_addr_debug,
 };
 
 static const TCGCPUOps myemulator_tcg_ops = {
     .initialize = myemulator_cpu_tcg_init,
-    .translate_code = myemulator_translate_code,
-    .get_tb_cpu_state = myemulator_get_tb_cpu_state,
     .synchronize_from_tb = myemulator_cpu_synchronize_from_tb,
     .restore_state_to_opc = myemulator_restore_state_to_opc,
-    .mmu_index = myemulator_cpu_mmu_index,
     .cpu_exec_interrupt = myemulator_cpu_exec_interrupt,
-    .cpu_exec_reset = cpu_reset,
     .cpu_exec_halt = myemulator_cpu_has_work,
     .tlb_fill = myemulator_cpu_tlb_fill,
     .do_interrupt = myemulator_cpu_do_interrupt,
-    .pointer_wrap = cpu_pointer_wrap_uint32,
 };
 
-static void myemulator_cpu_class_init(ObjectClass *oc, const void *data)
+static void myemulator_cpu_class_init(ObjectClass *oc, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(oc);
     CPUClass *cc = CPU_CLASS(oc);
@@ -145,12 +140,14 @@ static void myemulator_cpu_class_init(ObjectClass *oc, const void *data)
 
     cc->class_by_name = myemulator_cpu_class_by_name;
     cc->dump_state = myemulator_cpu_dump_state;
+    cc->has_work = myemulator_cpu_has_work;
+    cc->mmu_index = myemulator_cpu_mmu_index;
     cc->set_pc = myemulator_cpu_set_pc;
     cc->get_pc = myemulator_cpu_get_pc;
     cc->sysemu_ops = &myemulator_sysemu_ops;
     cc->gdb_read_register = myemulator_cpu_gdb_read_register;
     cc->gdb_write_register = myemulator_cpu_gdb_write_register;
-    cc->gdb_num_core_regs = 8;
+    cc->gdb_num_core_regs = 12;
     cc->tcg_ops = &myemulator_tcg_ops;
 }
 

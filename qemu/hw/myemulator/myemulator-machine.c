@@ -1,11 +1,11 @@
 #include "qemu/osdep.h"
 #include "qapi/error.h"
 #include "qemu/error-report.h"
-#include "hw/core/boards.h"
+#include "hw/boards.h"
 #include "hw/core/cpu.h"
-#include "hw/core/loader.h"
-#include "system/address-spaces.h"
-#include "system/memory.h"
+#include "hw/loader.h"
+#include "exec/address-spaces.h"
+#include "exec/memory.h"
 #include "qom/object.h"
 #include "target/myemulator/cpu-qom.h"
 #include "target/myemulator/cpu.h"
@@ -35,7 +35,7 @@ static void myemulator_machine_init(MachineState *machine)
 
     if (machine->kernel_filename) {
         long size = load_image_targphys(machine->kernel_filename, 0,
-                                        MYEMULATOR_RAM_SIZE, NULL);
+                                        MYEMULATOR_RAM_SIZE);
         if (size < 0) {
             error_report("could not load kernel '%s'",
                          machine->kernel_filename);
@@ -52,10 +52,53 @@ static void myemulator_machine_init(MachineState *machine)
         &address_space_memory, 0xfffc, MEMTXATTRS_UNSPECIFIED, NULL);
     cpu_env(CPU(s->cpu))->pc = address_space_lduw_le(
         &address_space_memory, 0xfffe, MEMTXATTRS_UNSPECIFIED, NULL);
+
     cpu_resume(CPU(s->cpu));
+
+    /* Bring-up/test injection for asserted level-sensitive IRQ inputs. */
+    const char *initial_sp = getenv("MYEMULATOR_INITIAL_SP");
+    if (initial_sp != NULL) {
+        char *end;
+        unsigned long value = strtoul(initial_sp, &end, 0);
+
+        if (*initial_sp != '\0' && *end == '\0') {
+            cpu_env(CPU(s->cpu))->sp = value & 0xffff;
+        }
+    }
+    const char *initial_s0 = getenv("MYEMULATOR_INITIAL_S0");
+    if (initial_s0 != NULL) {
+        char *end;
+        unsigned long value = strtoul(initial_s0, &end, 0);
+
+        if (*initial_s0 != '\0' && *end == '\0') {
+            cpu_env(CPU(s->cpu))->s0 = value & 0xff;
+        }
+    }
+    const char *irq_mask = getenv("MYEMULATOR_IRQ_MASK");
+    if (irq_mask != NULL) {
+        char *end;
+        unsigned long mask = strtoul(irq_mask, &end, 0);
+
+        if (*irq_mask != '\0' && *end == '\0') {
+            myemulator_cpu_set_irq_mask(CPU(s->cpu), mask);
+        }
+    }
+    const char *irq_oneshot = getenv("MYEMULATOR_IRQ_ONESHOT");
+    if (irq_oneshot != NULL && strcmp(irq_oneshot, "0") != 0) {
+        myemulator_cpu_set_irq_oneshot(CPU(s->cpu), true);
+    }
+    const char *irq_after = getenv("MYEMULATOR_IRQ_AFTER");
+    if (irq_after != NULL) {
+        char *end;
+        unsigned long level = strtoul(irq_after, &end, 0);
+
+        if (*irq_after != '\0' && *end == '\0') {
+            myemulator_cpu_set_irq_after_entry(CPU(s->cpu), level);
+        }
+    }
 }
 
-static void myemulator_machine_class_init(ObjectClass *oc, const void *data)
+static void myemulator_machine_class_init(ObjectClass *oc, void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
 

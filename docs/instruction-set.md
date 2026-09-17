@@ -13,22 +13,23 @@ primary opcode is a four-bit group; unused encodings within groups are reserved.
 +---------------+------------+-----------+----------------------------+
 ```
 
-`Rd` and `Rn` encode `00=R0`, `01=R1`, `10=R2`, `11=R3`. `LR` is selected only
-by the PUSH/POP mask. Instructions occupy `PC` and `PC+1`; ordinary execution
-advances `PC` by 2. All 16-bit values use little endian byte order.
+For data-register fields, `00=R0` through `11=R3`. Address-register fields use
+the same two-bit numbering, with `00=A0` through `11=A3`. Instructions occupy
+`PC` and `PC+1`; ordinary execution advances `PC` by 2. All 16-bit values use
+little endian byte order.
 
 ## Primary opcode groups
 
 | Op | Group | Current definition |
 | --- | --- | --- |
-| 0 | LD | `Rd = mem[Rn]` |
+| 0 | LD | `Rd = mem8[A[n] + sign_extend(disp8)]` |
 | 1 | LI | `Rd = imm8` |
-| 2 | ST | `mem[Rn] = Rd` |
+| 2 | ST | `mem8[A[n] + sign_extend(disp8)] = Rd` |
 | 3 | ADD | immediate arithmetic form used for bring-up |
 | 4 | SUB | reserved for cleaned-up subtract definition |
 | 5 | JAL | `LR = P+2`; target is `P+2 + sign_extend(imm8)*2` |
-| 6 | BRANCH | condition field: `0=BEQ`, `1=BNE`, `2=BLT`, `3=BGE`, `4=BLTU`, `5=BGEU` |
-| 7 | RESERVED | intentionally unassigned |
+| 6 | BRANCH | condition field: `0=BEQ`, `1=BNE`, `2=BLT`, `3=BGE`, `4=BLTU`, `5=BGEU`, `6=BR` |
+| 7 | ADDRESS | `LDA`, `GTA`, `MVA`, and `ADA`; unused subencodings reserved |
 | 8 | CMP | register-to-register subtraction for flags; result discarded |
 | 9 | AND | reserved until destination/operand form is specified |
 | A | OR | reserved until destination/operand form is specified |
@@ -36,7 +37,7 @@ advances `PC` by 2. All 16-bit values use little endian byte order.
 | C | SHL | reserved until shift encoding is specified |
 | D | SHR | reserved until shift encoding is specified |
 | E | PUSH | register-mask form, bits 0..4 defined below |
-| F | POP / extensions | POP mask form; `0xf080` is HALT |
+| F | POP / extensions | POP mask form; `0xf040` is RET, `0xf060` is RTI, and `0xf080` is HALT |
 
 All sixteen values are groups, not a claim that each group has only one
 instruction. Reserved encodings must remain unused until assigned deliberately.
@@ -50,8 +51,10 @@ bit 0 = R0    bit 1 = R1    bit 2 = R2    bit 3 = R3    bit 4 = LR
 `push {r0,r2,lr}` transfers exactly those registers; `pop {r0,r2,lr}` restores
 exactly those registers. There is no implicit `Rd`/`Rn` transfer or duplication.
 PUSH processes selected registers in ascending order (`R0` through `LR`),
-pre-decrementing `SP` before each byte store. POP processes selected registers
-in reverse order (`LR` through `R0`), reading at `SP` then incrementing it.
+pre-decrementing `SP` before each byte store. R0-R3 transfer one byte; LR
+transfers two bytes little-endian (low byte first on PUSH). POP processes
+selected registers in reverse order (`LR` through `R0`), reading at `SP` then
+incrementing it; LR reconstructs its high byte followed by its low byte.
 Bit 7 is not a syscall selector; historical POP/syscall use is excluded.
 
 ## CMP and flags
@@ -74,20 +77,53 @@ sign_extend(displacement8) * 2`.
 | `0x4` | BLTU | `CF == 0` |
 | `0x5` | BGEU | `CF == 1` |
 
-Conditions `0x6` through `0xf` are reserved.
+Conditions `0x7` through `0xf` are reserved. `BR` is unconditional and uses
+the same signed instruction-unit displacement as the conditional branches.
 
-## Flag writes
+## Address operations
+
+Opcode `0x7` uses disjoint subgroups. Low unused bits are reserved so every
+R/A selector combination remains available:
+
+```text
+ADA:  0111 An 00 imm8                 = 0x7000 | (An << 10) | imm8
+LDA:  0111 0001 An Rx Ry 00           = 0x7100 | (An << 6) | (Rx << 4) | (Ry << 2)
+GTA:  0111 0010 An Rx Ry 00           = 0x7200 | (An << 6) | (Rx << 4) | (Ry << 2)
+MVA:  0111 0011 00 DDD SSS           = 0x7300 | (D << 3) | S
+```
+
+`LDA An,Rx,Ry` forms `A[An] = (R[Rx] << 8) | R[Ry]`.
+`GTA Rx,Ry,An` is the inverse. `MVA D,S` copies one 16-bit register. MVA
+selectors are `0=A0`, `1=A1`, `2=A2`, `3=A3`, `4=LR`, and `5=SP`; selectors
+`6` and `7`, plus encodings with bits 7..6 set, are reserved/illegal. PC is
+not an MVA operand. The revised MVA encoding replaces the old two-bit
+A-register-only selectors so all six permitted registers are available as
+both source and destination.
+`ADA An,#imm8` adds signed `imm8` with 16-bit wrapping. None modifies flags.
+`GF Rn` uses `0x7600 | (Rn << 2)` and copies the complete S0 byte into Rn.
+`SF Rn` uses `0x7601 | (Rn << 2)` and copies the complete Rn byte into S0.
+Only R0-R3 are valid GF/SF operands; the other `0x76` encodings are reserved.
+All remaining `0x7` encodings are reserved.
+
+## S0 and flag writes
+
+S0 is an 8-bit architectural register. Bit 0 is ZF, bit 1 is NF, bit 2 is
+CF, and bit 3 is OF. Bits 4..6 are the unsigned IPL field; bit 7 is reserved.
+SF/GF preserve and expose the complete byte. Reset sets S0 to `0x00`.
 
 | Instruction | ZF | NF | CF | OF |
 | --- | --- | --- | --- | --- |
 | `ADD` | result is zero | result bit 7 | unsigned carry | signed 8-bit addition overflow |
 | `SUB` | result is zero | result bit 7 | no borrow (`lhs >= rhs`) | signed 8-bit subtraction overflow |
 | `CMP` | result is zero | result bit 7 | no borrow (`rA >= rB`) | signed 8-bit subtraction overflow |
-| `LD`, `LI`, `ST`, `PUSH`, `POP`, branches, `JAL`, `HALT` | unchanged | unchanged | unchanged | unchanged |
+| `LD`, `LI`, `ST`, `LDA`, `GTA`, `MVA`, `ADA`, `GF`, `PUSH`, `POP`, branches, `JAL`, `RET`, `HALT` | unchanged | unchanged | unchanged | unchanged |
+| `SF` | writes S0 bit 0 | writes S0 bit 1 | writes S0 bit 2 | writes S0 bit 3 |
 
 ## HALT
 
+`0xf040` is operand-free `ret`; it sets `PC = LR` and changes no other state.
+`0xf060` is operand-free `rti`; it restores the saved S0 and PC from the
+hardware interrupt frame and changes no other state.
 `0xf080` (`1111 0000 1000 0000`) is operand-free `halt`. QEMU stops the virtual
 CPU through its normal halt mechanism. The historical `jmp #0xff` convention is
-not architectural. `J`, `JALR`, `RET`, and other future control-flow forms are
-not defined by this specification.
+not architectural. `J` and `JALR` are not defined by this specification.

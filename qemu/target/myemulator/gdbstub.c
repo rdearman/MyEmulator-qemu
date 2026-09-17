@@ -10,17 +10,16 @@ int myemulator_cpu_gdb_read_register(CPUState *cs, GByteArray *mem_buf, int n)
         return gdb_get_reg8(mem_buf, env->r[n]);
     }
     switch (n) {
-    case 4:
-        return gdb_get_reg8(mem_buf, env->lr);
-    case 5:
+    case 4: case 5: case 6: case 7:
+        return gdb_get_reg16(mem_buf, env->a[n - 4]);
+    case 8:
+        return gdb_get_reg16(mem_buf, env->lr);
+    case 9:
         return gdb_get_reg16(mem_buf, env->sp);
-    case 6:
+    case 10:
         return gdb_get_reg16(mem_buf, env->pc);
-    case 7:
-        return gdb_get_reg8(mem_buf, (env->zf << 0) |
-                                     (env->nf << 1) |
-                                     (env->of << 2) |
-                                     (env->cf << 3));
+    case 11:
+        return gdb_get_reg8(mem_buf, env->s0);
     default:
         return 0;
     }
@@ -35,20 +34,20 @@ int myemulator_cpu_gdb_write_register(CPUState *cs, uint8_t *mem_buf, int n)
         return 1;
     }
     switch (n) {
-    case 4:
-        env->lr = *mem_buf & 0xff;
-        return 1;
-    case 5:
+    case 4: case 5: case 6: case 7:
+        env->a[n - 4] = lduw_le_p(mem_buf);
+        return 2;
+    case 8:
+        env->lr = lduw_le_p(mem_buf);
+        return 2;
+    case 9:
         env->sp = lduw_le_p(mem_buf);
         return 2;
-    case 6:
+    case 10:
         env->pc = lduw_le_p(mem_buf);
         return 2;
-    case 7:
-        env->zf = (*mem_buf >> 0) & 1;
-        env->nf = (*mem_buf >> 1) & 1;
-        env->of = (*mem_buf >> 2) & 1;
-        env->cf = (*mem_buf >> 3) & 1;
+    case 11:
+        env->s0 = *mem_buf & 0xff;
         return 1;
     default:
         return 0;
