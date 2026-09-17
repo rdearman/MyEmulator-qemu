@@ -26,6 +26,15 @@ cat >"$tmpdir/commands" <<EOF
 {"command":"x","args":{"address":32,"length":4}}
 {"command":"b","args":{"address":"after_sub"}}
 {"command":"bl"}
+{"command":"print","args":{"expression":"r0 + 4"}}
+{"command":"set","args":{"register":"r0","expression":"0xff"}}
+{"command":"set","args":{"register":"a0","expression":"0x2000"}}
+{"command":"reset"}
+{"command":"list"}
+{"command":"breakpoints"}
+{"command":"delete","args":{"number":1}}
+{"command":"info locals"}
+{"command":"b","args":{"address":6}}
 {"command":"continue"}
 {"command":"dis","args":{"address":6,"count":1}}
 EOF
@@ -40,7 +49,17 @@ assert r[2]["registers"]["pc"] == 4 and r[2]["registers"]["r0"] == 12
 assert r[3]["data"] == "0710"
 assert r[5]["data"] == "deadbeef"
 assert 6 in r[7]["breakpoints"]
-assert r[8]["registers"]["pc"] == 6 and r[8]["registers"]["r0"] == 10
-assert r[9]["instructions"][0]["text"] == "gf r1"
+assert r[8]["value"] == 16
+assert r[9]["registers"]["r0"] == 255
+assert r[10]["registers"]["a0"] == 8192
+assert r[11]["registers"]["pc"] == 0 and r[11]["registers"]["r0"] == 0
+assert r[12]["available"] and r[12]["line"] == 2
+assert r[13]["breakpoints"][0]["number"] == 1
+assert r[14]["deleted"]["number"] == 1
+assert not r[15]["available"]
+assert r[15]["available"] is False
+assert r[16]["number"] == 2
+assert r[17]["registers"]["pc"] == 6 and r[17]["registers"]["r0"] == 10
+assert r[18]["instructions"][0]["text"] == "gf r1"
 '
 echo 'MyEmulator native debugger tests passed'

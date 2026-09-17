@@ -4,6 +4,8 @@
 #include "cpu.h"
 #include "exec/exec-all.h"
 #include "exec/translation-block.h"
+#include "exec/address-spaces.h"
+#include "exec/memory.h"
 #include "hw/core/tcg-cpu-ops.h"
 
 static void myemulator_cpu_set_pc(CPUState *cs, vaddr value)
@@ -67,7 +69,10 @@ static void myemulator_cpu_reset_hold(Object *obj, ResetType type)
     }
 
     memset(env, 0, sizeof(*env));
-    env->sp = 0xffff;
+    env->sp = address_space_lduw_le(&address_space_memory, 0xfffc,
+                                    MEMTXATTRS_UNSPECIFIED, NULL);
+    env->pc = address_space_lduw_le(&address_space_memory, 0xfffe,
+                                    MEMTXATTRS_UNSPECIFIED, NULL);
     cs->exception_index = -1;
 }
 

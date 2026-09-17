@@ -8,6 +8,7 @@
 #include "qapi/qmp/qdict.h"
 #include "qapi/qmp/qlist.h"
 #include "qemu/cutils.h"
+#include "sysemu/reset.h"
 #include "sysemu/runstate.h"
 #include "target/myemulator/cpu.h"
 #include "myemulator-debug.h"
@@ -175,6 +176,65 @@ static void myemulator_debug_qmp(QDict *args, QObject **ret, Error **errp)
     }
 
     if (!strcmp(op, "registers")) {
+        *ret = QOBJECT(myemulator_debug_state(cpu));
+        return;
+    }
+    if (!strcmp(op, "reset")) {
+        qemu_system_reset(SHUTDOWN_CAUSE_GUEST_RESET);
+        cpu_reset(cpu);
+        vm_stop(RUN_STATE_PAUSED);
+        *ret = QOBJECT(myemulator_debug_state(cpu));
+        return;
+    }
+    if (!strcmp(op, "write-register")) {
+        const char *name = qdict_get_try_str(args, "name");
+        int64_t value = qdict_get_int(args, "value");
+        CPUMyEmulatorState *env = cpu_env(cpu);
+        uint32_t max;
+
+        if (!name || value < 0) {
+            error_setg(errp, "invalid register write");
+            return;
+        }
+        if (!g_ascii_strcasecmp(name, "s0") ||
+            (!g_ascii_strcasecmp(name, "r0") ||
+             !g_ascii_strcasecmp(name, "r1") ||
+             !g_ascii_strcasecmp(name, "r2") ||
+             !g_ascii_strcasecmp(name, "r3"))) {
+            max = 0xff;
+        } else {
+            max = 0xffff;
+        }
+        if ((uint64_t)value > max) {
+            error_setg(errp, "value does not fit register %s", name);
+            return;
+        }
+        if (name[0] == 'r' || name[0] == 'R') {
+            unsigned index = name[1] - '0';
+            if (index > 3 || name[2] != '\0') {
+                error_setg(errp, "unknown register %s", name);
+                return;
+            }
+            env->r[index] = value;
+        } else if (name[0] == 'a' || name[0] == 'A') {
+            unsigned index = name[1] - '0';
+            if (index > 3 || name[2] != '\0') {
+                error_setg(errp, "unknown register %s", name);
+                return;
+            }
+            env->a[index] = value;
+        } else if (!g_ascii_strcasecmp(name, "lr")) {
+            env->lr = value;
+        } else if (!g_ascii_strcasecmp(name, "sp")) {
+            env->sp = value;
+        } else if (!g_ascii_strcasecmp(name, "pc")) {
+            cpu_set_pc(cpu, value);
+        } else if (!g_ascii_strcasecmp(name, "s0")) {
+            env->s0 = value;
+        } else {
+            error_setg(errp, "unknown register %s", name);
+            return;
+        }
         *ret = QOBJECT(myemulator_debug_state(cpu));
         return;
     }

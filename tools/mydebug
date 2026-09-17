@@ -1,9 +1,22 @@
 #!/usr/bin/env python3
-"""Native MyEmulator debugger client using QEMU's QMP transport."""
+"""Native MyEmulator debugger client using QEMU QMP."""
 import argparse
+import ast
 import json
+import operator
+import re
 import socket
 import sys
+from pathlib import Path
+
+REGS = ("r0", "r1", "r2", "r3", "a0", "a1", "a2", "a3",
+        "lr", "sp", "pc", "s0")
+WIDTH = {name: (8 if name.startswith("r") or name == "s0" else 16)
+         for name in REGS}
+OPS = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
+       ast.Div: operator.floordiv, ast.FloorDiv: operator.floordiv,
+       ast.BitAnd: operator.and_, ast.BitOr: operator.or_, ast.BitXor: operator.xor,
+       ast.LShift: operator.lshift, ast.RShift: operator.rshift}
 
 
 class QMP:
@@ -21,24 +34,21 @@ class QMP:
             raise RuntimeError("QEMU debugger socket closed")
         return json.loads(line)
 
-    def call(self, execute, arguments=None, wait_event=None):
+    def call(self, execute, arguments=None):
         ident = id((execute, arguments))
         request = {"execute": execute, "id": ident}
         if arguments:
             request["arguments"] = arguments
         self.file.write((json.dumps(request) + "\n").encode())
-        event = None
         while True:
             reply = self._read()
             if reply.get("event"):
                 self.events.append(reply)
-                if wait_event and reply["event"] == wait_event:
-                    event = self.events.pop()
                 continue
             if reply.get("id") == ident:
                 if "error" in reply:
                     raise RuntimeError(reply["error"].get("desc", str(reply["error"])))
-                return reply.get("return", {}), event
+                return reply.get("return", {})
 
     def wait_event(self, name):
         for index, event in enumerate(self.events):
@@ -57,42 +67,101 @@ class QMP:
 
 
 class Debugger:
+    HELP = {
+        "help": "help [COMMAND] or ? [COMMAND]",
+        "regs": "regs; info registers; i r",
+        "stepi": "stepi/si: one CPU instruction",
+        "step": "step/s: source line, stepping into calls",
+        "next": "next/n: source line, stepping over JAL",
+        "continue": "continue/c: resume until stopped",
+        "finish": "finish/fin: run to LR return address",
+        "reset": "reset: reset and leave stopped",
+        "run": "run/r: reset and begin execution",
+        "break": "break/b ADDRESS|SYMBOL",
+        "delete": "delete/d ID; without ID, delete all after confirmation",
+        "info": "info registers|breakpoints|locals",
+        "list": "list/l [LINE|ADDRESS|SYMBOL]",
+        "print": "print/p [/x|/d|/o|/t] EXPRESSION",
+        "set": "set REGISTER = EXPRESSION",
+        "backtrace": "backtrace/bt",
+        "x": "x ADDRESS [LENGTH]",
+        "dis": "dis ADDRESS [COUNT]",
+        "stop": "stop: pause the guest",
+    }
+
     def __init__(self, args):
         self.qmp = QMP(args.qmp)
-        self.symbols = {}
-        self.locations = {}
+        self.symbol_path = Path(args.symbols).resolve() if args.symbols else None
+        self.symbols, self.locations, self.sources = {}, {}, {}
         if args.symbols:
-            with open(args.symbols, encoding="utf-8") as f:
-                metadata = json.load(f)
-            self.symbols = {k.lower(): int(v) for k, v in metadata.get("symbols", {}).items()}
-            self.locations = {int(x["address"]): x for x in metadata.get("locations", [])}
-        self.previous = None
+            with open(args.symbols, encoding="utf-8") as stream:
+                metadata = json.load(stream)
+            self.symbols = {key.lower(): int(value)
+                            for key, value in metadata.get("symbols", {}).items()}
+            self.locations = {int(item["address"]): item
+                              for item in metadata.get("locations", [])}
+        self.breakpoints, self.next_id = {}, 1
+        self.call_history = []
 
-    def call(self, op, **kwargs):
-        return self.qmp.call("myemulator-debug", {"op": op, **kwargs})[0]
+    def q(self, op, **args):
+        return self.qmp.call("myemulator-debug", {"op": op, **args})
 
     def state(self):
-        return self.call("registers")
+        return self.q("registers")
 
-    def resolve(self, value):
-        value = value.strip()
+    def resolve(self, text):
         try:
-            return int(value, 0)
+            return int(text.strip(), 0)
         except ValueError:
-            if value.lower() not in self.symbols:
-                raise ValueError(f"unknown address or symbol: {value}")
-            return self.symbols[value.lower()]
+            try:
+                return self.symbols[text.strip().lower()]
+            except KeyError as exc:
+                raise ValueError(f"unknown address or symbol: {text}") from exc
 
-    @staticmethod
-    def fmt_reg(name, value):
-        width = 2 if name.startswith("r") or name == "s0" else 4
-        return f"{name.upper():<3}  0x{value:0{width}x}"
+    def expression(self, text, regs=None):
+        values = {name: (regs or self.state()["registers"])[name] for name in REGS}
+        values.update(self.symbols)
+        try:
+            tree = ast.parse(text, mode="eval").body
+        except SyntaxError as exc:
+            raise ValueError(f"invalid expression: {exc.msg}") from exc
+
+        def visit(node):
+            if isinstance(node, ast.Constant) and isinstance(node.value, int):
+                return node.value
+            if isinstance(node, ast.Name) and node.id.lower() in values:
+                return values[node.id.lower()]
+            if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+                value = visit(node.operand)
+                return value if isinstance(node.op, ast.UAdd) else -value
+            if isinstance(node, ast.BinOp):
+                for kind, function in OPS.items():
+                    if isinstance(node.op, kind):
+                        left, right = visit(node.left), visit(node.right)
+                        if isinstance(node.op, (ast.Div, ast.FloorDiv)) and right == 0:
+                            raise ValueError("division by zero")
+                        return function(left, right)
+            raise ValueError("expression contains an unsupported operation")
+        return visit(tree)
+
+    def dis_one(self, address):
+        result = self.q("disassemble", address=address, count=1)
+        return result["instructions"][0] if result["instructions"] else None
+
+    def location_text(self, address):
+        loc = self.locations.get(address)
+        if not loc:
+            return f"0x{address:04x}"
+        symbol = next((name for name, value in self.symbols.items()
+                       if value == address), "")
+        return f"0x{address:04x} {symbol} ({loc.get('source')}:{loc.get('line')})"
 
     def print_regs(self, result):
         regs = result["registers"]
         for name in ("pc", "sp", "lr", "r0", "r1", "r2", "r3",
                      "a0", "a1", "a2", "a3", "s0"):
-            print(self.fmt_reg(name, regs[name]))
+            width = 2 if WIDTH[name] == 8 else 4
+            print(f"{name.upper():<3}  0x{regs[name]:0{width}x}")
         flags = result["flags"]
         print("ZF={} NF={} CF={} OF={} IPL={}".format(
             int(flags["zf"]), int(flags["nf"]), int(flags["cf"]),
@@ -100,117 +169,297 @@ class Debugger:
 
     def print_dis(self, result):
         for insn in result["instructions"]:
-            address = insn["address"]
-            loc = self.locations.get(address)
-            suffix = ""
-            if loc:
-                suffix = f"  ({loc.get('source', '')}:{loc.get('line', '')})"
-            print(f"{address:04x}: {insn['text']}{suffix}")
+            loc = self.locations.get(insn["address"])
+            suffix = f" ({loc['source']}:{loc['line']})" if loc else ""
+            print(f"{insn['address']:04x}: {insn['text']}{suffix}")
 
-    def step(self):
-        before = self.previous or self.state()["registers"]
-        self.qmp.call("myemulator-debug", {"op": "step"})
+    def stepi(self):
+        before = self.state()
+        pc = before["registers"]["pc"]
+        insn = self.dis_one(pc)
+        if insn and insn["text"].strip().lower().startswith("jal "):
+            self.call_history.append((pc + 2) & 0xffff)
+        elif insn and insn["text"].strip().lower() == "ret" and self.call_history:
+            self.call_history.pop()
+        self.q("step")
         self.qmp.wait_event("STOP")
-        result = self.state()
-        after = result["registers"]
-        self.previous = after
-        self.print_dis(self.call("disassemble", address=after["pc"], count=1))
-        for name in before:
-            if before[name] != after[name]:
-                print(f"{name.upper()}: 0x{before[name]:x} -> 0x{after[name]:x}")
+        after = self.state()
+        old, new = before["registers"], after["registers"]
+        after["changed_registers"] = {name: {"before": old[name], "after": new[name]}
+                                       for name in old if old[name] != new[name]}
+        after["instruction"] = self.dis_one(new["pc"])
+        if new["pc"] in self.locations:
+            after["source"] = self.locations[new["pc"]]
+        return after
+
+    def source_step(self):
+        key = self.locations.get(self.state()["registers"]["pc"])
+        key = (key.get("source"), key.get("line")) if key else None
+        result = self.stepi()
+        if key is None:
+            return result
+        for _ in range(0x8000):
+            loc = self.locations.get(result["registers"]["pc"])
+            new_key = (loc.get("source"), loc.get("line")) if loc else None
+            if new_key != key or result.get("halted"):
+                break
+            result = self.stepi()
         return result
 
-    def command(self, line):
-        parts = line.split()
-        if not parts:
-            return True
-        cmd = parts[0].lower()
-        if cmd in ("quit", "q", "exit"):
-            return False
-        if cmd in ("regs", "registers"):
-            result = self.state(); self.previous = result["registers"]; self.print_regs(result)
-        elif cmd in ("s", "step"):
-            self.step()
-        elif cmd in ("c", "continue"):
-            self.call("continue"); self.qmp.wait_event("STOP"); print("stopped")
-        elif cmd == "stop":
-            self.print_regs(self.call("stop"))
-        elif cmd in ("x", "examine"):
-            if len(parts) < 2: raise ValueError("x ADDRESS [LENGTH]")
-            result = self.call("read-memory", address=self.resolve(parts[1]),
-                               length=int(parts[2], 0) if len(parts) > 2 else 16)
-            print(f"{result['address']:04x}: {result['data']}")
-        elif cmd in ("w", "write"):
-            if len(parts) < 3: raise ValueError("w ADDRESS HEXBYTES")
-            self.call("write-memory", address=self.resolve(parts[1]), data=parts[2])
-        elif cmd in ("dis", "disassemble"):
-            if len(parts) < 2: raise ValueError("dis ADDRESS [COUNT]")
-            self.print_dis(self.call("disassemble", address=self.resolve(parts[1]),
-                                     count=int(parts[2], 0) if len(parts) > 2 else 8))
-        elif cmd in ("b", "break"):
-            address = self.resolve(parts[1]); self.call("break", address=address); print(f"Breakpoint at 0x{address:04x}")
-        elif cmd in ("delete", "delete-break"):
-            self.call("delete-break", address=self.resolve(parts[1]))
-        elif cmd in ("bl", "breakpoints"):
-            print(" ".join(f"0x{x:04x}" for x in self.call("breakpoints")["breakpoints"]))
-        else:
-            raise ValueError("unknown command")
-        return True
+    def temporary_run(self, address):
+        existing = any(item["address"] == address for item in self.breakpoints.values())
+        if not existing:
+            self.q("break", address=address)
+        self.q("continue")
+        self.qmp.wait_event("STOP")
+        result = self.state()
+        if not existing:
+            self.q("delete-break", address=address)
+        return result
 
-    def machine(self):
-        for line in sys.stdin:
-            try:
-                request = json.loads(line)
-                command = request.get("command", request.get("op"))
-                args = request.get("args", {})
-                if command in ("regs", "registers"):
-                    result = self.state()
-                elif command in ("step", "s"):
-                    self.qmp.call("myemulator-debug", {"op": "step"})
-                    self.qmp.wait_event("STOP")
-                    result = self.state()
-                    result["instruction"] = self.call("disassemble", address=result["registers"]["pc"], count=1)["instructions"][0]
-                    location = self.locations.get(result["registers"]["pc"])
-                    if location:
-                        result["source"] = location
-                elif command in ("continue", "c", "stop"):
-                    if command == "stop":
-                        result = self.call("stop")
-                    else:
-                        self.call("continue")
-                        self.qmp.wait_event("STOP")
-                        result = self.state()
-                else:
-                    op = {"x": "read-memory", "w": "write-memory", "dis": "disassemble", "b": "break",
-                          "delete": "delete-break", "bl": "breakpoints"}.get(command, command)
-                    if op in ("break", "delete-break") and isinstance(args.get("address"), str):
-                        args = dict(args)
-                        args["address"] = self.resolve(args["address"])
-                    result = self.call(op, **args)
-                print(json.dumps(result), flush=True)
-            except Exception as exc:
-                print(json.dumps({"error": str(exc)}), flush=True)
+    def next(self):
+        state = self.state()
+        insn = self.dis_one(state["registers"]["pc"])
+        if insn and insn["text"].strip().lower().startswith("jal "):
+            return self.temporary_run((state["registers"]["pc"] + 2) & 0xffff)
+        return self.source_step()
+
+    def finish(self):
+        state = self.state()
+        pc, lr = state["registers"]["pc"], state["registers"]["lr"]
+        if pc == lr:
+            raise ValueError("LR does not identify a return address")
+        return self.temporary_run(lr)
+
+    def add_break(self, address):
+        for number, item in self.breakpoints.items():
+            if item["address"] == address:
+                return item
+        self.q("break", address=address)
+        item = {"number": self.next_id, "address": address,
+                "symbol": next((n for n, v in self.symbols.items() if v == address), None),
+                "location": self.locations.get(address)}
+        self.breakpoints[self.next_id] = item
+        self.next_id += 1
+        return item
+
+    def del_break(self, number):
+        if number not in self.breakpoints:
+            raise ValueError(f"unknown breakpoint {number}")
+        item = self.breakpoints.pop(number)
+        self.q("delete-break", address=item["address"])
+        return item
+
+    def list_source(self, target=None):
+        current = self.locations.get(self.state()["registers"]["pc"])
+        if target is None:
+            if not current:
+                return {"available": False, "message": "no source mapping for current PC"}
+            source, line = current["source"], int(current["line"])
+        elif target.isdigit():
+            if not current:
+                return {"available": False, "message": "no source file is available"}
+            source, line = current["source"], int(target)
+        else:
+            loc = self.locations.get(self.resolve(target))
+            if not loc:
+                return {"available": False, "message": "no source mapping for target"}
+            source, line = loc["source"], int(loc["line"])
+        path = Path(source)
+        if not path.is_absolute() and self.symbol_path:
+            path = self.symbol_path.parent / path
+        try:
+            lines = self.sources.setdefault(str(path), path.read_text().splitlines())
+        except OSError as exc:
+            return {"available": False, "message": str(exc)}
+        return {"available": True, "source": source, "line": line,
+                "lines": [{"line": n, "text": lines[n - 1], "current": n == line}
+                          for n in range(max(1, line - 5), min(len(lines), line + 5) + 1)]}
+
+    def machine(self, command, args):
+        command = command.lower()
+        if command in ("help", "?"):
+            return {"commands": self.HELP,
+                    "capabilities": ["registers", "stepi", "step", "next",
+                                     "continue", "stop", "reset", "run",
+                                     "breakpoints", "memory", "disassemble",
+                                     "source", "print", "set", "finish",
+                                     "backtrace", "locals"]}
+        if command in ("regs", "registers", "info registers", "i r"):
+            return self.state()
+        if command in ("stepi", "si"):
+            return self.stepi()
+        if command in ("step", "s"):
+            return self.source_step()
+        if command in ("next", "n"):
+            return self.next()
+        if command in ("finish", "fin"):
+            return self.finish()
+        if command == "reset":
+            return self.q("reset")
+        if command in ("run", "r"):
+            if args.get("argv"):
+                raise ValueError("run arguments are unsupported for bare-metal MyEmulator")
+            self.q("reset"); self.q("continue")
+            return self.state()
+        if command in ("continue", "c"):
+            self.q("continue"); self.qmp.wait_event("STOP"); return self.state()
+        if command == "stop":
+            return self.q("stop")
+        if command in ("break", "b"):
+            return self.add_break(self.resolve(str(args["address"])))
+        if command in ("breakpoints", "info breakpoints", "i b"):
+            return {"breakpoints": [self.breakpoints[n] for n in sorted(self.breakpoints)]}
+        if command == "bl":
+            return {"breakpoints": [item["address"] for item in self.breakpoints.values()]}
+        if command in ("delete", "d"):
+            if "number" not in args:
+                for number in list(self.breakpoints): self.del_break(number)
+                return {"deleted": "all"}
+            return {"deleted": self.del_break(int(args["number"]))}
+        if command in ("locals", "info locals", "i l"):
+            return {"available": False, "message": "no local-variable metadata is available"}
+        if command in ("list", "l"):
+            return self.list_source(args.get("target"))
+        if command in ("print", "p"):
+            return {"value": self.expression(args["expression"]), "format": args.get("format", "x")}
+        if command == "set":
+            name = args["register"].lower()
+            if name not in WIDTH: raise ValueError(f"unknown register {name}")
+            value = self.expression(args["expression"])
+            if value < 0 or value >= 1 << WIDTH[name]:
+                raise ValueError(f"value does not fit {WIDTH[name]}-bit register {name}")
+            return self.q("write-register", name=name, value=value)
+        if command in ("x", "examine"):
+            return self.q("read-memory", address=self.resolve(str(args["address"])), length=int(args.get("length", 16)))
+        if command in ("w", "write"):
+            return self.q("write-memory", address=self.resolve(str(args["address"])), data=args["data"])
+        if command in ("dis", "disassemble"):
+            return self.q("disassemble", address=self.resolve(str(args["address"])), count=int(args.get("count", 8)))
+        if command in ("backtrace", "bt"):
+            pc = self.state()["registers"]["pc"]
+            frames = [{"level": 0, "address": pc, "location": self.locations.get(pc), "reliable": True}]
+            frames += [{"level": n, "address": address, "location": self.locations.get(address), "reliable": False}
+                       for n, address in enumerate(reversed(self.call_history), 1)]
+            return {"frames": frames, "message": "higher frames are debugger-observed only"}
+        raise ValueError(f"unknown command: {command}")
+
+    def show_step(self, result):
+        insn = result.get("instruction")
+        print(f"{insn['address']:04x}: {insn['text']}" if insn else f"PC 0x{result['registers']['pc']:04x}")
+        for name, change in result.get("changed_registers", {}).items():
+            print(f"{name.upper()}: 0x{change['before']:x} -> 0x{change['after']:x}")
 
     def interactive(self):
+        previous = None
         while True:
             try:
                 line = input("(mydebug) ")
-                if not self.command(line): break
-            except (EOFError, KeyboardInterrupt):
+                if not line.strip():
+                    if previous is None: continue
+                    line = previous; print(line)
+                else: previous = line
+                if not self.interactive_command(line): break
+            except KeyboardInterrupt:
+                print("\nInterrupted; stopping guest")
+                try: self.print_regs(self.q("stop"))
+                except Exception as exc: print(f"error stopping guest: {exc}")
+            except EOFError:
                 print(); break
             except Exception as exc:
                 print(f"error: {exc}")
 
+    def interactive_command(self, line):
+        command, _, rest = line.strip().partition(" ")
+        cmd = command.lower(); rest = rest.strip()
+        if cmd in ("q", "quit", "exit"): return False
+        if cmd in ("?", "help"):
+            print(self.HELP.get(rest.lower(), "\n".join(f"{k:<12} {v}" for k, v in self.HELP.items()))); return True
+        if cmd in ("regs", "registers"):
+            self.print_regs(self.state()); return True
+        if cmd in ("i", "info"):
+            topic = rest.lower()
+            if topic in ("r", "registers"): self.print_regs(self.state())
+            elif topic in ("b", "breakpoints"): self.print_breakpoints()
+            elif topic in ("l", "locals"): print("no local-variable metadata is available")
+            else: raise ValueError("info registers|breakpoints|locals")
+            return True
+        if cmd in ("si", "stepi", "s", "step", "n", "next", "fin", "finish"):
+            result = {"si": self.stepi, "stepi": self.stepi,
+                      "s": self.source_step, "step": self.source_step,
+                      "n": self.next, "next": self.next,
+                      "fin": self.finish, "finish": self.finish}[cmd]()
+            self.show_step(result); return True
+        if cmd in ("c", "continue"):
+            self.q("continue"); self.qmp.wait_event("STOP"); print("stopped at", self.location_text(self.state()["registers"]["pc"])); return True
+        if cmd == "stop": self.print_regs(self.q("stop")); return True
+        if cmd == "reset": self.print_regs(self.q("reset")); return True
+        if cmd in ("r", "run"):
+            if rest: raise ValueError("run does not accept arguments")
+            self.q("reset"); self.q("continue"); self.print_regs(self.state()); return True
+        if cmd in ("l", "list"):
+            result = self.list_source(rest or None)
+            if result.get("available"):
+                for item in result["lines"]: print(("=>" if item["current"] else "  ") + f" {item['line']:4d} {item['text']}")
+            else: print(result["message"])
+            return True
+        if cmd in ("b", "break"):
+            item = self.add_break(self.resolve(rest)); print(f"Breakpoint {item['number']} at 0x{item['address']:04x}"); return True
+        if cmd in ("d", "delete"):
+            if not rest:
+                if input("Delete all breakpoints? (y or n) ").lower() not in ("y", "yes"): return True
+                for number in list(self.breakpoints): self.del_break(number)
+            else: self.del_break(int(rest))
+            return True
+        if cmd in ("bl", "breakpoints"): self.print_breakpoints(); return True
+        if cmd in ("p", "print"):
+            fmt, expression = "x", rest
+            match = re.match(r"^/([xdot])\s+(.+)$", rest)
+            if match: fmt, expression = match.groups()
+            value = self.expression(expression)
+            print({"x": f"0x{value:x}", "d": str(value), "o": f"0o{value:o}", "t": f"0b{value:b}"}[fmt]); return True
+        if cmd == "set":
+            match = re.match(r"^(\w+)\s*=\s*(.+)$", rest)
+            if not match: raise ValueError("set REGISTER = EXPRESSION")
+            self.print_regs(self.machine("set", {"register": match.group(1), "expression": match.group(2)})); return True
+        if cmd in ("x", "examine"):
+            args = rest.split(); result = self.q("read-memory", address=self.resolve(args[0]), length=int(args[1], 0) if len(args) > 1 else 16); print(f"{result['address']:04x}: {result['data']}"); return True
+        if cmd in ("dis", "disassemble"):
+            args = rest.split(); self.print_dis(self.q("disassemble", address=self.resolve(args[0]), count=int(args[1], 0) if len(args) > 1 else 8)); return True
+        if cmd in ("bt", "backtrace"):
+            result = self.machine("bt", {})
+            for frame in result["frames"]: print(f"#{frame['level']} {self.location_text(frame['address'])}")
+            return True
+        raise ValueError("unknown command; use help")
+
+    def print_breakpoints(self):
+        print("Num  Address  Location")
+        for item in self.breakpoints.values():
+            loc = item.get("location") or {}
+            text = item.get("symbol") or ""
+            if loc: text += f" ({loc.get('source')}:{loc.get('line')})"
+            print(f"{item['number']:<4} 0x{item['address']:04x}   {text}")
+
+    def machine_loop(self):
+        for line in sys.stdin:
+            try:
+                request = json.loads(line)
+                command = request.get("command", request.get("op"))
+                result = self.machine(command, request.get("args", {}))
+                print(json.dumps(result), flush=True)
+            except Exception as exc:
+                print(json.dumps({"error": str(exc)}), flush=True)
+
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--qmp", required=True, help="QMP Unix socket")
-    parser.add_argument("--symbols", help="myasm --debug-map JSON file")
-    parser.add_argument("--machine", action="store_true", help="newline-delimited JSON mode")
+    parser.add_argument("--qmp", required=True)
+    parser.add_argument("--symbols")
+    parser.add_argument("--machine", action="store_true")
     args = parser.parse_args()
     debugger = Debugger(args)
     try:
-        debugger.machine() if args.machine else debugger.interactive()
+        debugger.machine_loop() if args.machine else debugger.interactive()
     finally:
         debugger.qmp.close()
 
