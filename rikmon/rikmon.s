@@ -8,14 +8,14 @@
 ;;; ;;;;;;;;; START HERE
 
 
-wait_key:
-        ld   r0,[a3] 
+; Read one byte from the console. A3 points at CONSOLE_STATUS and the DATA
+; register is at A3-1. The returned character is in R0.
+read_char:
+        ld   r0,[a3]
         and  r0,r0,#CONSOLE_RX_READY
-        beq  wait_key
-	ld   r0,[a3-1] 		; for some reason the character is in one down from console ready. 
-	cmp  r0, r3
-	bne  wait_key
-	ret
+        beq  read_char
+        ld   r0,[a3-1]
+        ret
 
 print_msg:
         ; A1 = address of string
@@ -56,17 +56,45 @@ _start:
         li  r2,#lo(CONSOLE_STATUS) ; move low bit into console status
         lda a3,r1,r2		   ; load into A3
 
-	li r3, #'q'		; load q into r3 register
-	jal wait_key		; jump to wait_key function (JAL has ret)
-	li r3,#0		; load comparator into r3
-	
-	li  r1,#hi(msg2)	; print goodbye message. 
-	li  r2,#lo(msg2)
-	lda a1,r1,r2
-	jal print_msg
-	
-	
-        halt			; quit
+        br show_prompt
+
+; The command loop currently implements q (quit) and reserves b for the
+; future floppy boot command. Unknown commands are ignored.
+command_loop:
+        jal read_char
+
+        li  r1,#'q'
+        cmp r0,r1
+        beq quit_command
+
+        li  r1,#'b'
+        cmp r0,r1
+        beq boot_command
+
+        br show_prompt
+
+show_prompt:
+        li  r1,#hi(prompt)
+        li  r2,#lo(prompt)
+        lda a1,r1,r2
+        jal print_msg
+        br command_loop
+
+quit_command:
+        li  r1,#hi(msg2)
+        li  r2,#lo(msg2)
+        lda a1,r1,r2
+        jal print_msg
+        halt
+
+boot_command:
+        ; Placeholder only: the real floppy BOOT command will be written in
+        ; RIKMON later.
+        li  r1,#hi(msg3)
+        li  r2,#lo(msg3)
+        lda a1,r1,r2
+        jal print_msg
+        br show_prompt
 	
 ;;; 
 _catchall:
@@ -104,10 +132,16 @@ msg0:
         .asciz "RIKMON Monitor v1.0\n"
 
 msg1:
-        .asciz "Press q to quit\n"
+        .asciz "Press q to quit; b to boot\n"
+
+prompt:
+        .asciz "> "
 
 msg2:
-        .asciz "Goodbye ... \n"
+        .asciz "Goodbye ...\n"
+
+msg3:
+        .asciz "BOOT not implemented\n"
 
 .org IRQ1_VECTOR
         .word _irq1

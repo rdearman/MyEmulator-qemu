@@ -27,6 +27,13 @@ deciding whether and how to read sector 0.
 
 The old built-in floppy bootstrap is no longer in the normal boot path.
 
+The repository's `rikmon/rikmon.s` is currently only a small console bring-up
+program, not the RIKMON monitor. It prints a prompt and accepts single-byte
+commands: `q` prints a goodbye message and halts; `b` is wired to a placeholder
+handler that reports that boot is not implemented and returns to the prompt.
+Other bytes are ignored. The command loop is deliberately a starting point
+for writing the real monitor in MyEmulator assembly.
+
 To create and boot the example:
 
 ```sh
