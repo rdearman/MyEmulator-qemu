@@ -9,6 +9,7 @@ cleanup() { test -z "$pid" || kill "$pid" 2>/dev/null || true; test -z "$pid" ||
 trap cleanup EXIT HUP INT TERM
 
 "$root/tools/myasm" "$root/examples/asm/console-output.asm" -o "$tmp/output.bin"
+"$root/tools/myasm" "$root/examples/asm/console-newline.asm" -o "$tmp/newline.bin"
 "$root/tools/myasm" "$root/examples/asm/console-echo.asm" -o "$tmp/echo.bin"
 "$root/tools/myasm" "$root/examples/asm/console-interrupt.asm" -o "$tmp/interrupt.bin" --flat-64k
 
@@ -58,6 +59,34 @@ else:
 s.settimeout(2)
 s.sendall(b"A")
 assert s.recv(1) == b"A"
+s.close()
+PY
+kill "$pid"
+wait "$pid" 2>/dev/null || true
+pid=
+
+"$qemu" -M myemulator -kernel "$tmp/newline.bin" -nographic -monitor none \
+  -serial none -chardev "socket,id=console,path=$tmp/newline.sock,server=on,wait=on" \
+  >"$tmp/qemu.out" 2>"$tmp/qemu.err" &
+pid=$!
+python3 - "$tmp/newline.sock" <<'PY'
+import socket, sys, time
+path = sys.argv[1]
+for _ in range(100):
+    try:
+        s = socket.socket(socket.AF_UNIX)
+        s.connect(path)
+        break
+    except OSError:
+        time.sleep(0.02)
+else:
+    raise SystemExit("console socket did not open")
+s.settimeout(2)
+expected = b"A\r\nB\rC\r\nD"
+data = b""
+while len(data) < len(expected):
+    data += s.recv(len(expected) - len(data))
+assert data == expected, (data, expected)
 s.close()
 PY
 kill "$pid"

@@ -14,8 +14,16 @@ editor. It passes raw host bytes to and from guest software.
 
 The receive FIFO holds 16 bytes. Bytes are queued in arrival order, and a
 DATA read removes one byte. If the FIFO is full, newly arriving bytes are
-dropped and a trace event records the overflow. Traffic is raw 8-bit data;
-CR, LF, backspace, and printable ASCII have no special hardware meaning.
+dropped and a trace event records the overflow. Traffic is raw 8-bit data on
+the guest side; CR, LF, backspace, and printable ASCII have no special input
+meaning.
+
+MyEmulator console software uses Unix-style LF (`0x0A`) as newline. When the
+guest writes LF to DATA, the device transmits CR followed by LF (`0x0D 0x0A`)
+to the host QEMU character backend so terminal backends return to column zero.
+Other bytes are transmitted unchanged, including an explicit guest CR. This
+translation exists only at the host-output boundary; it does not alter the
+guest-visible byte semantics.
 
 TX_READY is currently always one. A DATA write is sent to the attached QEMU
 character backend; when no backend is attached, it is discarded. This keeps
@@ -63,11 +71,13 @@ Assemble the hardware tests with:
 
 ```sh
 ./tools/myasm examples/asm/console-output.asm -o console-output.bin
+./tools/myasm examples/asm/console-newline.asm -o console-newline.bin
 ./tools/myasm examples/asm/console-echo.asm -o console-echo.bin
 ./tools/myasm examples/asm/console-interrupt.asm -o console-interrupt.bin --flat-64k
 ```
 
-The output test transmits `RIK` and halts. The polling test echoes each
+The output test transmits `RIK` and halts. The newline test transmits
+`A\nB\rC\nD`; the host receives `A\r\nB\rC\r\nD`. The polling test echoes each
 received byte. The interrupt test enables IRQ4, halts, and stores the next
 received byte at `0x0200` in its handler. These are hardware tests only, not
 monitor firmware. No prompt, echo policy, editing, or command parsing is

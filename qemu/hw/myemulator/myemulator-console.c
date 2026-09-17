@@ -103,7 +103,15 @@ static void myemulator_console_write(void *opaque, hwaddr offset,
 
     switch (offset) {
     case MYEMULATOR_CONSOLE_DATA:
-        qemu_chr_fe_write(&s->chr, &byte, 1);
+        /* Guest software uses Unix LF.  Translate only at the host chardev
+         * boundary so terminal backends perform a complete line return.
+         * Guest-visible MMIO remains raw bytes. */
+        if (byte == '\n') {
+            const uint8_t newline[] = {'\r', '\n'};
+            qemu_chr_fe_write(&s->chr, newline, sizeof(newline));
+        } else {
+            qemu_chr_fe_write(&s->chr, &byte, 1);
+        }
         trace_myemulator_console_transmitted(byte);
         break;
     case MYEMULATOR_CONSOLE_CONTROL:
