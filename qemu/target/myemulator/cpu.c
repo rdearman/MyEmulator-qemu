@@ -127,6 +127,7 @@ static const TCGCPUOps myemulator_tcg_ops = {
     .synchronize_from_tb = myemulator_cpu_synchronize_from_tb,
     .restore_state_to_opc = myemulator_restore_state_to_opc,
     .cpu_exec_interrupt = myemulator_cpu_exec_interrupt,
+    .debug_check_breakpoint = myemulator_cpu_debug_check_breakpoint,
     .cpu_exec_halt = myemulator_cpu_has_work,
     .tlb_fill = myemulator_cpu_tlb_fill,
     .do_interrupt = myemulator_cpu_do_interrupt,

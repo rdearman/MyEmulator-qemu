@@ -65,3 +65,49 @@ if replacement not in text:
     text = text.replace(needle, replacement)
     path.write_text(text)
 PY
+
+python3 - "$qemu_tree/meson.build" <<'PY'
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+text = path.read_text()
+if "    'hw/myemulator'," not in text:
+    needle = "    'hw/gpio',"
+    if needle not in text:
+        raise SystemExit("could not find trace-events insertion point")
+    path.write_text(text.replace(needle, needle + "\n    'hw/myemulator',", 1))
+PY
+
+# Native MyEmulator stepping uses QEMU's TCG debug-stop path without opening
+# the GDB remote server.  Upstream assumes every debug stop has a GDB process;
+# make that assumption explicit so a non-GDB debugger can use the same path.
+python3 - "$qemu_tree/include/exec/gdbstub.h" "$qemu_tree/gdbstub/gdbstub.c" "$qemu_tree/system/cpus.c" <<'PY'
+import pathlib
+import sys
+
+header, stub, cpus = map(pathlib.Path, sys.argv[1:])
+h = header.read_text()
+needle = "void gdb_set_stop_cpu(CPUState *cpu);"
+replacement = needle + "\nbool gdbstub_has_client(void);"
+if "bool gdbstub_has_client(void);" not in h:
+    if needle not in h:
+        raise SystemExit("could not patch gdbstub header")
+    header.write_text(h.replace(needle, replacement, 1))
+
+s = stub.read_text()
+needle = "void gdb_set_stop_cpu(CPUState *cpu)\n{"
+replacement = "bool gdbstub_has_client(void)\n{\n    return gdbserver_state.process_num > 0;\n}\n\n" + needle
+if "bool gdbstub_has_client(void)" not in s:
+    if needle not in s:
+        raise SystemExit("could not patch gdbstub implementation")
+    stub.write_text(s.replace(needle, replacement, 1))
+
+c = cpus.read_text()
+needle = "        gdb_set_stop_cpu(cpu);\n        qemu_system_debug_request();"
+replacement = "        if (gdbstub_has_client()) {\n            gdb_set_stop_cpu(cpu);\n        }\n        qemu_system_debug_request();"
+if replacement not in c:
+    if needle not in c:
+        raise SystemExit("could not patch CPU debug-stop path")
+    cpus.write_text(c.replace(needle, replacement, 1))
+PY

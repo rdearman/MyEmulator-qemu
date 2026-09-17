@@ -66,6 +66,7 @@ int myemulator_cpu_gdb_write_register(CPUState *cs, uint8_t *mem_buf, int n);
 int myemulator_print_insn(bfd_vma addr, disassemble_info *info);
 void myemulator_cpu_do_interrupt(CPUState *cs);
 bool myemulator_cpu_exec_interrupt(CPUState *cs, int interrupt_request);
+bool myemulator_cpu_debug_check_breakpoint(CPUState *cs);
 void myemulator_cpu_set_irq(CPUState *cs, unsigned level, bool asserted);
 void myemulator_cpu_set_irq_mask(CPUState *cs, unsigned mask);
 void myemulator_cpu_set_irq_oneshot(CPUState *cs, bool oneshot);

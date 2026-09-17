@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Two-pass assembler for the current MyEmulator ISA."""
 from __future__ import annotations
-import argparse, re, sys
+import argparse, json, re, sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -266,8 +266,30 @@ class Assembler:
 
 def w(v): return bytes((v&255,(v>>8)&255))
 
+def resolved_symbols(assembler):
+    result = {}
+    for name, value_ in assembler.symbols.items():
+        try:
+            result[name] = eval_tree(value_, assembler.symbols) if isinstance(value_, tuple) else value_
+        except (KeyError, ValueError):
+            pass
+    return result
+
+def write_debug_map(path, assembler, source):
+    locations = []
+    for src in assembler.sources:
+        if src.address is None or not src.data:
+            continue
+        for offset in range(0, len(src.data), 2):
+            locations.append({"address": src.address + offset,
+                              "source": str(source), "line": src.line,
+                              "text": src.text.rstrip()})
+    data = {"format": "myemulator-debug-v1", "source": str(source),
+            "symbols": resolved_symbols(assembler), "locations": locations}
+    Path(path).write_text(json.dumps(data, indent=2) + "\n")
+
 def main(argv=None):
-    p=argparse.ArgumentParser(prog='myasm'); p.add_argument('source'); p.add_argument('-o','--output',required=True); p.add_argument('--listing'); p.add_argument('--symbols',action='store_true'); p.add_argument('--symbol-file'); p.add_argument('--flat-64k',action='store_true'); p.add_argument('--fill',default='0')
+    p=argparse.ArgumentParser(prog='myasm'); p.add_argument('source'); p.add_argument('-o','--output',required=True); p.add_argument('--listing'); p.add_argument('--symbols',action='store_true'); p.add_argument('--symbol-file'); p.add_argument('--debug-map'); p.add_argument('--flat-64k',action='store_true'); p.add_argument('--fill',default='0')
     ns=p.parse_args(argv)
     try:
         a=Assembler(ns.source,Path(ns.source).read_text()).assemble()
@@ -290,6 +312,8 @@ def main(argv=None):
                 lines.append(f"{k:<12} 0x{resolved:04x}")
             if ns.symbols: print('\n'.join(lines))
             if ns.symbol_file: Path(ns.symbol_file).write_text('\n'.join(lines)+'\n')
+        if ns.debug_map:
+            write_debug_map(ns.debug_map, a, ns.source)
         return 0
     except (AsmError, OSError) as e:
         if isinstance(e,AsmError): print(f"{ns.source}:{e.line}: {e.message}" if e.line else f"{ns.source}: {e.message}",file=sys.stderr)

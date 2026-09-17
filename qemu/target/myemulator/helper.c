@@ -127,6 +127,13 @@ bool myemulator_cpu_exec_interrupt(CPUState *cs, int interrupt_request)
     return true;
 }
 
+bool myemulator_cpu_debug_check_breakpoint(CPUState *cs)
+{
+    /* MyEmulator has no architectural debug modes; every QEMU CPU
+     * breakpoint is an execution breakpoint. */
+    return true;
+}
+
 void helper_halt(CPUMyEmulatorState *env)
 {
     CPUState *cs = env_cpu(env);

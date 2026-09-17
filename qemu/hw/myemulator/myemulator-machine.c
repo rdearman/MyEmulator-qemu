@@ -4,11 +4,17 @@
 #include "hw/boards.h"
 #include "hw/core/cpu.h"
 #include "hw/loader.h"
+#include "hw/qdev-properties-system.h"
+#include "hw/sysbus.h"
 #include "exec/address-spaces.h"
 #include "exec/memory.h"
 #include "qom/object.h"
+#include "sysemu/block-backend.h"
 #include "target/myemulator/cpu-qom.h"
 #include "target/myemulator/cpu.h"
+#include "myemulator-debug.h"
+#include "myemulator-bootrom.h"
+#include "myemulator-floppy.h"
 
 #define TYPE_MYEMULATOR_MACHINE MACHINE_TYPE_NAME("myemulator")
 #define MYEMULATOR_RAM_SIZE 0x10000
@@ -28,10 +34,24 @@ static void myemulator_machine_init(MachineState *machine)
     MemoryRegion *sysmem = get_system_memory();
 
     s->cpu = MYEMULATOR_CPU(cpu_create(machine->cpu_type));
+    myemulator_debug_register_qmp();
 
     memory_region_init_ram(&s->ram, NULL, "myemulator.ram",
                            MYEMULATOR_RAM_SIZE, &error_fatal);
     memory_region_add_subregion(sysmem, 0, &s->ram);
+
+    BlockBackend *floppy = blk_by_name("myemulator-floppy");
+    DeviceState *fdc = qdev_new(TYPE_MYEMULATOR_FLOPPY);
+    if (floppy) {
+        qdev_prop_set_drive(fdc, "drive", floppy);
+    }
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(fdc), &error_fatal);
+    sysbus_mmio_map(SYS_BUS_DEVICE(fdc), 0, MYEMULATOR_FLOPPY_BASE);
+
+    if (floppy && !machine->kernel_filename) {
+        rom_add_blob_fixed("myemulator.bootrom", myemulator_bootrom,
+                           myemulator_bootrom_size, 0x0180);
+    }
 
     if (machine->kernel_filename) {
         long size = load_image_targphys(machine->kernel_filename, 0,
@@ -46,7 +66,8 @@ static void myemulator_machine_init(MachineState *machine)
     /* Temporary bring-up image: little-endian reset vectors in RAM. */
     address_space_stw_le(&address_space_memory, 0xfffc, 0xffff,
                          MEMTXATTRS_UNSPECIFIED, NULL);
-    address_space_stw_le(&address_space_memory, 0xfffe, 0x0000,
+    address_space_stw_le(&address_space_memory, 0xfffe,
+                         (floppy && !machine->kernel_filename) ? 0x0180 : 0x0000,
                          MEMTXATTRS_UNSPECIFIED, NULL);
     cpu_env(CPU(s->cpu))->sp = address_space_lduw_le(
         &address_space_memory, 0xfffc, MEMTXATTRS_UNSPECIFIED, NULL);

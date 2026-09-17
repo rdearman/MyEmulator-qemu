@@ -1,0 +1,219 @@
+#!/usr/bin/env python3
+"""Native MyEmulator debugger client using QEMU's QMP transport."""
+import argparse
+import json
+import socket
+import sys
+
+
+class QMP:
+    def __init__(self, path):
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.connect(path)
+        self.file = self.sock.makefile("rwb", buffering=0)
+        self.events = []
+        self._read()
+        self.call("qmp_capabilities")
+
+    def _read(self):
+        line = self.file.readline()
+        if not line:
+            raise RuntimeError("QEMU debugger socket closed")
+        return json.loads(line)
+
+    def call(self, execute, arguments=None, wait_event=None):
+        ident = id((execute, arguments))
+        request = {"execute": execute, "id": ident}
+        if arguments:
+            request["arguments"] = arguments
+        self.file.write((json.dumps(request) + "\n").encode())
+        event = None
+        while True:
+            reply = self._read()
+            if reply.get("event"):
+                self.events.append(reply)
+                if wait_event and reply["event"] == wait_event:
+                    event = self.events.pop()
+                continue
+            if reply.get("id") == ident:
+                if "error" in reply:
+                    raise RuntimeError(reply["error"].get("desc", str(reply["error"])))
+                return reply.get("return", {}), event
+
+    def wait_event(self, name):
+        for index, event in enumerate(self.events):
+            if event.get("event") == name:
+                return self.events.pop(index)
+        while True:
+            reply = self._read()
+            if reply.get("event"):
+                if reply["event"] == name:
+                    return reply
+                self.events.append(reply)
+
+    def close(self):
+        self.file.close()
+        self.sock.close()
+
+
+class Debugger:
+    def __init__(self, args):
+        self.qmp = QMP(args.qmp)
+        self.symbols = {}
+        self.locations = {}
+        if args.symbols:
+            with open(args.symbols, encoding="utf-8") as f:
+                metadata = json.load(f)
+            self.symbols = {k.lower(): int(v) for k, v in metadata.get("symbols", {}).items()}
+            self.locations = {int(x["address"]): x for x in metadata.get("locations", [])}
+        self.previous = None
+
+    def call(self, op, **kwargs):
+        return self.qmp.call("myemulator-debug", {"op": op, **kwargs})[0]
+
+    def state(self):
+        return self.call("registers")
+
+    def resolve(self, value):
+        value = value.strip()
+        try:
+            return int(value, 0)
+        except ValueError:
+            if value.lower() not in self.symbols:
+                raise ValueError(f"unknown address or symbol: {value}")
+            return self.symbols[value.lower()]
+
+    @staticmethod
+    def fmt_reg(name, value):
+        width = 2 if name.startswith("r") or name == "s0" else 4
+        return f"{name.upper():<3}  0x{value:0{width}x}"
+
+    def print_regs(self, result):
+        regs = result["registers"]
+        for name in ("pc", "sp", "lr", "r0", "r1", "r2", "r3",
+                     "a0", "a1", "a2", "a3", "s0"):
+            print(self.fmt_reg(name, regs[name]))
+        flags = result["flags"]
+        print("ZF={} NF={} CF={} OF={} IPL={}".format(
+            int(flags["zf"]), int(flags["nf"]), int(flags["cf"]),
+            int(flags["of"]), flags["ipl"]))
+
+    def print_dis(self, result):
+        for insn in result["instructions"]:
+            address = insn["address"]
+            loc = self.locations.get(address)
+            suffix = ""
+            if loc:
+                suffix = f"  ({loc.get('source', '')}:{loc.get('line', '')})"
+            print(f"{address:04x}: {insn['text']}{suffix}")
+
+    def step(self):
+        before = self.previous or self.state()["registers"]
+        self.qmp.call("myemulator-debug", {"op": "step"})
+        self.qmp.wait_event("STOP")
+        result = self.state()
+        after = result["registers"]
+        self.previous = after
+        self.print_dis(self.call("disassemble", address=after["pc"], count=1))
+        for name in before:
+            if before[name] != after[name]:
+                print(f"{name.upper()}: 0x{before[name]:x} -> 0x{after[name]:x}")
+        return result
+
+    def command(self, line):
+        parts = line.split()
+        if not parts:
+            return True
+        cmd = parts[0].lower()
+        if cmd in ("quit", "q", "exit"):
+            return False
+        if cmd in ("regs", "registers"):
+            result = self.state(); self.previous = result["registers"]; self.print_regs(result)
+        elif cmd in ("s", "step"):
+            self.step()
+        elif cmd in ("c", "continue"):
+            self.call("continue"); self.qmp.wait_event("STOP"); print("stopped")
+        elif cmd == "stop":
+            self.print_regs(self.call("stop"))
+        elif cmd in ("x", "examine"):
+            if len(parts) < 2: raise ValueError("x ADDRESS [LENGTH]")
+            result = self.call("read-memory", address=self.resolve(parts[1]),
+                               length=int(parts[2], 0) if len(parts) > 2 else 16)
+            print(f"{result['address']:04x}: {result['data']}")
+        elif cmd in ("w", "write"):
+            if len(parts) < 3: raise ValueError("w ADDRESS HEXBYTES")
+            self.call("write-memory", address=self.resolve(parts[1]), data=parts[2])
+        elif cmd in ("dis", "disassemble"):
+            if len(parts) < 2: raise ValueError("dis ADDRESS [COUNT]")
+            self.print_dis(self.call("disassemble", address=self.resolve(parts[1]),
+                                     count=int(parts[2], 0) if len(parts) > 2 else 8))
+        elif cmd in ("b", "break"):
+            address = self.resolve(parts[1]); self.call("break", address=address); print(f"Breakpoint at 0x{address:04x}")
+        elif cmd in ("delete", "delete-break"):
+            self.call("delete-break", address=self.resolve(parts[1]))
+        elif cmd in ("bl", "breakpoints"):
+            print(" ".join(f"0x{x:04x}" for x in self.call("breakpoints")["breakpoints"]))
+        else:
+            raise ValueError("unknown command")
+        return True
+
+    def machine(self):
+        for line in sys.stdin:
+            try:
+                request = json.loads(line)
+                command = request.get("command", request.get("op"))
+                args = request.get("args", {})
+                if command in ("regs", "registers"):
+                    result = self.state()
+                elif command in ("step", "s"):
+                    self.qmp.call("myemulator-debug", {"op": "step"})
+                    self.qmp.wait_event("STOP")
+                    result = self.state()
+                    result["instruction"] = self.call("disassemble", address=result["registers"]["pc"], count=1)["instructions"][0]
+                    location = self.locations.get(result["registers"]["pc"])
+                    if location:
+                        result["source"] = location
+                elif command in ("continue", "c", "stop"):
+                    if command == "stop":
+                        result = self.call("stop")
+                    else:
+                        self.call("continue")
+                        self.qmp.wait_event("STOP")
+                        result = self.state()
+                else:
+                    op = {"x": "read-memory", "w": "write-memory", "dis": "disassemble", "b": "break",
+                          "delete": "delete-break", "bl": "breakpoints"}.get(command, command)
+                    if op in ("break", "delete-break") and isinstance(args.get("address"), str):
+                        args = dict(args)
+                        args["address"] = self.resolve(args["address"])
+                    result = self.call(op, **args)
+                print(json.dumps(result), flush=True)
+            except Exception as exc:
+                print(json.dumps({"error": str(exc)}), flush=True)
+
+    def interactive(self):
+        while True:
+            try:
+                line = input("(mydebug) ")
+                if not self.command(line): break
+            except (EOFError, KeyboardInterrupt):
+                print(); break
+            except Exception as exc:
+                print(f"error: {exc}")
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--qmp", required=True, help="QMP Unix socket")
+    parser.add_argument("--symbols", help="myasm --debug-map JSON file")
+    parser.add_argument("--machine", action="store_true", help="newline-delimited JSON mode")
+    args = parser.parse_args()
+    debugger = Debugger(args)
+    try:
+        debugger.machine() if args.machine else debugger.interactive()
+    finally:
+        debugger.qmp.close()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,5 @@
+# MyEmulator fictional floppy controller
+myemulator_floppy_command(uint8_t command, uint16_t sector) "command=0x%02x sector=%u"
+myemulator_floppy_read(uint16_t sector) "read sector=%u"
+myemulator_floppy_write(uint16_t sector) "write sector=%u"
+myemulator_floppy_error(uint8_t error) "error=%u"

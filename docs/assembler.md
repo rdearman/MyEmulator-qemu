@@ -36,3 +36,6 @@ The register forms are destructive two-operand operations, for example
 `and r0,r1` means `r0 = r0 & r1`; immediate forms retain all 256 values, for
 example `and r0,r1,#0xff`. No historical
 assembler syntax or encoding workaround is used.
+
+`--debug-map file.mdbg` writes JSON metadata for `mydebug`, including resolved
+symbols and source line locations for emitted bytes.
