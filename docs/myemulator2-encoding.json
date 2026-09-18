@@ -1,0 +1,135 @@
+{
+  "version": "2.0-design-1",
+  "instruction_bits": 32,
+  "primary_opcode_bits": 6,
+  "formats": {
+    "R": "op[31:26], rd[25:21], ra[20:16], rb[15:11], fn[10:6], reserved[5:0]=0",
+    "I": "op[31:26], rd[25:21], ra[20:16], sub[15:12], imm[11:0]",
+    "MEM": "op[31:26], rt[25:21], base[20:16], size[15:13], disp[12:0]",
+    "B": "op[31:26], cond[25:23], ra[22:18], rb[17:13], disp[12:0]",
+    "J": "op[31:26], disp[25:0]",
+    "IND": "op[31:26], link[25], ra[24:20], reserved[19:0]=0",
+    "U": "op[31:26], rd[25:21], imm[20:1], reserved[0]=0",
+    "SYS": "op[31:26], sysop[25:22], reg[21:17], sysreg[16:11], reserved[10:0]=0",
+    "SYSCALL": "op[31:26], immediate[25:0]",
+    "TLB": "op[31:26], page[25], ra[24:20], reserved[19:0]=0"
+  },
+  "primary_opcodes": {
+    "R": 0,
+    "ALU_IMM": 1,
+    "LOAD": 2,
+    "STORE": 3,
+    "BRANCH": 4,
+    "J": 5,
+    "JAL": 6,
+    "INDIRECT": 7,
+    "LUI": 8,
+    "SYSTEM": 9,
+    "SYSCALL": 10,
+    "TLB": 11
+  },
+  "r_operations": {
+    "ADD": 0,
+    "ADC": 1,
+    "SUB": 2,
+    "SBC": 3,
+    "MUL": 4,
+    "MULH": 5,
+    "MULHU": 6,
+    "DIV": 7,
+    "DIVU": 8,
+    "REM": 9,
+    "REMU": 10,
+    "AND": 11,
+    "OR": 12,
+    "XOR": 13,
+    "NOT": 14,
+    "SLL": 15,
+    "SRL": 16,
+    "SRA": 17,
+    "ROL": 18,
+    "ROR": 19,
+    "SEQ": 20,
+    "SNE": 21,
+    "SLT": 22,
+    "SGE": 23,
+    "SLTU": 24,
+    "SGEU": 25
+  },
+  "alu_immediate_subops": {
+    "ADDI": 0,
+    "SUBI": 1,
+    "ANDI": 2,
+    "ORI": 3,
+    "XORI": 4,
+    "SLLI": 5,
+    "SRLI": 6,
+    "SRAI": 7
+  },
+  "load_sizes": {
+    "LB": 0,
+    "LBU": 1,
+    "LH": 2,
+    "LHU": 3,
+    "LW": 4
+  },
+  "store_sizes": {
+    "SB": 0,
+    "SH": 1,
+    "SW": 2
+  },
+  "branch_conditions": {
+    "BEQ": 0,
+    "BNE": 1,
+    "BLT": 2,
+    "BGE": 3,
+    "BLTU": 4,
+    "BGEU": 5
+  },
+  "indirect_operations": {
+    "JR": 0,
+    "JALR": 1
+  },
+  "system_operations": {
+    "MFSR": 0,
+    "MTSR": 1,
+    "RFE": 2,
+    "HALT": 3,
+    "BREAK": 4
+  },
+  "tlb_operations": {
+    "TLBFLUSH_ALL": 0,
+    "TLBFLUSH_PAGE": 1
+  },
+  "system_registers": {
+    "SR": 0,
+    "USP": 1,
+    "SSP": 2,
+    "VBR": 3,
+    "PTBR": 4,
+    "MMCR": 5
+  },
+  "vectors": {
+    "illegal_instruction": 0,
+    "privilege_violation": 1,
+    "instruction_alignment": 2,
+    "data_alignment": 3,
+    "instruction_page_not_present": 4,
+    "instruction_protection": 5,
+    "load_page_not_present": 6,
+    "load_protection": 7,
+    "store_page_not_present": 8,
+    "store_protection": 9,
+    "divide_by_zero": 10,
+    "arithmetic_overflow": 11,
+    "syscall": 12,
+    "breakpoint": 13,
+    "irq1": 16,
+    "irq2": 17,
+    "irq3": 18,
+    "irq4": 19,
+    "irq5": 20,
+    "irq6": 21,
+    "irq7": 22
+  }
+}
