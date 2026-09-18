@@ -131,5 +131,9 @@
     "irq5": 20,
     "irq6": 21,
     "irq7": 22
+  },
+  "reset": {
+    "initial_ssp_address": 1024,
+    "initial_pc_address": 1028
   }
 }

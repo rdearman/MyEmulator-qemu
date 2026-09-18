@@ -479,13 +479,18 @@ it does not partially alter system state.
 
 ## 11. Reset
 
-Reset is not vector 0 and is not maskable. It reads two little-endian 32-bit
-words using physical memory with translation disabled:
+Reset is not vector 0 and is not maskable. With `VBR = 0`, the vector table
+occupies physical `0x00000000` through `0x000003FF`. Reset therefore uses two
+separate physical bootstrap words, read as little-endian 32-bit values with
+translation disabled:
 
 ```text
-physical 0x00000000  initial SSP
-physical 0x00000004  initial PC
+physical 0x00000400  initial SSP
+physical 0x00000404  initial PC
 ```
+
+The old locations `0x00000000` and `0x00000004` are ordinary vector entries,
+not aliases for the reset words. They must not be populated as reset vectors.
 
 Both values must be 4-byte aligned. A malformed reset value places the CPU in
 the same deterministic halted error state used for malformed exception entry;
@@ -498,9 +503,9 @@ mode/S              Supervisor / 1
 IPL                 7
 CF, OF              0
 R0-R15              0, except R13 reflects SSP after loading it
-PC                  physical reset word at 0x00000004
+PC                  physical reset word at 0x00000404
 USP                 0
-SSP                 physical reset word at 0x00000000
+SSP                 physical reset word at 0x00000400
 VBR                 0
 PTBR                0
 MMCR.EN             0

@@ -40,6 +40,19 @@ class MyEmulator2SpecificationTests(unittest.TestCase):
         self.assertEqual([vectors[f"irq{n}"] for n in range(1, 8)],
                          list(range(16, 23)))
 
+    def test_vector_table_does_not_overlap_reset_words(self):
+        vectors = self.spec["vectors"]
+        reset = self.spec["reset"]
+        self.assertEqual(vectors["illegal_instruction"] * 4, 0x00000000)
+        self.assertEqual(vectors["privilege_violation"] * 4, 0x00000004)
+        self.assertEqual(reset["initial_ssp_address"], 0x00000400)
+        self.assertEqual(reset["initial_pc_address"], 0x00000404)
+        vector_addresses = {number * 4 for number in vectors.values()}
+        self.assertNotIn(reset["initial_ssp_address"], vector_addresses)
+        self.assertNotIn(reset["initial_pc_address"], vector_addresses)
+        self.assertNotEqual(reset["initial_ssp_address"],
+                            reset["initial_pc_address"])
+
     def test_required_operations_are_present(self):
         self.assertEqual(set(self.spec["r_operations"]), {
             "ADD", "ADC", "SUB", "SBC", "MUL", "MULH", "MULHU",
