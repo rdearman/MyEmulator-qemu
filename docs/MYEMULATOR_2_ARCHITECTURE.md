@@ -588,8 +588,10 @@ OS-defined state. Changing PTBR invalidates all translations.
 
 ## 13. Toolchain and firmware scope
 
-The assembler, linker/object format, debug metadata, firmware image format,
-system-call ABI, and operating-system boot protocol are TBD. The 2.0 CPU
+Software and toolchain ABI details are specified separately in
+[`MYEMULATOR_2_ABI.md`](MYEMULATOR_2_ABI.md). That document defines the
+ELF32 object/executable format, relocations, assembler syntax, calling
+convention, and bare-metal linker/deployment contract. The 2.0 CPU
 specification does not require MyEmulator 1.0 assembly compatibility, MyFS
 compatibility, or firmware compatibility. Pseudo-instructions such as `LI`,
 `RET`, and `CALL` are assembler conveniences and do not add architectural
