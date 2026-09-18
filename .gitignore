@@ -2,3 +2,13 @@
 .qemu-build/
 __pycache__/
 build/
+.toolchain-downloads/
+.toolchain-build/
+.toolchain-install/
+toolchain/build/
+toolchain/downloads/
+toolchain/install/
+toolchain/examples/*.o
+toolchain/examples/*.elf
+toolchain/examples/*.bin
+toolchain/**/__pycache__/

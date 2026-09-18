@@ -8,7 +8,8 @@ QEMU32_BINARY ?= $(QEMU_BUILD)/qemu-system-myemulator32
 JOBS ?= $(shell getconf _NPROCESSORS_ONLN 2>/dev/null || printf '1')
 
 .PHONY: all build build32 qemu test check cpu-test cpu32-test debug-test device-test \
-	assembler-test emacs-test firmware-test spec-test myfs-demo myfs-test clean help
+	assembler-test emacs-test firmware-test spec-test myfs-demo myfs-test \
+	toolchain-build toolchain-test clean help
 
 all: build
 
@@ -54,6 +55,12 @@ emacs-test:
 spec-test:
 	python3 $(PROJECT_ROOT)/tools/test_myemulator2_spec.py
 
+toolchain-build:
+	$(PROJECT_ROOT)/toolchain/scripts/build-binutils.sh
+
+toolchain-test:
+	$(PROJECT_ROOT)/toolchain/scripts/test-binutils.sh
+
 MYFS_BUILD ?= $(PROJECT_ROOT)/build/myfs
 MYFS_IMAGE ?= $(MYFS_BUILD)/myemulator.img
 
@@ -94,6 +101,8 @@ help:
 	@echo '  make assembler-test run assembler tests and assembler/QEMU integration'
 	@echo '  make emacs-test     run Emacs ERT tests'
 	@echo '  make spec-test      validate the MyEmulator 2.0 design manifest'
+	@echo '  make toolchain-build build GNU binutils 2.46.0 for MyEmulator2'
+	@echo '  make toolchain-test  run GNU binutils and QEMU ELF integration tests'
 	@echo '  make cpu32-test     run the MyEmulator 2.0 executable CPU tests'
 	@echo '  make myfs-demo      build boot sector, COMMAND.COM, HELLO.COM, and image'
 	@echo '  make myfs-test      run MyFS host-builder tests'

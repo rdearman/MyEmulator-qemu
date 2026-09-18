@@ -1,0 +1,11 @@
+# MyEmulator2 ABI v1 bare-metal linker defaults.
+SCRIPT_NAME=elf32myemulator2
+TEMPLATE_NAME=elf
+OUTPUT_FORMAT="elf32-littlemyemulator2"
+ARCH=myemulator2
+ENTRY=_start
+TEXT_START_ADDR=0x00100000
+MAXPAGESIZE=0x1000
+COMMONPAGESIZE=0x1000
+EMBEDDED=yes
+STACK_ADDR=0x00FFF000

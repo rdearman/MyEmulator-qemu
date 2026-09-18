@@ -100,6 +100,10 @@ Memory operands are always `displacement(base)`, including zero displacement:
 `lw r1, 0(r5)`. There are no implicit address-register updates. Branches,
 `j`, and `jal` take symbolic targets. `jr` and `jalr` take one register.
 
+For this 32-bit target, `.word` emits one little-endian 32-bit value and
+`.short` emits one 16-bit value. This target-specific `.word` size follows the
+architectural word size while retaining normal GNU directive spelling.
+
 The frozen pseudo-instructions are:
 
 ```text

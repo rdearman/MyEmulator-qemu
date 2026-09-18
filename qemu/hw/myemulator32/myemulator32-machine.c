@@ -2,6 +2,7 @@
 #include "qapi/error.h"
 #include "qemu/error-report.h"
 #include "hw/boards.h"
+#include "hw/loader.h"
 #include "hw/core/cpu.h"
 #include "exec/address-spaces.h"
 #include "exec/memory.h"
@@ -11,6 +12,9 @@
 
 #define TYPE_MYEMULATOR32_MACHINE MACHINE_TYPE_NAME("myemulator32")
 #define MYEMU32_DEFAULT_RAM (16 * 1024 * 1024)
+#define MYEMU32_ELF_MACHINE 0xF2E2
+#define MYEMU32_RESET_SSP_ADDR 0x00000400
+#define MYEMU32_RESET_PC_ADDR  0x00000404
 
 typedef struct MyEmulator32MachineState {
     MachineState parent_obj;
@@ -27,27 +31,51 @@ static void myemulator32_machine_init(MachineState *machine)
     g_autofree gchar *image = NULL;
     gsize image_size = 0;
     g_autoptr(GError) error = NULL;
+    uint64_t elf_entry = 0;
+    ssize_t loaded;
+    bool is_elf = false;
 
     if (!machine->kernel_filename) {
         error_report("myemulator32 requires -kernel IMAGE");
         exit(1);
     }
-    if (!g_file_get_contents(machine->kernel_filename, &image, &image_size,
-                             &error)) {
-        error_report("could not read kernel '%s': %s", machine->kernel_filename,
-                     error->message);
-        exit(1);
-    }
-    if (image_size < 8 || image_size > machine->ram_size) {
-        error_report("kernel '%s' must be between 8 bytes and 0x%" PRIx64
-                     " bytes", machine->kernel_filename, machine->ram_size);
-        exit(1);
-    }
-
     memory_region_init_ram(&s->ram, NULL, "myemulator32.ram",
                            machine->ram_size, &error_fatal);
     memory_region_add_subregion(get_system_memory(), 0, &s->ram);
-    memcpy(memory_region_get_ram_ptr(&s->ram), image, image_size);
+
+    /* ELF32 is the canonical development image.  The generic loader checks
+     * the ELF class, endianness and machine ID for us and loads PT_LOAD
+     * segments, including zero-filling the BSS portion. */
+    loaded = load_elf(machine->kernel_filename, NULL, NULL, NULL,
+                      &elf_entry, NULL, NULL, NULL, 0,
+                      MYEMU32_ELF_MACHINE, 0, 0);
+    if (loaded >= 0) {
+        uint32_t initial_ssp = machine->ram_size - 0x1000;
+        stl_le_phys(&address_space_memory, MYEMU32_RESET_SSP_ADDR,
+                    initial_ssp);
+        stl_le_phys(&address_space_memory, MYEMU32_RESET_PC_ADDR,
+                    (uint32_t)elf_entry);
+        is_elf = true;
+    } else if (loaded != ELF_LOAD_NOT_ELF) {
+        error_report("could not load MyEmulator2 ELF '%s': %s",
+                     machine->kernel_filename, load_elf_strerror(loaded));
+        exit(1);
+    }
+
+    if (!is_elf) {
+        if (!g_file_get_contents(machine->kernel_filename, &image, &image_size,
+                                 &error)) {
+            error_report("could not read kernel '%s': %s",
+                         machine->kernel_filename, error->message);
+            exit(1);
+        }
+        if (image_size < 8 || image_size > machine->ram_size) {
+            error_report("kernel '%s' must be between 8 bytes and 0x%" PRIx64
+                         " bytes", machine->kernel_filename, machine->ram_size);
+            exit(1);
+        }
+        memcpy(memory_region_get_ram_ptr(&s->ram), image, image_size);
+    }
 
     s->cpu = MYEMULATOR32_CPU(cpu_create(machine->cpu_type));
     myemulator32_debug_register_qmp();
