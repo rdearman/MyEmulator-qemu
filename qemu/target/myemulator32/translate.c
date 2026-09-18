@@ -111,12 +111,13 @@ static void gen_checked_indirect(DisasContext *ctx, TCGv_i32 target,
     ctx->base.is_jmp = DISAS_EXIT;
 }
 
-static void gen_checked_data(DisasContext *ctx, TCGv_i32 address)
+static void gen_checked_data(DisasContext *ctx, TCGv_i32 address,
+                             unsigned alignment)
 {
     TCGLabel *aligned = gen_new_label();
     TCGv_i32 bit = tcg_temp_new_i32();
 
-    tcg_gen_andi_i32(bit, address, 3);
+    tcg_gen_andi_i32(bit, address, alignment - 1);
     tcg_gen_brcondi_i32(TCG_COND_EQ, bit, 0, aligned);
     gen_helper_exception(tcg_env, tcg_constant_i32(MYEMU32_VECTOR_DATA_ALIGN),
                          tcg_constant_i32(ctx->base.pc_next - 4), address);
@@ -170,13 +171,92 @@ static void decode_and_translate(DisasContext *ctx)
         lhs = gen_reg(ra); rhs = gen_reg(rb); result = tcg_temp_new_i32();
         switch (fn) {
         case 0: tcg_gen_add_i32(result, lhs, rhs); gen_add_flags(lhs, rhs, result); break;
+        case 1:
+            tmp = tcg_temp_new_i32();
+            tcg_gen_andi_i32(tmp, cpu_sr, MYEMU32_SR_CF);
+            tcg_gen_andi_i32(tmp, tmp, 1);
+            gen_helper_adc(result, tcg_env, lhs, rhs, tmp);
+            tcg_gen_ld_i32(cpu_sr, tcg_env,
+                           offsetof(CPUMyEmulator32State, sr));
+            break;
         case 2: tcg_gen_sub_i32(result, lhs, rhs); gen_sub_flags(lhs, rhs, result); break;
+        case 3:
+            tmp = tcg_temp_new_i32();
+            tcg_gen_andi_i32(tmp, cpu_sr, MYEMU32_SR_CF);
+            tcg_gen_andi_i32(tmp, tmp, 1);
+            gen_helper_sbc(result, tcg_env, lhs, rhs, tmp);
+            tcg_gen_ld_i32(cpu_sr, tcg_env,
+                           offsetof(CPUMyEmulator32State, sr));
+            break;
+        case 4:
+            {
+                TCGv_i32 high = tcg_temp_new_i32();
+                tcg_gen_muls2_i32(result, high, lhs, rhs);
+                gen_write_reg(rd, result);
+            }
+            gen_next_pc(ctx);
+            return;
+        case 5:
+            {
+                TCGv_i32 high = tcg_temp_new_i32();
+                tcg_gen_muls2_i32(result, high, lhs, rhs);
+                gen_write_reg(rd, high);
+                gen_next_pc(ctx);
+                return;
+            }
+        case 6:
+            {
+                TCGv_i32 high = tcg_temp_new_i32();
+                tcg_gen_mulu2_i32(result, high, lhs, rhs);
+                gen_write_reg(rd, high);
+                gen_next_pc(ctx);
+                return;
+            }
+        case 7:
+            gen_helper_div(result, tcg_env, lhs, rhs,
+                           tcg_constant_i32(ctx->base.pc_next - 4));
+            gen_write_reg(rd, result);
+            gen_next_pc(ctx);
+            return;
+        case 8:
+            gen_helper_divu(result, tcg_env, lhs, rhs,
+                            tcg_constant_i32(ctx->base.pc_next - 4));
+            gen_write_reg(rd, result);
+            gen_next_pc(ctx);
+            return;
+        case 9:
+            gen_helper_rem(result, tcg_env, lhs, rhs,
+                           tcg_constant_i32(ctx->base.pc_next - 4));
+            gen_write_reg(rd, result);
+            gen_next_pc(ctx);
+            return;
+        case 10:
+            gen_helper_remu(result, tcg_env, lhs, rhs,
+                            tcg_constant_i32(ctx->base.pc_next - 4));
+            gen_write_reg(rd, result);
+            gen_next_pc(ctx);
+            return;
         case 11: tcg_gen_and_i32(result, lhs, rhs); break;
         case 12: tcg_gen_or_i32(result, lhs, rhs); break;
         case 13: tcg_gen_xor_i32(result, lhs, rhs); break;
         case 14:
             if (rb != 0) { gen_invalid(ctx, insn); return; }
             tcg_gen_not_i32(result, lhs); break;
+        case 15: case 16: case 17: case 18: case 19:
+            tmp = tcg_temp_new_i32();
+            tcg_gen_andi_i32(tmp, rhs, 31);
+            if (fn == 15) tcg_gen_shl_i32(result, lhs, tmp);
+            if (fn == 16) tcg_gen_shr_i32(result, lhs, tmp);
+            if (fn == 17) tcg_gen_sar_i32(result, lhs, tmp);
+            if (fn == 18) tcg_gen_rotl_i32(result, lhs, tmp);
+            if (fn == 19) tcg_gen_rotr_i32(result, lhs, tmp);
+            break;
+        case 20: tcg_gen_setcond_i32(TCG_COND_EQ, result, lhs, rhs); break;
+        case 21: tcg_gen_setcond_i32(TCG_COND_NE, result, lhs, rhs); break;
+        case 22: tcg_gen_setcond_i32(TCG_COND_LT, result, lhs, rhs); break;
+        case 23: tcg_gen_setcond_i32(TCG_COND_GE, result, lhs, rhs); break;
+        case 24: tcg_gen_setcond_i32(TCG_COND_LTU, result, lhs, rhs); break;
+        case 25: tcg_gen_setcond_i32(TCG_COND_GEU, result, lhs, rhs); break;
         default:
             gen_invalid(ctx, insn); return;
         }
@@ -195,6 +275,9 @@ static void decode_and_translate(DisasContext *ctx)
             tcg_gen_subi_i32(result, lhs, sx(imm12, 12));
             gen_sub_flags(lhs, tcg_constant_i32(sx(imm12, 12)), result);
             break;
+        case 2: tcg_gen_andi_i32(result, lhs, imm12); break;
+        case 3: tcg_gen_ori_i32(result, lhs, imm12); break;
+        case 4: tcg_gen_xori_i32(result, lhs, imm12); break;
         case 5: case 6: case 7:
             if ((imm12 & ~31u) != 0) { gen_invalid(ctx, insn); return; }
             if (sub == 5) tcg_gen_shli_i32(result, lhs, imm12 & 31);
@@ -209,28 +292,53 @@ static void decode_and_translate(DisasContext *ctx)
         return;
     case 2: /* LOAD */
         if (rd > 15 || ra > 15) { gen_invalid(ctx, insn); return; }
-        if (extract32(insn, 13, 3) != 4) { gen_invalid(ctx, insn); return; }
+        switch (extract32(insn, 13, 3)) {
+        case 0: case 1: case 2: case 3: case 4: break;
+        default: gen_invalid(ctx, insn); return;
+        }
+        unsigned load_size = extract32(insn, 13, 3);
         address = tcg_temp_new_i32();
         tcg_gen_addi_i32(address, gen_reg(ra), sx(extract32(insn, 0, 13), 13));
-        gen_checked_data(ctx, address);
+        gen_checked_data(ctx, address, load_size >= 2 ? 2 : 1);
         tmp = tcg_temp_new_i32();
-        tcg_gen_qemu_ld_i32(tmp, address, MMU_PHYS_IDX, MO_LEUL);
+        switch (load_size) {
+        case 0: tcg_gen_qemu_ld_i32(tmp, address, MMU_PHYS_IDX, MO_SB); break;
+        case 1: tcg_gen_qemu_ld_i32(tmp, address, MMU_PHYS_IDX, MO_UB); break;
+        case 2: tcg_gen_qemu_ld_i32(tmp, address, MMU_PHYS_IDX, MO_LESW); break;
+        case 3: tcg_gen_qemu_ld_i32(tmp, address, MMU_PHYS_IDX, MO_LEUW); break;
+        default: tcg_gen_qemu_ld_i32(tmp, address, MMU_PHYS_IDX, MO_LEUL); break;
+        }
         gen_write_reg(rd, tmp);
         gen_next_pc(ctx);
         return;
     case 3: /* STORE */
         if (rd > 15 || ra > 15) { gen_invalid(ctx, insn); return; }
-        if (extract32(insn, 13, 3) != 2) { gen_invalid(ctx, insn); return; }
+        unsigned store_size = extract32(insn, 13, 3);
+        if (store_size > 2) { gen_invalid(ctx, insn); return; }
         address = tcg_temp_new_i32();
         tcg_gen_addi_i32(address, gen_reg(ra), sx(extract32(insn, 0, 13), 13));
-        gen_checked_data(ctx, address);
-        tcg_gen_qemu_st_i32(gen_reg(rd), address, MMU_PHYS_IDX, MO_LEUL);
+        gen_checked_data(ctx, address, store_size == 0 ? 1 :
+                        (store_size == 1 ? 2 : 4));
+        switch (store_size) {
+        case 0: tcg_gen_qemu_st_i32(gen_reg(rd), address, MMU_PHYS_IDX, MO_8); break;
+        case 1: tcg_gen_qemu_st_i32(gen_reg(rd), address, MMU_PHYS_IDX, MO_LEUW); break;
+        default: tcg_gen_qemu_st_i32(gen_reg(rd), address, MMU_PHYS_IDX, MO_LEUL); break;
+        }
         gen_next_pc(ctx);
         return;
     case 4: /* branches */
-        if (extract32(insn, 23, 3) > 1 || extract32(insn, 18, 5) > 15 ||
+        if (extract32(insn, 23, 3) > 5 || extract32(insn, 18, 5) > 15 ||
             extract32(insn, 13, 5) > 15) { gen_invalid(ctx, insn); return; }
-        gen_branch(ctx, extract32(insn, 23, 3) == 0 ? TCG_COND_EQ : TCG_COND_NE,
+        TCGCond branch_cond;
+        switch (extract32(insn, 23, 3)) {
+        case 0: branch_cond = TCG_COND_EQ; break;
+        case 1: branch_cond = TCG_COND_NE; break;
+        case 2: branch_cond = TCG_COND_LT; break;
+        case 3: branch_cond = TCG_COND_GE; break;
+        case 4: branch_cond = TCG_COND_LTU; break;
+        default: branch_cond = TCG_COND_GEU; break;
+        }
+        gen_branch(ctx, branch_cond,
                    extract32(insn, 18, 5), extract32(insn, 13, 5),
                    sx(extract32(insn, 0, 13), 13));
         return;

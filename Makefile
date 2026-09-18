@@ -20,6 +20,7 @@ build32: build
 
 cpu32-test: build
 	QEMU_MYEMULATOR32="$(QEMU32_BINARY)" $(PROJECT_ROOT)/tests/run-myemulator32-cpu-tests.sh
+	QEMU_MYEMULATOR32="$(QEMU32_BINARY)" python3 $(PROJECT_ROOT)/tests/run-myemulator32-integer-tests.py
 
 cpu-test: build
 	QEMU_MYEMULATOR="$(QEMU_BINARY)" $(PROJECT_ROOT)/tests/run-qemu-cpu-tests.sh

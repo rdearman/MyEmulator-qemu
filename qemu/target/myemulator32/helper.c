@@ -188,3 +188,96 @@ void helper_mtsr(CPUMyEmulator32State *env, uint32_t sysreg,
         helper_exception(env, MYEMU32_VECTOR_ILLEGAL, pc, 0);
     }
 }
+
+static void myemu32_set_arith_flags(CPUMyEmulator32State *env,
+                                    uint32_t lhs, uint32_t rhs,
+                                    uint32_t result, bool borrow)
+{
+    bool overflow;
+
+    if (borrow) {
+        env->sr = (env->sr & ~(MYEMU32_SR_CF | MYEMU32_SR_OF)) |
+                  ((lhs < rhs) ? MYEMU32_SR_CF : 0);
+        overflow = (((lhs ^ rhs) & (lhs ^ result)) & 0x80000000u) != 0;
+    } else {
+        env->sr = (env->sr & ~(MYEMU32_SR_CF | MYEMU32_SR_OF)) |
+                  ((result < lhs) ? MYEMU32_SR_CF : 0);
+        overflow = ((~(lhs ^ rhs) & (lhs ^ result)) & 0x80000000u) != 0;
+    }
+    if (overflow) {
+        env->sr |= MYEMU32_SR_OF;
+    }
+}
+
+uint32_t helper_adc(CPUMyEmulator32State *env, uint32_t lhs,
+                    uint32_t rhs, uint32_t carry)
+{
+    uint64_t wide = (uint64_t)lhs + rhs + (carry & 1);
+    uint32_t result = (uint32_t)wide;
+    uint32_t rhs_effective = rhs + (carry & 1);
+
+    myemu32_set_arith_flags(env, lhs, rhs_effective, result, false);
+    if (rhs_effective < rhs) {
+        env->sr |= MYEMU32_SR_CF;
+    }
+    return result;
+}
+
+uint32_t helper_sbc(CPUMyEmulator32State *env, uint32_t lhs,
+                    uint32_t rhs, uint32_t borrow)
+{
+    uint64_t wide = (uint64_t)lhs - rhs - (borrow & 1);
+    uint32_t result = (uint32_t)wide;
+    uint32_t rhs_effective = rhs + (borrow & 1);
+
+    myemu32_set_arith_flags(env, lhs, rhs_effective, result, true);
+    if (rhs_effective < rhs) {
+        env->sr |= MYEMU32_SR_CF;
+    }
+    return result;
+}
+
+static uint32_t myemu32_divide(CPUMyEmulator32State *env, uint32_t lhs,
+                               uint32_t rhs, uint32_t pc, bool unsigned_op,
+                               bool remainder)
+{
+    if (rhs == 0) {
+        helper_exception(env, MYEMU32_VECTOR_DIV_ZERO, pc, 0);
+    }
+    if (!unsigned_op && lhs == 0x80000000u && rhs == 0xffffffffu) {
+        helper_exception(env, MYEMU32_VECTOR_ARITH_OVERFLOW, pc, 0);
+    }
+    if (unsigned_op) {
+        return remainder ? lhs % rhs : lhs / rhs;
+    }
+    {
+        int64_t dividend = (int32_t)lhs;
+        int64_t divisor = (int32_t)rhs;
+        int64_t value = remainder ? dividend % divisor : dividend / divisor;
+        return (uint32_t)(int32_t)value;
+    }
+}
+
+uint32_t helper_div(CPUMyEmulator32State *env, uint32_t lhs,
+                    uint32_t rhs, uint32_t pc)
+{
+    return myemu32_divide(env, lhs, rhs, pc, false, false);
+}
+
+uint32_t helper_divu(CPUMyEmulator32State *env, uint32_t lhs,
+                     uint32_t rhs, uint32_t pc)
+{
+    return myemu32_divide(env, lhs, rhs, pc, true, false);
+}
+
+uint32_t helper_rem(CPUMyEmulator32State *env, uint32_t lhs,
+                    uint32_t rhs, uint32_t pc)
+{
+    return myemu32_divide(env, lhs, rhs, pc, false, true);
+}
+
+uint32_t helper_remu(CPUMyEmulator32State *env, uint32_t lhs,
+                     uint32_t rhs, uint32_t pc)
+{
+    return myemu32_divide(env, lhs, rhs, pc, true, true);
+}
