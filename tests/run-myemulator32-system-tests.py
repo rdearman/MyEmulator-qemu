@@ -192,6 +192,7 @@ def main():
         0x2000 + 0 * 4: 0x0000 | flags,
         0x2000 + 2 * 4: 0x3000 | flags,
         0x2000 + 4 * 4: 0x2000 | flags,
+        0x2000 + 8 * 4: 0x8000 | flags,
         0x3000: 0x11111111,
         0x5000: 0x22222222,
     }
@@ -229,18 +230,39 @@ def main():
         0x1000: 0x2000 | flags,
         0x2000: flags,
         0x2000 + 7 * 4: 0x7000 | flags,
+        0x2000 + 8 * 4: 0x8000 | flags,
     }
     fault_handler = {
         0x280: mem(2, 2, 13, 4, 8),
         0x284: mem(2, 3, 13, 4, 12),
-        0x288: HALT,
+        0x288: mem(2, 4, 13, 4, 0),
+        0x28c: HALT,
     }
     run({0x100: lui(1, 0x1000), 0x104: MTSR(4, 1),
          0x108: i(1, 0, 0, 1), 0x10c: MTSR(5, 1),
          0x110: lui(2, 0x6000), 0x114: mem(2, 4, 2, 4, 0),
          **fault_handler}, vectors={6 * 4: 0x280}, data=fault_tables,
         checks=[(r"R2: 0x([0-9a-f]+)", 6),
-                (r"R3: 0x([0-9a-f]+)", 0x6000)])
+                (r"R3: 0x([0-9a-f]+)", 0x6000),
+                (r"R4: 0x([0-9a-f]+)", 0x114)])
+
+    # TIME is readable without privilege and a Supervisor-programmed
+    # comparator raises ordinary IRQ1 once virtual time reaches it.
+    timer_handler = {0x240: i(2, 0, 0, 0x77),
+                     0x244: lui(3, 0xfffff000),
+                     0x248: i(3, 3, 4, 0xfff),
+                     0x24c: MTSR(8, 3),
+                     0x250: MTSR(9, 0),
+                     0x254: HALT}
+    run({0x100: i(1, 0, 0, 0),       # comparator at current TIME: immediate
+         0x104: MTSR(8, 1),
+         0x108: MTSR(9, 0),          # commit high half
+         0x10c: i(4, 0, 0, 0x20),
+         0x110: MTSR(0, 4),          # Supervisor, IPL=0
+         0x114: branch(0, 0, 0, 0x114, 0x114),
+         **timer_handler}, vectors={16 * 4: 0x240}, checks=[
+             (r"R2: 0x([0-9a-f]+)", 0x77),
+             (r"SR: 0x([0-9a-f]+)", 0x24)])
 
     print("myemulator32 system/IRQ/NMI/MMU tests: PASS")
 

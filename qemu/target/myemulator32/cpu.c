@@ -10,6 +10,7 @@
 #include "exec/translation-block.h"
 #include "hw/core/tcg-cpu-ops.h"
 #include "hw/core/sysemu-cpu-ops.h"
+#include "qemu/main-loop.h"
 #include "qemu/qemu-print.h"
 
 static void myemulator32_set_pc(CPUState *cs, vaddr value)
@@ -66,6 +67,62 @@ static bool myemulator32_has_work(CPUState *cs)
             !env->nmi_active);
 }
 
+static void myemulator32_do_interrupt(CPUState *cs);
+
+uint64_t myemulator32_cpu_time_us(CPUMyEmulator32State *env)
+{
+    uint64_t now = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+    return (now - env->time_base_ns) / 1000;
+}
+
+static void myemulator32_schedule_timer_irq(CPUMyEmulator32State *env)
+{
+    CPUState *cs = env_cpu(env);
+
+    env->time_irq_asserted = true;
+    myemulator32_cpu_set_irq(cs, 1, true);
+}
+
+void myemulator32_cpu_program_timecmp(CPUMyEmulator32State *env)
+{
+    uint64_t target;
+    uint64_t now = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+
+    if (!env->timecmp_armed) {
+        timer_del(env->time_timer);
+        return;
+    }
+    target = env->time_base_ns + env->timecmp * 1000;
+    if (target <= now) {
+        myemulator32_schedule_timer_irq(env);
+        timer_del(env->time_timer);
+    } else {
+        timer_mod_ns(env->time_timer, target);
+    }
+}
+
+static void myemulator32_time_expire(void *opaque)
+{
+    CPUMyEmulator32State *env = opaque;
+
+    if (env->timecmp_armed &&
+        myemulator32_cpu_time_us(env) >= env->timecmp) {
+        myemulator32_schedule_timer_irq(env);
+    } else {
+        myemulator32_cpu_program_timecmp(env);
+    }
+}
+
+static G_NORETURN void myemulator32_mmu_fault(CPUState *cs,
+                                               CPUMyEmulator32State *env,
+                                               uintptr_t retaddr,
+                                               unsigned cause,
+                                               vaddr address)
+{
+    cpu_restore_state(cs, retaddr);
+    helper_exception(env, cause, env->pc, address);
+}
+
 static bool myemulator32_exec_interrupt(CPUState *cs, int interrupt_request)
 {
     CPUMyEmulator32State *env = cpu_env(cs);
@@ -76,6 +133,7 @@ static bool myemulator32_exec_interrupt(CPUState *cs, int interrupt_request)
     }
     if ((interrupt_request & CPU_INTERRUPT_NMI) && !env->nmi_active) {
         cs->exception_index = MYEMU32_EXCP_NMI;
+        myemulator32_do_interrupt(cs);
         return true;
     }
     if (interrupt_request & CPU_INTERRUPT_HARD) {
@@ -84,6 +142,7 @@ static bool myemulator32_exec_interrupt(CPUState *cs, int interrupt_request)
         for (unsigned level = 7; level > ipl; level--) {
             if (env->irq_asserted & (1u << level)) {
                 cs->exception_index = MYEMU32_EXCP_IRQ;
+                myemulator32_do_interrupt(cs);
                 return true;
             }
         }
@@ -149,13 +208,13 @@ bool myemulator32_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
                           MYEMU32_VECTOR_LOAD_PROT);
     if (result != MEMTX_OK || !(pde & 1)) {
         if (!probe) {
-            helper_exception(env, fault_page, env->pc, address);
+            myemulator32_mmu_fault(cs, env, retaddr, fault_page, address);
         }
         return false;
     }
     if (pde & 0xf80) {
         if (!probe) {
-            helper_exception(env, fault_prot, env->pc, address);
+            myemulator32_mmu_fault(cs, env, retaddr, fault_prot, address);
         }
         return false;
     }
@@ -165,13 +224,13 @@ bool myemulator32_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
                                MEMTXATTRS_UNSPECIFIED, &result);
     if (result != MEMTX_OK || !(pte & 1)) {
         if (!probe) {
-            helper_exception(env, fault_page, env->pc, address);
+            myemulator32_mmu_fault(cs, env, retaddr, fault_page, address);
         }
         return false;
     }
     if (pte & 0xf80) {
         if (!probe) {
-            helper_exception(env, fault_prot, env->pc, address);
+            myemulator32_mmu_fault(cs, env, retaddr, fault_prot, address);
         }
         return false;
     }
@@ -181,7 +240,7 @@ bool myemulator32_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
         (fetch ? !(perms & (1u << 3)) :
          store ? !(perms & (1u << 2)) : !(perms & (1u << 1)))) {
         if (!probe) {
-            helper_exception(env, fault_prot, env->pc, address);
+            myemulator32_mmu_fault(cs, env, retaddr, fault_prot, address);
         }
         return false;
     }
@@ -198,7 +257,7 @@ bool myemulator32_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
                          MEMTXATTRS_UNSPECIFIED, &result);
     if (result != MEMTX_OK) {
         if (!probe) {
-            helper_exception(env, fault_prot, env->pc, address);
+            myemulator32_mmu_fault(cs, env, retaddr, fault_prot, address);
         }
         return false;
     }
@@ -227,11 +286,26 @@ void myemulator32_cpu_set_irq(CPUState *cs, unsigned level, bool asserted)
     }
     if (asserted) {
         env->irq_asserted |= 1u << level;
+        bool need_bql = !bql_locked();
+        if (need_bql) {
+            bql_lock();
+        }
         cpu_interrupt(cs, CPU_INTERRUPT_HARD);
+        cpu_exit(cs);
+        if (need_bql) {
+            bql_unlock();
+        }
     } else {
         env->irq_asserted &= ~(1u << level);
         if (!env->irq_asserted) {
+            bool need_bql = !bql_locked();
+            if (need_bql) {
+                bql_lock();
+            }
             cpu_reset_interrupt(cs, CPU_INTERRUPT_HARD);
+            if (need_bql) {
+                bql_unlock();
+            }
         }
     }
 }
@@ -239,9 +313,24 @@ void myemulator32_cpu_set_irq(CPUState *cs, unsigned level, bool asserted)
 void myemulator32_cpu_set_nmi(CPUState *cs, bool asserted)
 {
     if (asserted) {
+        bool need_bql = !bql_locked();
+        if (need_bql) {
+            bql_lock();
+        }
         cpu_interrupt(cs, CPU_INTERRUPT_NMI);
+        cpu_exit(cs);
+        if (need_bql) {
+            bql_unlock();
+        }
     } else {
+        bool need_bql = !bql_locked();
+        if (need_bql) {
+            bql_lock();
+        }
         cpu_reset_interrupt(cs, CPU_INTERRUPT_NMI);
+        if (need_bql) {
+            bql_unlock();
+        }
     }
 }
 
@@ -256,9 +345,15 @@ static void myemulator32_reset_hold(Object *obj, ResetType type)
     if (mcc->parent_phases.hold) {
         mcc->parent_phases.hold(obj, type);
     }
+    QEMUTimer *time_timer = env->time_timer;
+    if (time_timer) {
+        timer_del(time_timer);
+    }
     memset(env, 0, sizeof(*env));
+    env->time_timer = time_timer;
     cs->halted = 0;
     cpu_reset_interrupt(cs, CPU_INTERRUPT_HARD | CPU_INTERRUPT_NMI);
+    env->time_base_ns = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
     env->sr = MYEMU32_SR_S | (7u << 2);
     env->ssp = address_space_ldl_le(&address_space_memory, 0x400,
                                     MEMTXATTRS_UNSPECIFIED, &result);
@@ -273,6 +368,24 @@ static void myemulator32_reset_hold(Object *obj, ResetType type)
         cs->halted = 1;
     }
     cs->exception_index = -1;
+}
+
+static void myemulator32_init(Object *obj)
+{
+    MyEmulator32CPU *cpu = MYEMULATOR32_CPU(obj);
+
+    cpu->env.time_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL,
+                                       myemulator32_time_expire,
+                                       &cpu->env);
+}
+
+static void myemulator32_finalize(Object *obj)
+{
+    MyEmulator32CPU *cpu = MYEMULATOR32_CPU(obj);
+
+    timer_del(cpu->env.time_timer);
+    timer_free(cpu->env.time_timer);
+    cpu->env.time_timer = NULL;
 }
 
 static void myemulator32_realize(DeviceState *dev, Error **errp)
@@ -309,8 +422,14 @@ void myemulator32_cpu_dump_state(CPUState *cs, FILE *f, int flags)
                  "  USP: 0x%08" PRIx32 "  SSP: 0x%08" PRIx32 "\n",
                  env->pc, env->sr, env->usp, env->ssp);
     qemu_fprintf(f, "VBR: 0x%08" PRIx32 "  PTBR: 0x%08" PRIx32
-                 "  MMCR: 0x%08" PRIx32 "  halted=%u\n",
-                 env->vbr, env->ptbr, env->mmcr, env->halted);
+                 "  MMCR: 0x%08" PRIx32 "  DFSP: 0x%08" PRIx32
+                 "  TP: 0x%08" PRIx32 "  TIME: 0x%016" PRIx64
+                 "  TIMECMP: 0x%016" PRIx64 "  halted=%u\n",
+                 env->vbr, env->ptbr, env->mmcr, env->dfsp, env->tp,
+                 myemulator32_cpu_time_us(env), env->timecmp,
+                 env->halted);
+    qemu_fprintf(f, "IRQ_ASSERTED=0x%02" PRIx8 " IRQ_REQUEST=0x%08" PRIx32 "\n",
+                 env->irq_asserted, cs->interrupt_request);
     qemu_fprintf(f, "CF=%u OF=%u IPL=%u S=%u\n",
                  !!(env->sr & MYEMU32_SR_CF), !!(env->sr & MYEMU32_SR_OF),
                  (env->sr & MYEMU32_SR_IPL_MASK) >> 2,
@@ -356,6 +475,8 @@ static const TypeInfo myemulator32_cpu_types[] = {
         .instance_size = sizeof(MyEmulator32CPU),
         .instance_align = __alignof__(MyEmulator32CPU),
         .class_size = sizeof(MyEmulator32CPUClass),
+        .instance_init = myemulator32_init,
+        .instance_finalize = myemulator32_finalize,
         .class_init = myemulator32_class_init,
         .abstract = true,
     },

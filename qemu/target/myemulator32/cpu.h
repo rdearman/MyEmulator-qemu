@@ -3,6 +3,7 @@
 
 #include "cpu-qom.h"
 #include "exec/cpu-defs.h"
+#include "qemu/timer.h"
 
 #ifdef CONFIG_USER_ONLY
 #error "MyEmulator32 only supports system emulation"
@@ -20,6 +21,7 @@ enum {
     MYEMU32_EXCP_HALT,
     MYEMU32_EXCP_IRQ,
     MYEMU32_EXCP_NMI,
+    MYEMU32_EXCP_DOUBLE_FAULT,
 };
 
 enum {
@@ -38,6 +40,7 @@ enum {
     MYEMU32_VECTOR_SYSCALL = 12,
     MYEMU32_VECTOR_BREAKPOINT = 13,
     MYEMU32_VECTOR_NMI = 14,
+    MYEMU32_VECTOR_DOUBLE_FAULT = 15,
     MYEMU32_VECTOR_IRQ1 = 16,
 };
 
@@ -57,6 +60,15 @@ typedef struct CPUArchState {
     uint32_t vbr;
     uint32_t ptbr;
     uint32_t mmcr;
+    uint32_t dfsp;
+    uint32_t tp;
+    uint64_t timecmp;
+    uint64_t timecmp_shadow;
+    uint64_t time_base_ns;
+    uint32_t time_hi_latch;
+    bool timecmp_armed;
+    bool time_irq_asserted;
+    QEMUTimer *time_timer;
     bool halted;
     uint8_t irq_asserted;
     bool nmi_active;
@@ -79,6 +91,8 @@ bool myemulator32_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
                                bool probe, uintptr_t retaddr);
 void myemulator32_cpu_set_irq(CPUState *cs, unsigned level, bool asserted);
 void myemulator32_cpu_set_nmi(CPUState *cs, bool asserted);
+uint64_t myemulator32_cpu_time_us(CPUMyEmulator32State *env);
+void myemulator32_cpu_program_timecmp(CPUMyEmulator32State *env);
 void myemulator32_cpu_dump_state(CPUState *cs, FILE *f, int flags);
 
 static inline void cpu_get_tb_cpu_state(CPUMyEmulator32State *env,

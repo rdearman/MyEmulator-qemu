@@ -135,7 +135,7 @@ static void gen_branch(DisasContext *ctx, TCGCond cond, unsigned ra,
 {
     TCGLabel *taken = gen_new_label();
     TCGLabel *done = gen_new_label();
-    uint32_t target = ctx->base.pc_next + (displacement << 2);
+    uint32_t target = ctx->base.pc_next + (uint32_t)(displacement * 4);
 
     tcg_gen_brcond_i32(cond, gen_reg(ra), gen_reg(rb), taken);
     gen_next_pc(ctx);
@@ -305,7 +305,8 @@ static void decode_and_translate(DisasContext *ctx)
         unsigned load_size = extract32(insn, 13, 3);
         address = tcg_temp_new_i32();
         tcg_gen_addi_i32(address, gen_reg(ra), sx(extract32(insn, 0, 13), 13));
-        gen_checked_data(ctx, address, load_size >= 2 ? 2 : 1);
+        gen_checked_data(ctx, address, load_size == 4 ? 4 :
+                        (load_size >= 2 ? 2 : 1));
         tmp = tcg_temp_new_i32();
         switch (load_size) {
         case 0: tcg_gen_qemu_ld_i32(tmp, address, myemu32_mmu_idx(ctx), MO_SB); break;
@@ -349,12 +350,14 @@ static void decode_and_translate(DisasContext *ctx)
                    sx(extract32(insn, 0, 13), 13));
         return;
     case 5: /* J */
-        tcg_gen_movi_i32(cpu_pc, ctx->base.pc_next + (sx(extract32(insn, 0, 26), 26) << 2));
+        tcg_gen_movi_i32(cpu_pc, ctx->base.pc_next +
+                         (uint32_t)(sx(extract32(insn, 0, 26), 26) * 4));
         ctx->base.is_jmp = DISAS_EXIT;
         return;
     case 6: /* JAL */
         tcg_gen_movi_i32(cpu_r[14], ctx->base.pc_next);
-        tcg_gen_movi_i32(cpu_pc, ctx->base.pc_next + (sx(extract32(insn, 0, 26), 26) << 2));
+        tcg_gen_movi_i32(cpu_pc, ctx->base.pc_next +
+                         (uint32_t)(sx(extract32(insn, 0, 26), 26) * 4));
         ctx->base.is_jmp = DISAS_EXIT;
         return;
     case 7: /* JR/JALR */
@@ -377,7 +380,7 @@ static void decode_and_translate(DisasContext *ctx)
             unsigned sysop = extract32(insn, 22, 4);
             unsigned sysreg = extract32(insn, 11, 6);
             unsigned reg = extract32(insn, 17, 5);
-            if (extract32(insn, 0, 11) != 0 || sysreg > 5) {
+            if (extract32(insn, 0, 11) != 0 || sysreg > 11) {
                 gen_invalid(ctx, insn); return;
             }
             if (sysop == 0) {
@@ -429,6 +432,18 @@ static void decode_and_translate(DisasContext *ctx)
             ctx->base.is_jmp = DISAS_EXIT;
             return;
         }
+    case 12: /* CAS */
+        if (rd > 15 || ra > 15 || rb > 15 || extract32(insn, 0, 11) != 0) {
+            gen_invalid(ctx, insn); return;
+        }
+        address = gen_reg(rb);
+        gen_checked_data(ctx, address, 4);
+        tmp = tcg_temp_new_i32();
+        tcg_gen_atomic_cmpxchg_i32(tmp, address, gen_reg(rd), gen_reg(ra),
+                                    myemu32_mmu_idx(ctx), MO_LEUL);
+        gen_write_reg(rd, tmp);
+        gen_next_pc(ctx);
+        return;
     default:
         gen_invalid(ctx, insn); return;
     }

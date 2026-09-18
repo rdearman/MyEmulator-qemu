@@ -44,6 +44,10 @@ def indirect(link, ra):
     return (7 << 26) | (link << 25) | (ra << 20)
 
 
+def cas(rd, rs, ra):
+    return (12 << 26) | (rd << 21) | (rs << 16) | (ra << 11)
+
+
 def lui(rd, value):
     assert value & 0xfff == 0
     return (8 << 26) | (rd << 21) | ((value >> 12) << 1)
@@ -220,14 +224,30 @@ def main():
                      r"R13: 0x([0-9a-f]+)": 0x1000,
                      r"PC: 0x([0-9a-f]+)": 0x10c})
 
-    # A misaligned LW follows the same retryable frame/RFE path.
-    run_case({0x100: i(1, 0, 0, 1),
+    # A word address that is 2 mod 4 is also misaligned and follows the same
+    # retryable frame/RFE path.
+    run_case({0x100: i(1, 0, 0, 2),
               0x104: mem(2, 2, 1, 4, 0),
               0x108: HALT,
               **align_handler},
              vectors={12: 0x180},
              checks={r"R3: 0x([0-9a-f]+)": 0x108,
                      r"PC: 0x([0-9a-f]+)": 0x10c})
+
+    # CAS returns the old value and conditionally stores the replacement.
+    run_case({0x100: i(1, 0, 0, 0x200),
+              0x104: i(2, 0, 0, 5),
+              0x108: i(3, 0, 0, 9),
+              0x10c: mem(3, 2, 1, 2, 0),
+              0x110: cas(2, 3, 1),
+              0x114: mem(2, 4, 1, 4, 0),
+              0x118: i(2, 0, 0, 6),
+              0x11c: cas(2, 3, 1),
+              0x120: mem(2, 5, 1, 4, 0),
+              0x124: HALT}, checks={
+                  r"R2: 0x([0-9a-f]+)": 9,
+                  r"R4: 0x([0-9a-f]+)": 9,
+                  r"R5: 0x([0-9a-f]+)": 9})
 
     # Supervisor software sets both banked stacks, enters User mode, and
     # provokes a privilege fault.  The handler observes SSP, adjusts the
@@ -252,6 +272,24 @@ def main():
                      r"R13: 0x([0-9a-f]+)": 0x2000,
                      r"R15: 0x([0-9a-f]+)": 0x55,
                      r"SR: 0x([0-9a-f]+)": 0})
+
+    # TIME and TP are readable in User mode; TP is writable there, while a
+    # User TIMECMP write still raises the privilege exception.
+    user_sys_handler = {
+        0x180: mem(2, 4, 13, 4, 0),
+        0x184: HALT,
+    }
+    run_case({0x100: i(1, 0, 0, 0x123),
+              0x104: MTSR(10, 1),
+              0x108: i(4, 0, 0, 0),
+              0x10c: MTSR(0, 4),
+              0x110: MFSR(2, 10),
+              0x114: MFSR(3, 6),
+              0x118: MTSR(8, 1),
+              **user_sys_handler}, vectors={4: 0x180}, stop_after=0.02,
+             checks={r"R2: 0x([0-9a-f]+)": 0x123,
+                     r"R3: 0x([0-9a-f]+)": None,
+                     r"R4: 0x([0-9a-f]+)": 0x118})
     print("myemulator32 CPU execution tests: PASS")
 
 

@@ -12,7 +12,8 @@
     "U": "op[31:26], rd[25:21], imm[20:1], reserved[0]=0",
     "SYS": "op[31:26], sysop[25:22], reg[21:17], sysreg[16:11], reserved[10:0]=0",
     "SYSCALL": "op[31:26], immediate[25:0]",
-    "TLB": "op[31:26], page[25], ra[24:20], reserved[19:0]=0"
+    "TLB": "op[31:26], page[25], ra[24:20], reserved[19:0]=0",
+    "CAS": "op[31:26], rd[25:21], rs[20:16], ra[15:11], reserved[10:0]=0"
   },
   "primary_opcodes": {
     "R": 0,
@@ -26,7 +27,8 @@
     "LUI": 8,
     "SYSTEM": 9,
     "SYSCALL": 10,
-    "TLB": 11
+    "TLB": 11,
+    "CAS": 12
   },
   "r_operations": {
     "ADD": 0,
@@ -107,7 +109,13 @@
     "SSP": 2,
     "VBR": 3,
     "PTBR": 4,
-    "MMCR": 5
+    "MMCR": 5,
+    "TIME_LO": 6,
+    "TIME_HI": 7,
+    "TIMECMP_LO": 8,
+    "TIMECMP_HI": 9,
+    "TP": 10,
+    "DFSP": 11
   },
   "vectors": {
     "illegal_instruction": 0,
@@ -125,7 +133,7 @@
     "syscall": 12,
     "breakpoint": 13,
     "nmi": 14,
-    "reserved_15": 15,
+    "double_fault": 15,
     "irq1": 16,
     "irq2": 17,
     "irq3": 18,

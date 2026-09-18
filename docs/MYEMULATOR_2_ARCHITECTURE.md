@@ -1,6 +1,6 @@
 # MyEmulator 2.0 Architecture Specification
 
-**Status: IMPLEMENTED (CPU/MMU/exception integration complete)**
+**Status: IMPLEMENTED (CPU/MMU/exception integration complete; Linux-readiness extensions in progress)**
 
 **Specification revision: 2.0-design-1**
 
@@ -141,6 +141,7 @@ U:       op[31:26], rd[25:21], imm20[20:1], reserved[0]=0
 SYS:     op[31:26], sysop[25:22], reg[21:17], sysreg[16:11], reserved[10:0]=0
 SYSCALL: op[31:26], immediate[25:0]
 TLB:     op[31:26], page[25], ra[24:20], reserved[19:0]=0
+CAS:     op[31:26], rd[25:21], rs[20:16], ra[15:11], reserved[10:0]=0
 ```
 
 The exact fields and numeric assignments are also present in the JSON
@@ -148,7 +149,7 @@ manifest.
 
 ## 3. Opcode allocation
 
-Only primary opcodes 0x00 through 0x0B are assigned. 0x0C-0x3F are reserved
+Only primary opcodes 0x00 through 0x0C are assigned. 0x0D-0x3F are reserved
 for future architectural expansion and must currently cause illegal
 instruction exceptions.
 
@@ -168,6 +169,7 @@ instruction exceptions.
 | `0x09` | system operations, selected by `sysop` |
 | `0x0A` | `SYSCALL` |
 | `0x0B` | `TLBFLUSH`, selected by `page` |
+| `0x0C` | `CAS` |
 
 ### R-format functions
 
@@ -218,6 +220,12 @@ The signed 13-bit displacement is added to `base`. No addressing instruction
 modifies the base register. `LB` sign-extends 8 bits, `LBU` zero-extends 8,
 `LH` sign-extends 16, `LHU` zero-extends 16, and `LW` loads all 32 bits.
 Stores use the low 8 bits for `SB`, low 16 for `SH`, and all 32 for `SW`.
+
+`CAS Rd,Rs,[Ra]` is a naturally aligned 32-bit atomic compare-and-swap. It
+reads the original `Rd`, compares it with `MEM32[Ra]`, conditionally stores
+`Rs`, and writes the old memory value back to `Rd`. It requires normal read
+and write permission, does not modify CF or OF, and is one strongly ordered
+memory operation.
 
 ### Branches and direct jumps
 
@@ -328,9 +336,8 @@ execution:
 The old architectural effects of the faulting instruction are not committed.
 For retryable faults, RFE restores the saved PC and SR. An exception caused by
 an invalid exception-stack write or an unaligned/malformed handler vector is
-not recursively vectored; the CPU enters a halted error state requiring
-reset. This prevents exception recursion without adding another architectural
-exception class. Software must provide a valid writable Supervisor stack and
+not recursively vectored. Instead, the CPU enters the Double Fault path
+described below. Software must provide a valid writable Supervisor stack and
 aligned handlers.
 
 `RFE` is privileged. It reads the frame at current SSP, restores SR and PC,
@@ -362,7 +369,7 @@ address under the current MMU and Supervisor permissions.
 | 12 | syscall |
 | 13 | breakpoint/debug |
 | 14 | NMI |
-| 15 | reserved |
+| 15 | Double Fault |
 | 16-22 | IRQ1-IRQ7 respectively |
 | 23-255 | reserved |
 
@@ -413,9 +420,11 @@ System-register IDs are:
 | `0x03` | `VBR` | physical, 1 KiB aligned |
 | `0x04` | `PTBR` | physical, 4 KiB aligned |
 | `0x05` | `MMCR` | bit 0 `EN`; other bits reserved |
-| `0x06-0x3F` | reserved | illegal system-register selector |
+| `0x0C-0x3F` | reserved | illegal system-register selector |
 
-All MFSR/MTSR, RFE, HALT, BREAK, and TLBFLUSH operations are privileged.
+MFSR/MTSR access is Supervisor-only for SR, USP, SSP, VBR, PTBR, MMCR,
+TIMECMP, and DFSP. TIME and TP are readable in User mode, and TP is writable
+in both modes. RFE, HALT, BREAK, and TLBFLUSH are privileged.
 MTSR writes reserved SR/MMCR bits as zero/ignored. Misaligned PTBR or VBR
 writes raise data-alignment vector 3 before modifying the register. Changing
 PTBR invalidates all TLB entries; changing VBR does not require a TLB flush.
@@ -427,6 +436,17 @@ and raises vector 12. The CPU does not interpret syscall numbers. Primary
 opcode `0x0B` is TLBFLUSH: `page=0` invalidates all translations, and
 `page=1` invalidates the translation for the virtual page containing `Ra`.
 The `ra` field is required for page-specific flush and zero for all-flush.
+
+System-register IDs 0-5 remain `SR`, `USP`, `SSP`, `VBR`, `PTBR`, and `MMCR`.
+IDs 6-11 are `TIME_LO`, `TIME_HI`, `TIMECMP_LO`, `TIMECMP_HI`, `TP`, and
+`DFSP`. `TIME` is a 64-bit 1 MHz virtual-time counter. Reading `TIME_LO`
+captures the corresponding high word; the following `TIME_HI` read returns
+that latch, providing a consistent low-then-high read. `TIMECMP` is programmed
+low then high; writing the high half commits and arms the complete comparator.
+Reset leaves it disarmed. A comparator at or before the current TIME asserts
+IRQ1 immediately. TIME is readable in both modes, TIMECMP is Supervisor-only,
+TP is readable and writable in both modes, and DFSP is a physical
+Supervisor-only emergency stack pointer.
 
 ## 9. MMU
 
@@ -474,7 +494,20 @@ Instruction fetches and data accesses are precise: translation, alignment,
 permission, and required A/D updates complete before the instruction effect
 is committed. Page-fault Info is always the original virtual address.
 
-## 10. Syscall, breakpoint, and privilege behavior
+## 10. Double Fault
+
+Vector 15 is the Double Fault vector. If a normal exception frame cannot be
+constructed or accessed, normal construction is abandoned and the CPU uses
+DFSP as a physical emergency stack, bypassing the MMU. The emergency frame
+uses the normal 16-byte layout: saved PC and SR describe the original failure,
+Cause is 15, and Info contains the original exception cause. If the emergency
+frame or vector cannot be accessed, the CPU halts deterministically.
+
+Normal exception frames use physical SSP addresses when MMCR.EN is zero. When
+MMCR.EN is one, SSP is a Supervisor virtual address and frame accesses use the
+Supervisor MMU. Vector-table and page-table accesses remain physical.
+
+## 11. Syscall, breakpoint, and privilege behavior
 
 `SYSCALL` records the immediate in Info and leaves argument/result convention
 to the eventual ABI/operating system. `BREAK` records vector 13 with Info=0.
@@ -482,7 +515,17 @@ An illegal or reserved encoding records the complete offending instruction.
 Any privileged operation in User mode raises vector 1 with the faulting PC;
 it does not partially alter system state.
 
-## 11. Reset
+## 12. Memory ordering and timer
+
+MyEmulator2 v1 is strongly ordered: ordinary loads and stores become visible
+in program order. There are no fence instructions. CAS is fully ordered with
+respect to surrounding memory operations.
+
+TIME/TIMECMP provide a monotonic clocksource and one-shot clock event. When
+TIME is greater than or equal to TIMECMP, IRQ1 is asserted level-sensitively
+and remains subject to the normal rule `1 > SR.IPL`.
+
+## 13. Reset
 
 Reset is not vector 0 and is not maskable. With `VBR = 0`, the vector table
 occupies physical `0x00000000` through `0x000003FF`. Reset therefore uses two
@@ -521,7 +564,21 @@ R0 remains hardwired zero. Reset does not modify RAM, page tables, or the
 vector table. The first instruction fetch is physical; later execution can
 enable the MMU with MTSR.
 
-## 12. Protected multitasking model
+## 14. Calling convention and ELF32 direction
+
+The initial ABI assigns R1-R4 as the first four arguments and R1 as the
+32-bit return register; R1:R2 carries a 64-bit return. R1-R4 and R15 are
+caller-saved, R5-R12 are callee-saved, R13 is SP, and R14 is LR. Additional
+arguments are passed on the downward-growing stack. The stack is 16-byte
+aligned at calls and has no red zone. Detailed aggregate and varargs rules
+remain future ABI work.
+
+The executable direction is standard little-endian ELF32 with a private,
+development-only MyEmulator2 machine identifier until an official ELF machine
+number exists. Static executables are the initial target; dynamic linking and
+shared libraries remain future work.
+
+## 15. Protected multitasking model
 
 The CPU has no process, thread, or task-switch instruction. An operating
 system can implement pre-emptive multitasking with timer IRQs, Supervisor

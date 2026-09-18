@@ -18,7 +18,7 @@ class MyEmulator2SpecificationTests(unittest.TestCase):
     def test_word_and_format_widths(self):
         self.assertEqual(self.spec["instruction_bits"], 32)
         self.assertEqual(self.spec["primary_opcode_bits"], 6)
-        self.assertEqual(len(self.spec["primary_opcodes"]), 12)
+        self.assertEqual(len(self.spec["primary_opcodes"]), 13)
 
     def test_primary_opcodes_are_unique_and_six_bit(self):
         values = list(self.spec["primary_opcodes"].values())
@@ -41,7 +41,7 @@ class MyEmulator2SpecificationTests(unittest.TestCase):
         self.assertEqual([vectors[f"irq{n}"] for n in range(1, 8)],
                          list(range(16, 23)))
         self.assertEqual(vectors["nmi"], 14)
-        self.assertEqual(vectors["reserved_15"], 15)
+        self.assertEqual(vectors["double_fault"], 15)
         self.assertEqual(vectors["reserved_start"], 23)
         self.assertEqual(vectors["reserved_end"], 255)
 
@@ -68,6 +68,10 @@ class MyEmulator2SpecificationTests(unittest.TestCase):
         self.assertEqual(set(self.spec["alu_immediate_subops"]), {
             "ADDI", "SUBI", "ANDI", "ORI", "XORI", "SLLI", "SRLI", "SRAI",
         })
+        self.assertEqual(self.spec["primary_opcodes"]["CAS"], 12)
+        self.assertEqual(self.spec["formats"]["CAS"],
+                         "op[31:26], rd[25:21], rs[20:16], ra[15:11], reserved[10:0]=0")
+        self.assertEqual(self.spec["system_registers"]["DFSP"], 11)
 
 
 if __name__ == "__main__":
