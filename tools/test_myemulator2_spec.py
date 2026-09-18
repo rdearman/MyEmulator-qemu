@@ -34,11 +34,16 @@ class MyEmulator2SpecificationTests(unittest.TestCase):
 
     def test_vectors_are_unique_and_in_range(self):
         vectors = self.spec["vectors"]
-        values = list(vectors.values())
+        values = [value for name, value in vectors.items()
+                  if name not in ("reserved_start", "reserved_end")]
         self.assertEqual(len(values), len(set(values)))
         self.assertTrue(all(0 <= value < 256 for value in values))
         self.assertEqual([vectors[f"irq{n}"] for n in range(1, 8)],
                          list(range(16, 23)))
+        self.assertEqual(vectors["nmi"], 14)
+        self.assertEqual(vectors["reserved_15"], 15)
+        self.assertEqual(vectors["reserved_start"], 23)
+        self.assertEqual(vectors["reserved_end"], 255)
 
     def test_vector_table_does_not_overlap_reset_words(self):
         vectors = self.spec["vectors"]

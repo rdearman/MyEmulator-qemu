@@ -1,6 +1,6 @@
 # MyEmulator 2.0 Architecture Specification
 
-**Status: DESIGN / NOT IMPLEMENTED**
+**Status: IMPLEMENTATION IN PROGRESS**
 
 **Specification revision: 2.0-design-1**
 
@@ -359,7 +359,8 @@ address under the current MMU and Supervisor permissions.
 | 11 | arithmetic overflow |
 | 12 | syscall |
 | 13 | breakpoint/debug |
-| 14-15 | reserved |
+| 14 | NMI |
+| 15 | reserved |
 | 16-22 | IRQ1-IRQ7 respectively |
 | 23-255 | reserved |
 
@@ -381,9 +382,11 @@ sets live IPL to the accepted level, and vectors through `16 + (level-1)`.
 The previous IPL is restored by RFE. Higher-priority interrupts may nest;
 lower or equal levels cannot pre-empt the current handler.
 
-HALT stops normal execution and wakes only for an eligible IRQ or reset. A
-masked IRQ does not wake it. The CPU has no interrupt-enable flag, NMI, or
-hardware task-switch instruction.
+HALT stops normal execution and wakes only for an eligible IRQ, NMI, or reset.
+A masked IRQ does not wake it. NMI is a separate unmaskable input, vectors to
+14, and is suppressed while an NMI handler is active until that handler
+executes RFE. The CPU has no interrupt-enable flag or hardware task-switch
+instruction.
 
 ## 8. System instructions and registers
 

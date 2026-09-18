@@ -124,13 +124,17 @@
     "arithmetic_overflow": 11,
     "syscall": 12,
     "breakpoint": 13,
+    "nmi": 14,
+    "reserved_15": 15,
     "irq1": 16,
     "irq2": 17,
     "irq3": 18,
     "irq4": 19,
     "irq5": 20,
     "irq6": 21,
-    "irq7": 22
+    "irq7": 22,
+    "reserved_start": 23,
+    "reserved_end": 255
   },
   "reset": {
     "initial_ssp_address": 1024,
