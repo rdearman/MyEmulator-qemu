@@ -4,9 +4,10 @@ PROJECT_ROOT := $(CURDIR)
 QEMU_SOURCE ?= $(PROJECT_ROOT)/.qemu-upstream
 QEMU_BUILD ?= $(PROJECT_ROOT)/.qemu-build
 QEMU_BINARY ?= $(QEMU_BUILD)/qemu-system-myemulator
+QEMU32_BINARY ?= $(QEMU_BUILD)/qemu-system-myemulator32
 JOBS ?= $(shell getconf _NPROCESSORS_ONLN 2>/dev/null || printf '1')
 
-.PHONY: all build qemu test check cpu-test debug-test device-test \
+.PHONY: all build build32 qemu test check cpu-test cpu32-test debug-test device-test \
 	assembler-test emacs-test firmware-test spec-test myfs-demo myfs-test clean help
 
 all: build
@@ -14,6 +15,11 @@ all: build
 build qemu:
 	QEMU_SOURCE="$(QEMU_SOURCE)" QEMU_BUILD="$(QEMU_BUILD)" JOBS="$(JOBS)" \
 		$(PROJECT_ROOT)/qemu/tools/build-myemulator.sh
+
+build32: build
+
+cpu32-test: build
+	QEMU_MYEMULATOR32="$(QEMU32_BINARY)" $(PROJECT_ROOT)/tests/run-myemulator32-cpu-tests.sh
 
 cpu-test: build
 	QEMU_MYEMULATOR="$(QEMU_BINARY)" $(PROJECT_ROOT)/tests/run-qemu-cpu-tests.sh
@@ -68,7 +74,7 @@ myfs-test: myfs-demo
 	python3 $(PROJECT_ROOT)/tools/test_mkmyfs.py
 	QEMU_MYEMULATOR="$(QEMU_BINARY)" $(PROJECT_ROOT)/tests/run-myfs-e2e-test.sh
 
-test check: assembler-test cpu-test debug-test device-test firmware-test emacs-test spec-test myfs-test
+test check: assembler-test cpu-test cpu32-test debug-test device-test firmware-test emacs-test spec-test myfs-test
 
 # Remove only the generated QEMU build tree. The upstream checkout is retained
 # so the next build does not need to clone it again.
@@ -86,6 +92,7 @@ help:
 	@echo '  make assembler-test run assembler tests and assembler/QEMU integration'
 	@echo '  make emacs-test     run Emacs ERT tests'
 	@echo '  make spec-test      validate the MyEmulator 2.0 design manifest'
+	@echo '  make cpu32-test     run the MyEmulator 2.0 executable CPU tests'
 	@echo '  make myfs-demo      build boot sector, COMMAND.COM, HELLO.COM, and image'
 	@echo '  make myfs-test      run MyFS host-builder tests'
 	@echo '  make clean          remove only .qemu-build/'

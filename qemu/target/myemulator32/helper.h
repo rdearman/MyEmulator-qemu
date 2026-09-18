@@ -1,0 +1,5 @@
+DEF_HELPER_4(exception, noreturn, env, i32, i32, i32)
+DEF_HELPER_1(halt, noreturn, env)
+DEF_HELPER_2(rfe, void, env, i32)
+DEF_HELPER_3(mfsr, i32, env, i32, i32)
+DEF_HELPER_4(mtsr, void, env, i32, i32, i32)

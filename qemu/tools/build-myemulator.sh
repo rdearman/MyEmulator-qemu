@@ -52,16 +52,17 @@ printf 'Applying MyEmulator overlay to %s\n' "$qemu_source"
 mkdir -p "$qemu_build"
 printf 'Configuring %s\n' "$qemu_build"
 (cd "$qemu_build" && "$qemu_source/configure" \
-    --target-list=myemulator-softmmu \
+    --target-list=myemulator-softmmu,myemulator32-softmmu \
     --disable-dbus-display \
     --disable-werror \
     --enable-debug-tcg)
 
-printf 'Building qemu-system-myemulator with %s job(s)\n' "$jobs"
-make -C "$qemu_build" -j"$jobs" qemu-system-myemulator
+printf 'Building MyEmulator QEMU targets with %s job(s)\n' "$jobs"
+make -C "$qemu_build" -j"$jobs" qemu-system-myemulator qemu-system-myemulator32
 
 qemu_binary="$qemu_build/qemu-system-myemulator"
 printf 'Built %s\n' "$qemu_binary"
+printf 'Built %s\n' "$qemu_build/qemu-system-myemulator32"
 
 if [ "$run_tests" -eq 1 ]; then
     printf 'Running MyEmulator CPU tests\n'
