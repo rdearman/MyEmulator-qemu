@@ -2,6 +2,7 @@
 #include "qemu/log.h"
 #include "cpu.h"
 #include "exec/exec-all.h"
+#include "exec/cputlb.h"
 #include "exec/helper-proto.h"
 #include "exec/address-spaces.h"
 #include "exec/memory.h"
@@ -39,8 +40,10 @@ static void myemu32_halt_bad_vector(CPUMyEmulator32State *env,
     cs->exception_index = MYEMU32_EXCP_ILLEGAL;
 }
 
-void helper_exception(CPUMyEmulator32State *env, uint32_t cause,
-                      uint32_t fault_pc, uint32_t info)
+static G_NORETURN void myemu32_enter_exception(CPUMyEmulator32State *env,
+                                     uint32_t cause, uint32_t saved_pc,
+                                     uint32_t info, unsigned irq_level,
+                                     bool nmi)
 {
     CPUState *cs = env_cpu(env);
     uint32_t old_sr = env->sr;
@@ -60,7 +63,7 @@ void helper_exception(CPUMyEmulator32State *env, uint32_t cause,
     env->r[13] = env->ssp;
 
     address_space_stl_le(&address_space_memory, env->ssp + 0,
-                         fault_pc, MEMTXATTRS_UNSPECIFIED, &result);
+                         saved_pc, MEMTXATTRS_UNSPECIFIED, &result);
     address_space_stl_le(&address_space_memory, env->ssp + 4,
                          old_sr, MEMTXATTRS_UNSPECIFIED, &result);
     address_space_stl_le(&address_space_memory, env->ssp + 8,
@@ -72,6 +75,9 @@ void helper_exception(CPUMyEmulator32State *env, uint32_t cause,
         cpu_loop_exit(cs);
     }
 
+    if (irq_level) {
+        env->sr = (env->sr & ~MYEMU32_SR_IPL_MASK) | (irq_level << 2);
+    }
     handler = address_space_ldl_le(&address_space_memory,
                                    env->vbr + cause * 4,
                                    MEMTXATTRS_UNSPECIFIED, &result);
@@ -83,8 +89,28 @@ void helper_exception(CPUMyEmulator32State *env, uint32_t cause,
     env->halted = false;
     cs->halted = 0;
     cs->exception_index = cause;
+    if (nmi) {
+        env->nmi_active = true;
+    }
     (void)old_ssp;
     cpu_loop_exit(cs);
+}
+
+void helper_exception(CPUMyEmulator32State *env, uint32_t cause,
+                      uint32_t fault_pc, uint32_t info)
+{
+    myemu32_enter_exception(env, cause, fault_pc, info, 0, false);
+}
+
+void helper_irq(CPUMyEmulator32State *env, uint32_t level)
+{
+    myemu32_enter_exception(env, MYEMU32_VECTOR_IRQ1 + level - 1,
+                            env->pc, level, level, false);
+}
+
+void helper_nmi(CPUMyEmulator32State *env)
+{
+    myemu32_enter_exception(env, MYEMU32_VECTOR_NMI, env->pc, 0, 0, true);
 }
 
 void helper_halt(CPUMyEmulator32State *env)
@@ -127,6 +153,11 @@ void helper_rfe(CPUMyEmulator32State *env, uint32_t pc)
     env->sr = saved_sr;
     myemu32_select_visible_sp(env);
     env->pc = saved_pc;
+    if (address_space_ldl_le(&address_space_memory, frame + 8,
+                             MEMTXATTRS_UNSPECIFIED, &result) ==
+        MYEMU32_VECTOR_NMI) {
+        env->nmi_active = false;
+    }
     env->halted = false;
     cs->halted = 0;
 }
@@ -174,17 +205,51 @@ void helper_mtsr(CPUMyEmulator32State *env, uint32_t sysreg,
     case MYEMU32_SYS_USP: env->usp = value; break;
     case MYEMU32_SYS_SSP: env->ssp = value; if (myemu32_supervisor(env)) env->r[13] = value; break;
     case MYEMU32_SYS_VBR:
-        if (value & 0x3ff) helper_exception(env, MYEMU32_VECTOR_ILLEGAL, pc, value);
+        if (value & 0x3ff) helper_exception(env, MYEMU32_VECTOR_DATA_ALIGN, pc, value);
         env->vbr = value; break;
     case MYEMU32_SYS_PTBR:
-        if (value & 0xfff) helper_exception(env, MYEMU32_VECTOR_ILLEGAL, pc, value);
-        env->ptbr = value; break;
+        if (value & 0xfff) helper_exception(env, MYEMU32_VECTOR_DATA_ALIGN, pc, value);
+        env->ptbr = value;
+        tlb_flush(env_cpu(env));
+        break;
     case MYEMU32_SYS_MMCR:
-        /* Page walks are a later milestone.  Do not enable an unimplemented MMU. */
-        if (value & 1) helper_exception(env, MYEMU32_VECTOR_ILLEGAL, pc, value);
+        if (env->mmcr != (value & 1)) {
+            tlb_flush(env_cpu(env));
+        }
         env->mmcr = value & 1;
         break;
     default:
+        helper_exception(env, MYEMU32_VECTOR_ILLEGAL, pc, 0);
+    }
+}
+
+void helper_syscall(CPUMyEmulator32State *env, uint32_t immediate,
+                    uint32_t pc)
+{
+    helper_exception(env, MYEMU32_VECTOR_SYSCALL, pc, immediate & 0x03ffffff);
+}
+
+void helper_breakpoint(CPUMyEmulator32State *env, uint32_t pc)
+{
+    if (!myemu32_supervisor(env)) {
+        helper_exception(env, MYEMU32_VECTOR_PRIVILEGE, pc, 0);
+    }
+    helper_exception(env, MYEMU32_VECTOR_BREAKPOINT, pc, 0);
+}
+
+void helper_tlbflush(CPUMyEmulator32State *env, uint32_t page,
+                     uint32_t ra, uint32_t pc)
+{
+    CPUState *cs = env_cpu(env);
+
+    if (!myemu32_supervisor(env)) {
+        helper_exception(env, MYEMU32_VECTOR_PRIVILEGE, pc, 0);
+    }
+    if (page == 0) {
+        tlb_flush(cs);
+    } else if (page == 1) {
+        tlb_flush_page(cs, env->r[ra]);
+    } else {
         helper_exception(env, MYEMU32_VECTOR_ILLEGAL, pc, 0);
     }
 }

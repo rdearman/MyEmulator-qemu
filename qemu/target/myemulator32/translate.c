@@ -24,6 +24,12 @@ static TCGv_i32 cpu_pc;
 static TCGv_i32 cpu_sr;
 static TCGv_i32 cpu_r[16];
 
+static int myemu32_mmu_idx(const DisasContext *ctx)
+{
+    return (ctx->base.tb->flags & MYEMU32_SR_S) ?
+           MMU_SUPERVISOR_IDX : MMU_USER_IDX;
+}
+
 static TCGv_i32 gen_reg(unsigned n)
 {
     return n == 0 ? tcg_constant_i32(0) : cpu_r[n];
@@ -302,11 +308,11 @@ static void decode_and_translate(DisasContext *ctx)
         gen_checked_data(ctx, address, load_size >= 2 ? 2 : 1);
         tmp = tcg_temp_new_i32();
         switch (load_size) {
-        case 0: tcg_gen_qemu_ld_i32(tmp, address, MMU_PHYS_IDX, MO_SB); break;
-        case 1: tcg_gen_qemu_ld_i32(tmp, address, MMU_PHYS_IDX, MO_UB); break;
-        case 2: tcg_gen_qemu_ld_i32(tmp, address, MMU_PHYS_IDX, MO_LESW); break;
-        case 3: tcg_gen_qemu_ld_i32(tmp, address, MMU_PHYS_IDX, MO_LEUW); break;
-        default: tcg_gen_qemu_ld_i32(tmp, address, MMU_PHYS_IDX, MO_LEUL); break;
+        case 0: tcg_gen_qemu_ld_i32(tmp, address, myemu32_mmu_idx(ctx), MO_SB); break;
+        case 1: tcg_gen_qemu_ld_i32(tmp, address, myemu32_mmu_idx(ctx), MO_UB); break;
+        case 2: tcg_gen_qemu_ld_i32(tmp, address, myemu32_mmu_idx(ctx), MO_LESW); break;
+        case 3: tcg_gen_qemu_ld_i32(tmp, address, myemu32_mmu_idx(ctx), MO_LEUW); break;
+        default: tcg_gen_qemu_ld_i32(tmp, address, myemu32_mmu_idx(ctx), MO_LEUL); break;
         }
         gen_write_reg(rd, tmp);
         gen_next_pc(ctx);
@@ -320,9 +326,9 @@ static void decode_and_translate(DisasContext *ctx)
         gen_checked_data(ctx, address, store_size == 0 ? 1 :
                         (store_size == 1 ? 2 : 4));
         switch (store_size) {
-        case 0: tcg_gen_qemu_st_i32(gen_reg(rd), address, MMU_PHYS_IDX, MO_8); break;
-        case 1: tcg_gen_qemu_st_i32(gen_reg(rd), address, MMU_PHYS_IDX, MO_LEUW); break;
-        default: tcg_gen_qemu_st_i32(gen_reg(rd), address, MMU_PHYS_IDX, MO_LEUL); break;
+        case 0: tcg_gen_qemu_st_i32(gen_reg(rd), address, myemu32_mmu_idx(ctx), MO_8); break;
+        case 1: tcg_gen_qemu_st_i32(gen_reg(rd), address, myemu32_mmu_idx(ctx), MO_LEUW); break;
+        default: tcg_gen_qemu_st_i32(gen_reg(rd), address, myemu32_mmu_idx(ctx), MO_LEUL); break;
         }
         gen_next_pc(ctx);
         return;
@@ -383,7 +389,9 @@ static void decode_and_translate(DisasContext *ctx)
             if (sysop == 1) {
                 gen_helper_mtsr(tcg_env, tcg_constant_i32(sysreg), gen_reg(reg),
                                 tcg_constant_i32(pc));
-                gen_next_pc(ctx); return;
+                gen_next_pc(ctx);
+                ctx->base.is_jmp = DISAS_EXIT;
+                return;
             }
             if (sysreg != 0 || reg != 0) { gen_invalid(ctx, insn); return; }
             if (sysop == 2) {
@@ -394,7 +402,32 @@ static void decode_and_translate(DisasContext *ctx)
                 gen_next_pc(ctx); gen_helper_halt(tcg_env);
                 ctx->base.is_jmp = DISAS_NORETURN; return;
             }
+            if (sysop == 4) {
+                gen_helper_breakpoint(tcg_env, tcg_constant_i32(pc));
+                ctx->base.is_jmp = DISAS_NORETURN; return;
+            }
             gen_invalid(ctx, insn); return;
+        }
+    case 10: /* SYSCALL */
+        gen_helper_syscall(tcg_env, tcg_constant_i32(extract32(insn, 0, 26)),
+                           tcg_constant_i32(pc));
+        ctx->base.is_jmp = DISAS_NORETURN;
+        return;
+    case 11: /* TLBFLUSH */
+        {
+            unsigned page = extract32(insn, 25, 1);
+            unsigned flush_ra = extract32(insn, 20, 5);
+
+            if (extract32(insn, 0, 20) != 0 ||
+                (page == 0 && flush_ra != 0)) {
+                gen_invalid(ctx, insn); return;
+            }
+            gen_helper_tlbflush(tcg_env, tcg_constant_i32(page),
+                                tcg_constant_i32(flush_ra),
+                                tcg_constant_i32(pc));
+            gen_next_pc(ctx);
+            ctx->base.is_jmp = DISAS_EXIT;
+            return;
         }
     default:
         gen_invalid(ctx, insn); return;

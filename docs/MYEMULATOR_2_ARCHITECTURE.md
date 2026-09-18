@@ -1,6 +1,6 @@
 # MyEmulator 2.0 Architecture Specification
 
-**Status: IMPLEMENTATION IN PROGRESS**
+**Status: IMPLEMENTED (CPU/MMU/exception integration complete)**
 
 **Specification revision: 2.0-design-1**
 
@@ -12,8 +12,10 @@ specification.
 
 The machine-readable mechanical encoding manifest is
 [`myemulator2-encoding.json`](myemulator2-encoding.json). It is deliberately
-validated independently by `tools/test_myemulator2_spec.py`; it is data for
-the future implementation, not an executable CPU description.
+validated independently by `tools/test_myemulator2_spec.py` and is the
+mechanical source for the implementation. The executable CPU is covered by
+focused 2.0 raw-program and system/MMU tests; peripheral and operating-system
+integration remain future work.
 
 ## 1. Architectural model
 

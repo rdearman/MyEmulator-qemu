@@ -7,6 +7,7 @@
 #include "exec/memory.h"
 #include "target/myemulator32/cpu-qom.h"
 #include "target/myemulator32/cpu.h"
+#include "myemulator32-debug.h"
 
 #define TYPE_MYEMULATOR32_MACHINE MACHINE_TYPE_NAME("myemulator32")
 #define MYEMU32_DEFAULT_RAM (16 * 1024 * 1024)
@@ -49,6 +50,7 @@ static void myemulator32_machine_init(MachineState *machine)
     memcpy(memory_region_get_ram_ptr(&s->ram), image, image_size);
 
     s->cpu = MYEMULATOR32_CPU(cpu_create(machine->cpu_type));
+    myemulator32_debug_register_qmp();
     cpu_reset(CPU(s->cpu));
     cpu_resume(CPU(s->cpu));
 }
