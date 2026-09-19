@@ -58,7 +58,9 @@ void start_thread(struct pt_regs *regs, unsigned long pc, unsigned long usp)
 	memset(regs, 0, sizeof(*regs));
 	regs->pc = pc;
 	regs->r[13] = usp;
-	regs->sr = (1u << 5);
+	/* start_thread prepares a User-mode image; ret_from_fork will place
+	 * this SR in the native exception frame consumed by RFE. */
+	regs->sr = 0;
 }
 
 asmlinkage struct pt_regs *myemulator2_fork_entry(void)
@@ -69,8 +71,16 @@ asmlinkage struct pt_regs *myemulator2_fork_entry(void)
 	/* TP is a real architectural special register, not a GPR. */
 	asm volatile("mtsr tp, %0" :: "r"(task->thread.tp) : "memory");
 
-	if (fn)
-		do_exit(fn((void *)task->thread.fn_arg));
+	if (fn) {
+		int ret = fn((void *)task->thread.fn_arg);
+
+		/* kernel_execve() is allowed to return after replacing the
+		 * current task's saved image with a user image.  In that case
+		 * ret_from_fork must perform the user RFE path instead of
+		 * terminating the task as an ordinary kernel thread. */
+		if (!user_mode(task_pt_regs(task)))
+			do_exit(ret);
+	}
 
 	return task_pt_regs(task);
 }
