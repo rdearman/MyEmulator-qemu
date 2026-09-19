@@ -28,6 +28,8 @@ typedef unsigned int pgprot_t;
 #ifndef __ASSEMBLY__
 #include <linux/string.h>
 struct page;
+extern struct page *mem_map;
+#include <asm-generic/memory_model.h>
 static inline void clear_page(void *page) { memset(page, 0, PAGE_SIZE); }
 static inline void copy_page(void *to, const void *from) { memcpy(to, from, PAGE_SIZE); }
 static inline void clear_user_page(void *page, unsigned long vaddr,

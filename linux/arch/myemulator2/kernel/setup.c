@@ -10,6 +10,7 @@
 #include <asm/setup.h>
 
 extern void start_kernel(void);
+extern void paging_init(void);
 extern char __vectors_start[];
 
 unsigned long memory_start;
@@ -35,6 +36,10 @@ void __init setup_arch(char **cmdline_p)
 	if (!memory_end)
 		memory_end = 16 * 1024 * 1024;
 	memblock_add(memory_start, memory_end - memory_start);
+	min_low_pfn = PFN_UP(memory_start);
+	max_low_pfn = PFN_DOWN(memory_end);
+	set_max_mapnr(max_low_pfn - ARCH_PFN_OFFSET);
+	high_memory = (void *)__va(PFN_PHYS(max_low_pfn));
 	memblock_reserve(__pa_symbol(_stext), _end - _stext);
 	/* QEMU resets SSP to the top of the page immediately above this
 	 * one, and the architectural stack grows downward.  Keep the
@@ -42,7 +47,12 @@ void __init setup_arch(char **cmdline_p)
 	 * normal per-task stacks exist. */
 	if (memory_end >= 2 * PAGE_SIZE)
 		memblock_reserve(memory_end - 2 * PAGE_SIZE, PAGE_SIZE);
+	/* The minimal machine has no high-memory window.  Allocate early
+	 * metadata from the low end so FLATMEM's struct page array cannot land at
+	 * the exclusive end address of RAM. */
+	memblock_set_bottom_up(true);
 	setup_initial_init_mm(_stext, _etext, _edata, _end);
+	paging_init();
 	myemulator2_install_vectors();
 	pr_info("MyEmulator2 RAM: 0x%08lx-0x%08lx\n",
 		memory_start, memory_end);

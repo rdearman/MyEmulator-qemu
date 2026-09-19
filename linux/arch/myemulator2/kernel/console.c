@@ -18,7 +18,7 @@ static void myemulator2_console_write(struct console *console,
 static struct console myemulator2_console = {
 	.name = "myemu",
 	.write = myemulator2_console_write,
-	.flags = CON_PRINTBUFFER,
+	.flags = CON_PRINTBUFFER | CON_ENABLED,
 	.index = 0,
 };
 

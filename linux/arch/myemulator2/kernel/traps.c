@@ -5,9 +5,10 @@
 #include <linux/sched.h>
 #include <asm/ptrace.h>
 
-void myemulator2_exception_dispatch(void)
+void myemulator2_exception_dispatch(unsigned long *frame)
 {
-	pr_emerg("MyEmulator2 exception\n");
+	pr_emerg("MyEmulator2 exception: pc=%08lx sr=%08lx cause=%lu info=%08lx\n",
+		frame[0], frame[1], frame[2], frame[3]);
 	panic("unhandled MyEmulator2 exception");
 }
 

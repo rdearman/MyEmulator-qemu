@@ -96,14 +96,8 @@ static inline unsigned long pud_page_vaddr(pud_t pud)
 { return pud_val(pud); }
 static inline unsigned long p4d_page_vaddr(p4d_t p4d)
 { return p4d_val(p4d); }
-static inline struct page *pfn_to_page(unsigned long pfn)
-{ return (struct page *)(pfn << PAGE_SHIFT); }
-static inline unsigned long page_to_pfn(struct page *page)
-{ return (unsigned long)page >> PAGE_SHIFT; }
-static inline struct page *virt_to_page(const void *addr)
-{ return pfn_to_page(virt_to_pfn(addr)); }
-static inline unsigned long page_to_phys(struct page *page)
-{ return page_to_pfn(page) << PAGE_SHIFT; }
+#define virt_to_page(addr) pfn_to_page(virt_to_pfn(addr))
+#define page_to_phys(page) (page_to_pfn(page) << PAGE_SHIFT)
 #define __pte_free_tlb(tlb, pte, addr) do { (void)(tlb); (void)(pte); (void)(addr); } while (0)
 #define pmd_page(pmd) pfn_to_page(pmd_val(pmd) >> PAGE_SHIFT)
 #define pte_page(pte) pfn_to_page(pte_val(pte) >> PAGE_SHIFT)
