@@ -2,6 +2,10 @@
   (and (match_code "const_int")
        (match_test "IN_RANGE (ival, -2048, 2047)")))
 
+(define_constraint "J" "Unsigned twelve-bit logical immediate"
+  (and (match_code "const_int")
+       (match_test "IN_RANGE (ival, 0, 4095)")))
+
 (define_constraint "K" "Five-bit shift count"
   (and (match_code "const_int")
        (match_test "IN_RANGE (ival, 0, 31)")))

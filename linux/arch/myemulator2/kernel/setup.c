@@ -31,9 +31,9 @@ void __init setup_arch(char **cmdline_p)
 		strscpy(boot_command_line, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
 	*cmdline_p = boot_command_line;
 
-	/* Keep the reset/vector and kernel-load area out of Linux's general
-	 * allocator.  The linked image begins at 0x000ffc00 and the vectors
-	 * occupy 0x00100000-0x001003ff. */
+	/* Describe RAM from the first usable machine page.  The complete
+	 * linked image is reserved below; bottom-up memblock allocation then
+	 * starts after its actual configuration-dependent end. */
 	memory_start = 0x00101000;
 	memory_end = memblock_end_of_DRAM();
 	if (!memory_end)
@@ -43,7 +43,8 @@ void __init setup_arch(char **cmdline_p)
 	max_low_pfn = PFN_DOWN(memory_end);
 	set_max_mapnr(max_low_pfn - ARCH_PFN_OFFSET);
 	high_memory = (void *)__va(PFN_PHYS(max_low_pfn));
-	memblock_reserve(__pa_symbol(_stext), _end - _stext);
+	memblock_reserve(__pa_symbol(__vectors_start),
+			__pa_symbol(_end) - __pa_symbol(__vectors_start));
 	/* QEMU resets SSP to the top of the page immediately above this
 	 * one, and the architectural stack grows downward.  Keep the
 	 * initial supervisor stack page out of early allocations until the

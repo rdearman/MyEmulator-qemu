@@ -3,6 +3,7 @@
 #include <linux/mm.h>
 #include <linux/memblock.h>
 #include <asm/pgtable.h>
+#include <asm/setup.h>
 
 pgd_t swapper_pg_dir[PTRS_PER_PGD] __aligned(PAGE_SIZE);
 
@@ -33,7 +34,10 @@ void __init paging_init(void)
 	/* The initial port uses a flat physical kernel mapping.  Still create
 	 * Linux's normal zone/page allocator metadata so boot-time slab users can
 	 * obtain pages from the memblock-described RAM. */
-	max_zone_pfns[ZONE_NORMAL] = memblock_end_of_DRAM() >> PAGE_SHIFT;
+	/* setup_arch() establishes the platform RAM extent.  The generic
+	 * memblock query is not populated by this minimal platform's boot
+	 * path, so use the verified extent directly. */
+	max_zone_pfns[ZONE_NORMAL] = memory_end >> PAGE_SHIFT;
 	free_area_init(max_zone_pfns);
 }
 

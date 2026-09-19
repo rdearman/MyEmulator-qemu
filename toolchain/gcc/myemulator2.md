@@ -51,17 +51,17 @@
 (define_insn "andsi3"
   [(set (match_operand:SI 0 "register_operand" "=r,r")
         (and:SI (match_operand:SI 1 "register_operand" "r,r")
-                (match_operand:SI 2 "nonmemory_operand" "r,I")))]
+                (match_operand:SI 2 "nonmemory_operand" "r,J")))]
   "" "* return CONST_INT_P (operands[2]) ? \"andi %0, %1, %2\" : \"and %0, %1, %2\";")
 (define_insn "iorsi3"
   [(set (match_operand:SI 0 "register_operand" "=r,r")
         (ior:SI (match_operand:SI 1 "register_operand" "r,r")
-                (match_operand:SI 2 "nonmemory_operand" "r,I")))]
+                (match_operand:SI 2 "nonmemory_operand" "r,J")))]
   "" "* return CONST_INT_P (operands[2]) ? \"ori %0, %1, %2\" : \"or %0, %1, %2\";")
 (define_insn "xorsi3"
   [(set (match_operand:SI 0 "register_operand" "=r,r")
         (xor:SI (match_operand:SI 1 "register_operand" "r,r")
-                (match_operand:SI 2 "nonmemory_operand" "r,I")))]
+                (match_operand:SI 2 "nonmemory_operand" "r,J")))]
   "" "* return CONST_INT_P (operands[2]) ? \"xori %0, %1, %2\" : \"xor %0, %1, %2\";")
 (define_insn "one_cmplsi2"
   [(set (match_operand:SI 0 "register_operand" "=r")
