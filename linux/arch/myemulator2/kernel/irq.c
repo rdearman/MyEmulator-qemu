@@ -11,4 +11,4 @@ void __init init_IRQ(void)
 	 * to the machine devices; no irqdomain is needed for this fixed layout. */
 }
 
-void myemulator2_exception_dispatch(unsigned long *frame);
+void myemulator2_exception_dispatch(struct pt_regs *regs);

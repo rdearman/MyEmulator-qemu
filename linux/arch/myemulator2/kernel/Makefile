@@ -4,6 +4,7 @@ obj-y += console.o
 obj-y += setup.o
 obj-y += traps.o
 obj-y += process.o
+obj-y += switch.o
 obj-y += time.o
 obj-y += irq.o
 obj-y += syscall.o

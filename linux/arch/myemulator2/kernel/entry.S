@@ -1,6 +1,6 @@
-/* The CPU has already built the 16-byte frame at SSP.  The save area is
- * below that frame; overwriting SSP would destroy the state RFE consumes.
- * The original r15 is saved before it is used as a frame pointer. */
+/* The CPU has already built the 16-byte frame at SSP.  Linux presents a
+ * complete software pt_regs image to C below that native frame.  Keeping the
+ * native frame intact is essential: RFE consumes it after C has returned. */
 #include <linux/linkage.h>
 
 	.section .text,"ax"
@@ -10,7 +10,7 @@
 myemulator2_exception_entry:
 	sw r15, -4(sp)
 	addi r15, sp, 0
-	addi sp, sp, -64
+	addi sp, sp, -80
 	sw r0, 0(sp)
 	sw r1, 4(sp)
 	sw r2, 8(sp)
@@ -24,10 +24,30 @@ myemulator2_exception_entry:
 	sw r10, 40(sp)
 	sw r11, 44(sp)
 	sw r12, 48(sp)
-	sw r15, 52(sp)
+	mfsr r3, usp
+	sw r3, 52(sp)
+	lw r3, -4(r15)
+	sw r3, 60(sp)
 	sw r14, 56(sp)
-	addi r1, r15, 0
+	lw r3, 0(r15)
+	sw r3, 64(sp)
+	lw r3, 4(r15)
+	sw r3, 68(sp)
+	lw r3, 8(r15)
+	sw r3, 72(sp)
+	lw r3, 12(r15)
+	sw r3, 76(sp)
+	addi r1, sp, 0
 	call myemulator2_exception_dispatch
+	/* Reconstruct the native-frame pointer; C is allowed to use r15. */
+	addi r15, sp, 80
+	lw r3, 64(sp)
+	sw r3, 0(r15)
+	lw r3, 68(sp)
+	sw r3, 4(r15)
+	/* The saved user stack is restored by RFE selecting USP. */
+	lw r3, 52(sp)
+	mtsr usp, r3
 	lw r0, 0(sp)
 	lw r1, 4(sp)
 	lw r2, 8(sp)
@@ -43,6 +63,6 @@ myemulator2_exception_entry:
 	lw r12, 48(sp)
 	lw r14, 56(sp)
 	lw r15, 60(sp)
-	addi sp, sp, 64
+	addi sp, sp, 80
 	rfe
 	.size myemulator2_exception_entry, .-myemulator2_exception_entry

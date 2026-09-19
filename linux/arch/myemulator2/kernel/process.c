@@ -5,10 +5,13 @@
 #include <linux/sched/debug.h>
 #include <linux/elfcore.h>
 #include <linux/uaccess.h>
+#include <linux/sched/task_stack.h>
 #include <asm/processor.h>
 
 unsigned long init_stack[THREAD_SIZE / sizeof(unsigned long)]
 	__aligned(THREAD_SIZE);
+
+asmlinkage void ret_from_fork(void);
 
 void arch_cpu_idle(void)
 {
@@ -58,6 +61,20 @@ void start_thread(struct pt_regs *regs, unsigned long pc, unsigned long usp)
 	regs->sr = (1u << 5);
 }
 
+asmlinkage struct pt_regs *myemulator2_fork_entry(void)
+{
+	struct task_struct *task = current;
+	int (*fn)(void *) = (void *)task->thread.fn;
+
+	/* TP is a real architectural special register, not a GPR. */
+	asm volatile("mtsr tp, %0" :: "r"(task->thread.tp) : "memory");
+
+	if (fn)
+		do_exit(fn((void *)task->thread.fn_arg));
+
+	return task_pt_regs(task);
+}
+
 int elf_core_copy_task_fpregs(struct task_struct *task, elf_fpregset_t *fpu)
 {
 	(void)task;
@@ -67,5 +84,31 @@ int elf_core_copy_task_fpregs(struct task_struct *task, elf_fpregset_t *fpu)
 
 int copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
 {
-	return -ENOSYS;
+	struct pt_regs *childregs = task_pt_regs(p);
+	unsigned long *child_frame = (unsigned long *)childregs - 4;
+
+	memset(&p->thread, 0, sizeof(p->thread));
+	p->thread.sp = (unsigned long)child_frame;
+	p->thread.pc = (unsigned long)ret_from_fork;
+
+	if (unlikely(args->fn)) {
+		/* Kernel threads start in ret_from_fork and never use a user
+		 * exception frame unless they later exec a user program. */
+		memset(childregs, 0, sizeof(*childregs));
+		childregs->sr = (1u << 5);
+		p->thread.fn = (unsigned long)args->fn;
+		p->thread.fn_arg = (unsigned long)args->fn_arg;
+		return 0;
+	}
+
+	/* A userspace child inherits the parent's software register image. */
+	*childregs = *current_pt_regs();
+	childregs->r[1] = 0;
+	if (args->stack)
+		childregs->r[13] = args->stack;
+	if (args->flags & CLONE_SETTLS)
+		p->thread.tp = args->tls;
+	else
+		p->thread.tp = current->thread.tp;
+	return 0;
 }

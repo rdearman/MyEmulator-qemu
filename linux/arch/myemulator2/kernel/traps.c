@@ -4,11 +4,21 @@
 #include <linux/ptrace.h>
 #include <linux/sched.h>
 #include <asm/ptrace.h>
+#include <asm/unistd.h>
 
-void myemulator2_exception_dispatch(unsigned long *frame)
+asmlinkage long myemulator2_syscall(unsigned long nr,
+		unsigned long a0, unsigned long a1, unsigned long a2,
+		unsigned long a3);
+
+void myemulator2_exception_dispatch(struct pt_regs *regs)
 {
+	if (regs->cause == 12) {
+		regs->r[1] = myemulator2_syscall(regs->r[1], regs->r[2],
+			regs->r[3], regs->r[4], regs->r[5]);
+		return;
+	}
 	pr_emerg("MyEmulator2 exception: pc=%08lx sr=%08lx cause=%lu info=%08lx\n",
-		frame[0], frame[1], frame[2], frame[3]);
+		regs->pc, regs->sr, regs->cause, regs->info);
 	panic("unhandled MyEmulator2 exception");
 }
 
