@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0
 obj-y += head.o
+obj-y += console.o
 obj-y += setup.o
 obj-y += traps.o
 obj-y += process.o

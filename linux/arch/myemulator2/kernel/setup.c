@@ -10,6 +10,7 @@
 #include <asm/setup.h>
 
 extern void start_kernel(void);
+extern void myemulator2_register_console(void);
 extern char __vectors_start[];
 
 unsigned long memory_start;
@@ -34,6 +35,12 @@ void __init setup_arch(char **cmdline_p)
 		memory_end = 16 * 1024 * 1024;
 	memblock_add(memory_start, memory_end - memory_start);
 	memblock_reserve(__pa_symbol(_stext), _end - _stext);
+	/* QEMU resets SSP to the top of the page immediately above this
+	 * one, and the architectural stack grows downward.  Keep the
+	 * initial supervisor stack page out of early allocations until the
+	 * normal per-task stacks exist. */
+	if (memory_end >= 2 * PAGE_SIZE)
+		memblock_reserve(memory_end - 2 * PAGE_SIZE, PAGE_SIZE);
 	setup_initial_init_mm(_stext, _etext, _edata, _end);
 	myemulator2_install_vectors();
 	pr_info("MyEmulator2 RAM: 0x%08lx-0x%08lx\n",
@@ -42,5 +49,6 @@ void __init setup_arch(char **cmdline_p)
 
 void __init myemulator2_start_kernel(void)
 {
+	myemulator2_register_console();
 	start_kernel();
 }

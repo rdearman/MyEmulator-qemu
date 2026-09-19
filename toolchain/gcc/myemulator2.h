@@ -111,10 +111,11 @@ enum reg_class { NO_REGS, GENERAL_REGS, ALL_REGS, LIM_REG_CLASSES };
    the fixed LR/frame header. */
 #define REG_PARM_STACK_SPACE(FNDECL) (4 * UNITS_PER_WORD)
 #define STACK_POINTER_OFFSET (4 * UNITS_PER_WORD)
-/* The target prologue reserves words 0 and 4 of the incoming frame for the
-   saved LR and frame register.  Stack-passed arguments begin immediately
-   after that fixed header. */
-#define FIRST_PARM_OFFSET(FNDECL) (4 * UNITS_PER_WORD)
+/* GCC's incoming argument pointer already accounts for the register
+   argument home area.  Stack-passed arguments therefore begin at offset
+   zero from that pointer; adding another home-area offset here makes the
+   callee read stack arguments 16 bytes past the caller's slots. */
+#define FIRST_PARM_OFFSET(FNDECL) 0
 
 #define ASM_COMMENT_START "#"
 #define ASM_APP_ON ""
