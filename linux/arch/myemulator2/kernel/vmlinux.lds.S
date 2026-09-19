@@ -33,11 +33,6 @@ SECTIONS
 	INIT_TEXT_SECTION(4096)
 	INIT_DATA_SECTION(16)
 	__init_end = .;
-	. = ALIGN(4096);
-	__init_begin = .;
-	INIT_TEXT_SECTION(4096)
-	INIT_DATA_SECTION(16)
-	__init_end = .;
 	_sdata = .;
 	RO_DATA(16)
 	RW_DATA(16, 4096, 16)

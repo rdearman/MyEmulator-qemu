@@ -22,7 +22,9 @@ static struct console myemulator2_console = {
 	.index = 0,
 };
 
-void __init myemulator2_register_console(void)
+static int __init myemulator2_console_init(void)
 {
 	register_console(&myemulator2_console);
+	return 0;
 }
+console_initcall(myemulator2_console_init);

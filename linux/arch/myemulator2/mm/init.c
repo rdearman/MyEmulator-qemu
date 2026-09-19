@@ -28,10 +28,16 @@ pgd_t *pgd_alloc(struct mm_struct *mm)
 
 void __init paging_init(void)
 {
-	/* Initial bring-up runs with the MMU disabled; page-table integration is
-	 * added after the physical console and exception path are validated. */
+	unsigned long max_zone_pfns[MAX_NR_ZONES] = { 0 };
+
+	/* The initial port uses a flat physical kernel mapping.  Still create
+	 * Linux's normal zone/page allocator metadata so boot-time slab users can
+	 * obtain pages from the memblock-described RAM. */
+	max_zone_pfns[ZONE_NORMAL] = memblock_end_of_DRAM() >> PAGE_SHIFT;
+	free_area_init(max_zone_pfns);
 }
 
 void __init mem_init(void)
 {
+	memblock_free_all();
 }

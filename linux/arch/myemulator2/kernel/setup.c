@@ -10,7 +10,6 @@
 #include <asm/setup.h>
 
 extern void start_kernel(void);
-extern void myemulator2_register_console(void);
 extern char __vectors_start[];
 
 unsigned long memory_start;
@@ -27,6 +26,8 @@ static void __init myemulator2_install_vectors(void)
 void __init setup_arch(char **cmdline_p)
 {
 	console_verbose();
+	if (IS_ENABLED(CONFIG_CMDLINE_FORCE))
+		strscpy(boot_command_line, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
 	*cmdline_p = boot_command_line;
 
 	memory_start = 0x1000;
@@ -49,6 +50,5 @@ void __init setup_arch(char **cmdline_p)
 
 void __init myemulator2_start_kernel(void)
 {
-	myemulator2_register_console();
 	start_kernel();
 }
