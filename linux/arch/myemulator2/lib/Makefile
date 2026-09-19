@@ -1,2 +1,3 @@
 # SPDX-License-Identifier: GPL-2.0
-obj-y += delay.o
+lib-y += delay.o
+lib-y += hweight.o

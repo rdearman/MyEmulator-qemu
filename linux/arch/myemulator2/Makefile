@@ -2,12 +2,14 @@
 KBUILD_DEFCONFIG := myemulator2_defconfig
 
 KBUILD_CFLAGS += -D__linux__ -fno-pic
+LIBGCC := $(shell $(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)
 
 head-y := arch/$(ARCH)/kernel/head.o
 
 core-y += arch/$(ARCH)/kernel/
 core-y += arch/$(ARCH)/mm/
 libs-y += arch/$(ARCH)/lib/
+libs-y += $(LIBGCC)
 
 boot := arch/$(ARCH)/boot
 

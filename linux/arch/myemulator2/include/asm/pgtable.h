@@ -10,7 +10,6 @@ typedef u32 pteval_t;
 typedef u32 pgdval_t;
 typedef struct { pteval_t pte; } pte_t;
 typedef struct { pgdval_t pgd; } pgd_t;
-typedef u32 pgprot_t;
 struct page;
 typedef struct page *pgtable_t;
 
@@ -37,6 +36,8 @@ typedef struct page *pgtable_t;
 #define __PAGETABLE_PMD_FOLDED 1
 #define __PAGETABLE_PUD_FOLDED 1
 #define __PAGETABLE_P4D_FOLDED 1
+
+extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
 
 #include <asm-generic/pgtable-nopmd.h>
 #include <asm-generic/pgtable-nopud.h>
@@ -73,11 +74,18 @@ typedef struct page *pgtable_t;
 #define pte_mkyoung(pte) __pte(pte_val(pte) | _PAGE_ACCESSED)
 #define pte_mkold(pte) __pte(pte_val(pte) & ~_PAGE_ACCESSED)
 #define pte_mkread(pte) __pte(pte_val(pte) | _PAGE_READ)
+#define pfn_pte(pfn, prot) __pte(((u32)(pfn) << PAGE_SHIFT) | pgprot_val(prot))
+#define mk_pte(page, prot) pfn_pte(page_to_pfn(page), prot)
+#define pte_modify(pte, prot) __pte((pte_val(pte) & ~0x1fU) | pgprot_val(prot))
 
 #define pmd_none(pmd) (pmd_val(pmd) == 0)
+#define pgd_ERROR(pgd) ((void)0)
 #define pmd_present(pmd) (pmd_val(pmd) & _PAGE_PRESENT)
 #define pmd_bad(pmd) 0
 #define pmd_clear(pmd) do { *(pmd) = __pmd(0); } while (0)
+#define pmd_populate(mm, pmd, pte) (*(pmd) = __pmd((unsigned long)(pte)))
+#define pmd_populate_kernel(mm, pmd, pte) pmd_populate(mm, pmd, pte)
+#define pmd_pfn(pmd) (pmd_val(pmd) >> PAGE_SHIFT)
 
 #ifndef __ASSEMBLY__
 struct mm_struct;
@@ -96,9 +104,7 @@ static inline struct page *virt_to_page(const void *addr)
 { return pfn_to_page(virt_to_pfn(addr)); }
 static inline unsigned long page_to_phys(struct page *page)
 { return page_to_pfn(page) << PAGE_SHIFT; }
-static inline pte_t *pte_offset_kernel(pmd_t *pmd, unsigned long addr)
-{ return (pte_t *)pmd_page_vaddr(*pmd) + ((addr >> PAGE_SHIFT) & 1023); }
-#define pte_offset_kernel pte_offset_kernel
+#define __pte_free_tlb(tlb, pte, addr) do { (void)(tlb); (void)(pte); (void)(addr); } while (0)
 #define pmd_page(pmd) pfn_to_page(pmd_val(pmd) >> PAGE_SHIFT)
 #define pte_page(pte) pfn_to_page(pte_val(pte) >> PAGE_SHIFT)
 #define pte_pfn(pte) (pte_val(pte) >> PAGE_SHIFT)
@@ -118,6 +124,17 @@ static inline pte_t pte_swp_mkexclusive(pte_t pte)
 { return __pte(pte_val(pte) | _PAGE_SWP_EXCLUSIVE); }
 static inline pte_t pte_swp_clear_exclusive(pte_t pte)
 { return __pte(pte_val(pte) & ~_PAGE_SWP_EXCLUSIVE); }
+
+struct vm_fault;
+struct vm_area_struct;
+static inline void update_mmu_cache_range(struct vm_fault *vmf,
+					 struct vm_area_struct *vma,
+					 unsigned long addr, pte_t *ptep,
+					 unsigned int nr)
+{ (void)vmf; (void)vma; (void)addr; (void)ptep; (void)nr; }
+static inline void update_mmu_cache(struct vm_area_struct *vma,
+					unsigned long addr, pte_t *ptep)
+{ update_mmu_cache_range(NULL, vma, addr, ptep, 1); }
 #endif
 
 #endif

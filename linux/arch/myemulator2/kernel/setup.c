@@ -5,6 +5,7 @@
 #include <linux/mm.h>
 #include <linux/console.h>
 #include <linux/initrd.h>
+#include <linux/seq_file.h>
 #include <asm/sections.h>
 #include <asm/setup.h>
 
@@ -13,6 +14,8 @@ extern char __vectors_start[];
 
 unsigned long memory_start;
 unsigned long memory_end;
+
+const struct seq_operations cpuinfo_op = { };
 
 static void __init myemulator2_install_vectors(void)
 {

@@ -6,6 +6,7 @@
 #define THREAD_SIZE_ORDER 1
 #define THREAD_SIZE (PAGE_SIZE << THREAD_SIZE_ORDER)
 #define KSTK_ESP(task) (task_pt_regs(task)->r[13])
+#define KSTK_EIP(task) (task_pt_regs(task)->pc)
 #ifndef __ASSEMBLY__
 struct thread_struct { unsigned long sp; unsigned long pc; unsigned long tp; };
 #define INIT_THREAD { .sp = 0, .pc = 0, .tp = 0 }
