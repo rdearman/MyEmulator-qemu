@@ -31,7 +31,10 @@ void __init setup_arch(char **cmdline_p)
 		strscpy(boot_command_line, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
 	*cmdline_p = boot_command_line;
 
-	memory_start = 0x1000;
+	/* Keep the reset/vector and kernel-load area out of Linux's general
+	 * allocator.  The linked image begins at 0x000ffc00 and the vectors
+	 * occupy 0x00100000-0x001003ff. */
+	memory_start = 0x00101000;
 	memory_end = memblock_end_of_DRAM();
 	if (!memory_end)
 		memory_end = 16 * 1024 * 1024;
