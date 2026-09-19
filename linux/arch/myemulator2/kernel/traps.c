@@ -9,12 +9,18 @@
 asmlinkage long myemulator2_syscall(unsigned long nr,
 		unsigned long a0, unsigned long a1, unsigned long a2,
 		unsigned long a3);
+void myemulator2_timer_interrupt(void);
 
 void myemulator2_exception_dispatch(struct pt_regs *regs)
 {
 	if (regs->cause == 12) {
 		regs->r[1] = myemulator2_syscall(regs->r[1], regs->r[2],
 			regs->r[3], regs->r[4], regs->r[5]);
+		return;
+	}
+	/* IRQ1 is vector 16 (vectors 16-22 represent IRQ1-IRQ7). */
+	if (regs->cause == 16) {
+		myemulator2_timer_interrupt();
 		return;
 	}
 	pr_emerg("MyEmulator2 exception: pc=%08lx sr=%08lx cause=%lu info=%08lx\n",

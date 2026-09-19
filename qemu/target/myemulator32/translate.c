@@ -37,8 +37,33 @@ static TCGv_i32 gen_reg(unsigned n)
 
 static void gen_write_reg(unsigned n, TCGv_i32 value)
 {
-    if (n != 0) {
-        tcg_gen_mov_i32(cpu_r[n], value);
+    if (n == 0) {
+        return;
+    }
+    tcg_gen_mov_i32(cpu_r[n], value);
+
+    /* R13 is the visible view of the active banked stack pointer.  Keep
+     * the backing bank synchronized for ordinary instruction writes too;
+     * otherwise a task switch or an interrupt can leave env->ssp/env->usp
+     * referring to a different stack than the visible R13. */
+    if (n == 13) {
+        TCGv_i32 sr_mode = tcg_temp_new_i32();
+        TCGv_i32 old_ssp = tcg_temp_new_i32();
+        TCGv_i32 old_usp = tcg_temp_new_i32();
+
+        tcg_gen_andi_i32(sr_mode, cpu_sr, MYEMU32_SR_S);
+        tcg_gen_ld_i32(old_ssp, tcg_env,
+                       offsetof(CPUMyEmulator32State, ssp));
+        tcg_gen_ld_i32(old_usp, tcg_env,
+                       offsetof(CPUMyEmulator32State, usp));
+        tcg_gen_movcond_i32(TCG_COND_NE, old_ssp, sr_mode,
+                            tcg_constant_i32(0), value, old_ssp);
+        tcg_gen_movcond_i32(TCG_COND_EQ, old_usp, sr_mode,
+                            tcg_constant_i32(0), value, old_usp);
+        tcg_gen_st_i32(old_ssp, tcg_env,
+                       offsetof(CPUMyEmulator32State, ssp));
+        tcg_gen_st_i32(old_usp, tcg_env,
+                       offsetof(CPUMyEmulator32State, usp));
     }
 }
 
