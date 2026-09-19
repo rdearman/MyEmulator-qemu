@@ -223,6 +223,35 @@ myemulator2_hard_regno_mode_ok (unsigned int regno, machine_mode mode)
 '''
     text = text.replace("struct gcc_target targetm = TARGET_INITIALIZER;", target_hooks + "\nstruct gcc_target targetm = TARGET_INITIALIZER;")
     text = text.replace("MYEMU2_R15", "MYEMU2_R12")
+    text = text.replace(
+        "  int regs = 8 - *cum;",
+        "  /* Only R1-R4 are argument registers.  Do not save R5-R7 as if\n"
+        "     they were incoming arguments in variadic calls. */\n"
+        "  int regs = MYEMU2_R5 - *cum;")
+    text = text.replace("for (regno = *cum; regno < 8; regno++)",
+                        "for (regno = *cum; regno < MYEMU2_R5; regno++)")
+    text = text.replace("if (*cum >= 8)", "if (*cum >= MYEMU2_R5)")
+    text = text.replace(
+        "GEN_INT (UNITS_PER_WORD * (3 + (regno-2)))",
+        "GEN_INT (UNITS_PER_WORD * (1 + (regno-2)))")
+    text = text.replace("bytes_left = (4 * 6) - ((*cum - 2) * 4);",
+                        "bytes_left = (MYEMU2_R5 - MYEMU2_R1) * 4\n"
+                        "               - ((*cum - MYEMU2_R1) * 4);")
+    va_hook = r'''
+/* The generic va_start calculation already points at the first saved
+   variadic register slot after the fixed argument area. */
+static void
+myemulator2_va_start (tree valist, rtx nextarg)
+{
+  nextarg = plus_constant (Pmode, nextarg, 0);
+  std_expand_builtin_va_start (valist, nextarg);
+}
+
+'''
+    text = text.replace("/* Worker function for TARGET_STATIC_CHAIN.  */", va_hook + "/* Worker function for TARGET_STATIC_CHAIN.  */", 1)
+    text = text.replace(
+        "#undef  TARGET_SETUP_INCOMING_VARARGS\n#define TARGET_SETUP_INCOMING_VARARGS \tmyemulator2_setup_incoming_varargs",
+        "#undef  TARGET_SETUP_INCOMING_VARARGS\n#define TARGET_SETUP_INCOMING_VARARGS \tmyemulator2_setup_incoming_varargs\n#undef  TARGET_EXPAND_BUILTIN_VA_START\n#define TARGET_EXPAND_BUILTIN_VA_START myemulator2_va_start")
     # The frame-expansion compatibility rewrite above deliberately uses R12
     # for GCC's internal scratch references.  Keep the architectural fixed
     # registers (SP/LR) valid for local-register declarations and Linux's

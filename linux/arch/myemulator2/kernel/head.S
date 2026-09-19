@@ -18,6 +18,10 @@ __vectors_start:
 	.globl _start
 	.type _start,@function
 _start:
+	/* The reset stack is only a machine boot stack.  Linux's current()
+	 * implementation derives the initial task from init_thread_union, so
+	 * establish the top of the linked init_stack before entering C. */
+	li r13, __end_init_stack
 	li r1, __vectors_start
 	mtsr vbr, r1
 
