@@ -174,6 +174,23 @@ myemulator2_function_arg_advance (cumulative_args_t cum_v,
         "hard_frame_pointer_rtx, hard_frame_pointer_rtx,\n                         GEN_INT (16)",
         "hard_frame_pointer_rtx, hard_frame_pointer_rtx,\n                         GEN_INT (0)", 1)
 
+    # Save the link/frame words at the bottom of the newly allocated frame.
+    # The caller's outgoing argument area begins at the incoming SP, while
+    # locals are addressed from that incoming SP, so offsets 0 and 4 from
+    # the final SP are the only stable non-overlapping header locations.
+    text = text.replace(
+        "  HOST_WIDE_INT header = crtl->outgoing_args_size;",
+        "  HOST_WIDE_INT header = 0;", 1)
+    text = text.replace(
+        "52))",
+        "4)))", 1)
+    text = text.replace(
+        "                                              48)));",
+        "                                              0)));", 1)
+    text = text.replace(
+        "                                             crtl->outgoing_args_size + 4)));",
+        "                                             4)));", 1)
+
     target_hooks = r'''
 /* DImode values occupy adjacent 32-bit general registers.  The fixed
    system registers are not valid members of a register pair. */

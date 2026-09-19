@@ -133,7 +133,5 @@ myemulator2-elf-gcc -ffreestanding -nostdlib \
 See [`toolchain/docs/MYEMULATOR_2_GCC.md`](docs/MYEMULATOR_2_GCC.md) for the
 backend model, current limitations, and reproducible build details. GCC
 tests are deliberately separate from the binutils suite; `make gcc-test`
-builds QEMU if needed and runs the C suite at `-O0`, `-O1`, `-O2`, and `-Os`.
-The current harness reaches code generation/linking but reports a known
-call-frame/return-address failure during QEMU execution for the larger C
-fixture.
+builds QEMU if needed and runs the C suite at `-O0`, `-O1`, `-O2`, and `-Os`,
+including a focused recursive/large-frame call regression.

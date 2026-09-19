@@ -51,6 +51,7 @@ def main():
     sources = [root / "toolchain/tests/c-suite.c",
                root / "toolchain/tests/c-helper.c",
                root / "toolchain/tests/c-data.c"]
+    frame_source = root / "toolchain/tests/c-call-frames.c"
     levels = ("-O0", "-O1", "-O2", "-Os")
     with tempfile.TemporaryDirectory(prefix="myemu2-gcc-") as name:
         out = Path(name)
@@ -85,6 +86,15 @@ def main():
                 assert spec.loader is not None
                 spec.loader.exec_module(module)
                 module.run_elf(qemu, elf, 0, "R1")
+
+            frame_obj = out / f"c-call-frames-{level[1:]}.o"
+            frame_elf = out / f"c-call-frames-{level[1:]}.elf"
+            run([str(gcc), *include, level, "-c", str(frame_source), "-o",
+                 str(frame_obj)], env=env)
+            run([str(gcc), *include, str(crt_o), str(frame_obj), "-lgcc",
+                 "-o", str(frame_elf)], env=env)
+            if Path(qemu).exists():
+                module.run_elf(qemu, frame_elf, 0, "R1")
         print(f"GCC C suite: PASS ({len(levels)} optimization levels)")
 
 

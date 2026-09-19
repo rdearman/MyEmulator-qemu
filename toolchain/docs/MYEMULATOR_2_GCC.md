@@ -75,9 +75,8 @@ atomic ABI is defined.
 Aggregate-by-value, structure-return, and varargs conventions are not yet
 claimed as a stable ABI. They are recorded as GCC ABI completion work until
 the stack/register rules are reviewed and tested. Scalar arguments and
-returns compile, but the QEMU execution regression still exposes an
-unresolved call-frame/return-address bug in recursive and multi-argument
-functions; those cases are not yet claimed as validated.
+returns, including recursive, indirect, multi-argument, and large-frame
+calls, are validated by the QEMU regression suite.
 
 ## GCC ABI completion proposal
 
@@ -91,16 +90,16 @@ models remain future ABI review items.
 
 The CPU CAS instruction is not yet selected by GCC's generic `__atomic`
 lowering. The backend currently leaves atomic builtins to a future target
-atomic pattern/runtime change; inline assembly can name `cas` directly. The
-ordinary scalar C suite is present, but its end-to-end QEMU run remains a
-known failing validation until the call-frame bug is corrected.
+atomic pattern/runtime change; inline assembly can name `cas` directly.
 
 ## QEMU validation
 
 The acceptance path is GCC → existing MyEmulator2 GAS/LD → ELF32 → QEMU.
 Tests should inspect the generated assembly and execute linked freestanding
 fixtures under `qemu-system-myemulator32`; a compiler pass alone is not
-evidence that the backend is correct.
+evidence that the backend is correct. The current C suite and focused
+call-frame regression execute successfully at all four tested optimization
+levels.
 
 ## Linux readiness
 
