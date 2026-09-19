@@ -1,0 +1,2 @@
+syscall-y += unistd_32.h
+generic-y += ucontext.h

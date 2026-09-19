@@ -4,11 +4,16 @@
 #include "hw/boards.h"
 #include "hw/loader.h"
 #include "hw/core/cpu.h"
+#include "hw/irq.h"
+#include "hw/qdev-properties-system.h"
 #include "exec/address-spaces.h"
 #include "exec/memory.h"
 #include "target/myemulator32/cpu-qom.h"
 #include "target/myemulator32/cpu.h"
 #include "myemulator32-debug.h"
+#include "myemulator32-console.h"
+#include "chardev/char.h"
+#include "sysemu/sysemu.h"
 
 #define TYPE_MYEMULATOR32_MACHINE MACHINE_TYPE_NAME("myemulator32")
 #define MYEMU32_DEFAULT_RAM (16 * 1024 * 1024)
@@ -24,6 +29,11 @@ typedef struct MyEmulator32MachineState {
 
 DECLARE_INSTANCE_CHECKER(MyEmulator32MachineState, MYEMULATOR32_MACHINE,
                          TYPE_MYEMULATOR32_MACHINE)
+
+static void myemulator32_machine_irq(void *opaque, int number, int level)
+{
+    myemulator32_cpu_set_irq(CPU(opaque), number, level != 0);
+}
 
 static void myemulator32_machine_init(MachineState *machine)
 {
@@ -79,6 +89,18 @@ static void myemulator32_machine_init(MachineState *machine)
 
     s->cpu = MYEMULATOR32_CPU(cpu_create(machine->cpu_type));
     myemulator32_debug_register_qmp();
+
+    DeviceState *console = qdev_new(TYPE_MYEMULATOR32_CONSOLE);
+    Chardev *console_chr = serial_hd(0);
+    if (console_chr) {
+        qdev_prop_set_chr(console, "chardev", console_chr);
+    }
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(console), &error_fatal);
+    sysbus_mmio_map(SYS_BUS_DEVICE(console), 0, MYEMU32_CONSOLE_BASE);
+    sysbus_connect_irq(SYS_BUS_DEVICE(console), 0,
+                       qemu_allocate_irq(myemulator32_machine_irq, s->cpu,
+                                         MYEMU32_CONSOLE_IRQ));
+
     cpu_reset(CPU(s->cpu));
     cpu_resume(CPU(s->cpu));
 }

@@ -36,26 +36,36 @@
 #define MYEMU2_SP 13
 #define MYEMU2_LR 14
 #define MYEMU2_FP 15
-#define MYEMU2_AP 16
-#define MYEMU2_FRAME 15
+#define MYEMU2_AP 17
+#define MYEMU2_FRAME 16
 
 #define REGISTER_NAMES { "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", \
-  "r8", "r9", "r10", "r11", "r12", "sp", "lr", "r15", "?ap" }
-#define FIRST_PSEUDO_REGISTER 17
+  "r8", "r9", "r10", "r11", "r12", "sp", "lr", "r15", "r15", "sp" }
+#define FIRST_PSEUDO_REGISTER 18
 
 enum reg_class { NO_REGS, GENERAL_REGS, ALL_REGS, LIM_REG_CLASSES };
-#define REG_CLASS_CONTENTS { { 0 }, { 0x0001FFFE }, { 0x0001FFFF } }
+#define REG_CLASS_CONTENTS { { 0 }, { 0x0000FFFE }, { 0x0003FFFF } }
 #define N_REG_CLASSES LIM_REG_CLASSES
 #define REG_CLASS_NAMES { "NO_REGS", "GENERAL_REGS", "ALL_REGS" }
 #define REGNO_REG_CLASS(R) ((R) == MYEMU2_R0 ? NO_REGS : GENERAL_REGS)
 
 /* r0 is architectural zero; r13, r14 and r15 are reserved for SP, LR and
    the compiler frame base.  r12 is retained as a prologue scratch. */
-#define FIXED_REGISTERS { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1 }
-#define CALL_USED_REGISTERS { 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1 }
-#define REGNO_OK_FOR_BASE_P(N) ((N) < 16 && (N) != MYEMU2_R0 && (N) != MYEMU2_LR)
+#define FIXED_REGISTERS { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1 }
+#define CALL_USED_REGISTERS { 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1 }
+#define HARD_REGNO_OK_FOR_BASE_P(N) \
+  ((unsigned)(N) < FIRST_PSEUDO_REGISTER \
+   && (REGNO_REG_CLASS (N) == GENERAL_REGS))
+#ifdef REG_OK_STRICT
+#define REGNO_OK_FOR_BASE_P(N) \
+  (HARD_REGNO_OK_FOR_BASE_P(N) \
+   || ((unsigned)(N) < FIRST_PSEUDO_REGISTER \
+       && HARD_REGNO_OK_FOR_BASE_P(reg_renumber[(N)])))
+#else
+#define REGNO_OK_FOR_BASE_P(N) \
+  ((unsigned)(N) >= FIRST_PSEUDO_REGISTER || HARD_REGNO_OK_FOR_BASE_P(N))
+#endif
 #define REGNO_OK_FOR_INDEX_P(N) 0
-#define HARD_REGNO_OK_FOR_BASE_P(N) REGNO_OK_FOR_BASE_P(N)
 #define BASE_REG_CLASS GENERAL_REGS
 #define INDEX_REG_CLASS NO_REGS
 
@@ -82,8 +92,8 @@ enum reg_class { NO_REGS, GENERAL_REGS, ALL_REGS, LIM_REG_CLASSES };
 #define FRAME_POINTER_REGNUM MYEMU2_FRAME
 #define ARG_POINTER_REGNUM MYEMU2_AP
 #define HARD_FRAME_POINTER_REGNUM MYEMU2_FP
-#define ELIMINABLE_REGS {{ FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM }, \
-                         { ARG_POINTER_REGNUM, STACK_POINTER_REGNUM }}
+#define ELIMINABLE_REGS {{ FRAME_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM }, \
+                         { ARG_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM }}
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) \
   ((OFFSET) = myemulator2_initial_elimination_offset ((FROM), (TO)))
 #define FUNCTION_ARG_REGNO_P(R) ((R) >= MYEMU2_R1 && (R) <= MYEMU2_R4)

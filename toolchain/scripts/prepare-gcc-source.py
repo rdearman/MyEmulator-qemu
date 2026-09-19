@@ -31,6 +31,9 @@ def main() -> None:
 
     cc = target / "myemulator2.cc"
     text = cc.read_text()
+    text = text.replace(
+        "return regno >= MYEMU2_R1 && regno <= MYEMU2_R11;",
+        "return regno >= MYEMU2_R1 && regno <= MYEMU2_R15;")
     text = text.replace("gen_rtx_REG (TYPE_MODE (valtype), MYEMULATOR2_R0)", "gen_rtx_REG (TYPE_MODE (valtype), MYEMU2_R1)")
     text = text.replace("gen_rtx_REG (mode, MYEMULATOR2_R0)", "gen_rtx_REG (mode, MYEMU2_R1)")
     text = text.replace("regno == MYEMULATOR2_R0", "regno == MYEMU2_R1")
@@ -120,6 +123,9 @@ myemulator2_function_arg_advance (cumulative_args_t cum_v,
                         "myemulator2_reg_name (REGNO (XEXP (x, 0)))")
     text = text.replace("reg_names[REGNO (operand)]",
                         "myemulator2_reg_name (REGNO (operand))")
+    text = text.replace(
+        '  if (regno >= FIRST_PSEUDO_REGISTER)\n    return "r15";\n  return reg_names[regno];',
+        '  if (regno == MYEMU2_AP)\n    return "sp";\n  if (regno == MYEMU2_FRAME || regno >= FIRST_PSEUDO_REGISTER)\n    return "r15";\n  return reg_names[regno];')
     text = text.replace("if (regno >= FIRST_PSEUDO_REGISTER)",
                         "if (regno >= 16)")
     text = text.replace(
@@ -206,7 +212,7 @@ myemulator2_hard_regno_mode_ok (unsigned int regno, machine_mode mode)
 {
   unsigned int nregs = myemulator2_hard_regno_nregs (regno, mode);
   if (nregs == 1)
-    return regno >= MYEMU2_R1 && regno <= MYEMU2_R11;
+    return regno >= MYEMU2_R1 && regno <= MYEMU2_R15;
   return regno >= MYEMU2_R1 && regno + nregs <= 12;
 }
 
@@ -217,6 +223,13 @@ myemulator2_hard_regno_mode_ok (unsigned int regno, machine_mode mode)
 '''
     text = text.replace("struct gcc_target targetm = TARGET_INITIALIZER;", target_hooks + "\nstruct gcc_target targetm = TARGET_INITIALIZER;")
     text = text.replace("MYEMU2_R15", "MYEMU2_R12")
+    # The frame-expansion compatibility rewrite above deliberately uses R12
+    # for GCC's internal scratch references.  Keep the architectural fixed
+    # registers (SP/LR) valid for local-register declarations and Linux's
+    # current_thread_info implementation.
+    text = text.replace(
+        "return regno >= MYEMU2_R1 && regno <= MYEMU2_R12;\n  return regno >= MYEMU2_R1 && regno + nregs <= 12;",
+        "return regno >= MYEMU2_R1 && regno <= MYEMU2_R15;\n  return regno >= MYEMU2_R1 && regno + nregs <= 12;")
     cc.write_text(text)
 
     config_gcc = root / "gcc/config.gcc"

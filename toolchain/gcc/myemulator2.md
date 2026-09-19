@@ -84,22 +84,44 @@
                      (match_operand:SI 2 "nonmemory_operand" "r,I")))]
   "" "* return CONST_INT_P (operands[2]) ? \"srai %0, %1, %2\" : \"sra %0, %1, %2\";")
 
-(define_insn "movsi"
-  [(set (match_operand:SI 0 "myemulator2_nonimmediate" "=r,r,r,r,m")
-        (match_operand:SI 1 "myemulator2_reg_or_const" "r,i,Z,m,r"))]
+(define_expand "movsi"
+  [(set (match_operand:SI 0 "general_operand" "")
+        (match_operand:SI 1 "general_operand" ""))]
   ""
-  "* switch (which_alternative) { case 0: case 2: return \"add %0, %1, r0\"; case 1: return \"li %0, %1\"; case 3: return \"lw %0, %1\"; default: return \"sw %1, %0\"; }")
+  "{ if (MEM_P (operands[0]) && !register_operand (operands[1], SImode))
+       operands[1] = force_reg (SImode, operands[1]); }")
 
-(define_insn "movqi"
-  [(set (match_operand:QI 0 "myemulator2_nonimmediate" "=r,r,r,m")
-        (match_operand:QI 1 "myemulator2_reg_or_const" "r,i,m,r"))]
+(define_insn "*movsi"
+  [(set (match_operand:SI 0 "nonimmediate_operand" "=r,r,r,m")
+        (match_operand:SI 1 "general_operand" "r,i,m,r"))]
+  "register_operand (operands[0], SImode)
+   || register_operand (operands[1], SImode)"
+  "* switch (which_alternative) { case 0: return \"add %0, %1, r0\"; case 1: return \"li %0, %1\"; case 2: return \"lw %0, %1\"; default: return \"sw %1, %0\"; }")
+
+(define_expand "movqi"
+  [(set (match_operand:QI 0 "general_operand" "")
+        (match_operand:QI 1 "general_operand" ""))]
   ""
+  "{ if (MEM_P (operands[0])) operands[1] = force_reg (QImode, operands[1]); }")
+
+(define_insn "*movqi"
+  [(set (match_operand:QI 0 "nonimmediate_operand" "=r,r,r,m")
+        (match_operand:QI 1 "general_operand" "r,i,m,r"))]
+  "register_operand (operands[0], QImode)
+   || register_operand (operands[1], QImode)"
   "* switch (which_alternative) { case 0: return \"add %0, %1, r0\"; case 1: return \"li %0, %1\"; case 2: return \"lb %0, %1\"; default: return \"sb %1, %0\"; }")
 
-(define_insn "movhi"
-  [(set (match_operand:HI 0 "myemulator2_nonimmediate" "=r,r,r,m")
-        (match_operand:HI 1 "myemulator2_reg_or_const" "r,i,m,r"))]
+(define_expand "movhi"
+  [(set (match_operand:HI 0 "general_operand" "")
+        (match_operand:HI 1 "general_operand" ""))]
   ""
+  "{ if (MEM_P (operands[0])) operands[1] = force_reg (HImode, operands[1]); }")
+
+(define_insn "*movhi"
+  [(set (match_operand:HI 0 "nonimmediate_operand" "=r,r,r,m")
+        (match_operand:HI 1 "general_operand" "r,i,m,r"))]
+  "register_operand (operands[0], HImode)
+   || register_operand (operands[1], HImode)"
   "* switch (which_alternative) { case 0: return \"add %0, %1, r0\"; case 1: return \"li %0, %1\"; case 2: return \"lh %0, %1\"; default: return \"sh %1, %0\"; }")
 
 (define_insn "movsi_push"
@@ -122,37 +144,6 @@
   ""
   "lw %1, 0(%0)\n\taddi %0, %0, 4"
   [(set_attr "length" "8")])
-
-/* DImode is represented as two adjacent 32-bit words.  The compiler
-   expands the move after reload; arithmetic helpers remain ordinary C
-   libgcc routines and do not require a new CPU instruction. */
-(define_expand "movdi"
-  [(set (match_operand:DI 0 "nonimmediate_operand" "")
-        (match_operand:DI 1 "general_operand" ""))]
-  ""
-  {
-    rtx dst_lo = simplify_gen_subreg (SImode, operands[0], DImode, 0);
-    rtx dst_hi = simplify_gen_subreg (SImode, operands[0], DImode, 4);
-    rtx src_lo;
-    rtx src_hi;
-    if (CONST_INT_P (operands[1]))
-      {
-        unsigned HOST_WIDE_INT value = (unsigned HOST_WIDE_INT)
-          INTVAL (operands[1]);
-        src_lo = gen_int_mode ((HOST_WIDE_INT) (value & 0xffffffffu), SImode);
-        src_hi = gen_int_mode ((HOST_WIDE_INT) (value >> 32), SImode);
-      }
-    else
-      {
-        src_lo = simplify_gen_subreg (SImode, operands[1], DImode, 0);
-        src_hi = simplify_gen_subreg (SImode, operands[1], DImode, 4);
-      }
-    if (!dst_lo || !dst_hi || !src_lo || !src_hi)
-      FAIL;
-    emit_move_insn (dst_lo, src_lo);
-    emit_move_insn (dst_hi, src_hi);
-    DONE;
-  })
 
 (define_insn "*myemulator2_loadsi"
   [(set (match_operand:SI 0 "register_operand" "=r")

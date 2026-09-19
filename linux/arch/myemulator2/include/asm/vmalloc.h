@@ -1,0 +1,5 @@
+#ifndef _ASM_MYEMULATOR2_VMALLOC_H
+#define _ASM_MYEMULATOR2_VMALLOC_H
+#include <asm/page.h>
+#define VMALLOC_TOTAL (VMALLOC_END - VMALLOC_START)
+#endif
