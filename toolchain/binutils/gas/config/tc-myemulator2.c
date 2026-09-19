@@ -136,7 +136,15 @@ static bool memory(char *s, int *base, expressionS *disp)
   if (!open || !close || close[1]) return false;
   *open = 0; *close = 0;
   *base = regno(trim(open + 1));
-  return *base >= 0 && *base < 16 && parse_expr(trim(s), disp);
+  if (*base < 0 || *base >= 16) return false;
+  char *offset = trim(s);
+  if (!*offset)
+    {
+      disp->X_op = O_constant;
+      disp->X_add_number = 0;
+      return true;
+    }
+  return parse_expr(offset, disp);
 }
 
 static void emit_symbol(uint32_t template, char *name,

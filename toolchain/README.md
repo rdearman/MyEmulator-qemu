@@ -1,4 +1,4 @@
-# MyEmulator2 GNU binutils
+# MyEmulator2 GNU toolchain
 
 This directory contains the reproducible integration for GNU binutils 2.46.0.
 Upstream source, build trees, installation prefixes, archives, and generated
@@ -103,5 +103,37 @@ notes are in [`docs/RIKMON_PORT_NOTES.md`](docs/RIKMON_PORT_NOTES.md), and the
 future block-device proposal is in
 [`../docs/MYEMULATOR_2_BLOCK_DEVICE.md`](../docs/MYEMULATOR_2_BLOCK_DEVICE.md).
 
-This is a bare-metal/static toolchain. Linux, GCC, dynamic linking, ext4,
-RIKMON porting, and the block device are not implemented here.
+This is a bare-metal/static toolchain. Linux, dynamic linking, ext4, RIKMON
+porting, and the block device are not implemented here.
+
+## GCC cross compiler
+
+The GCC 15.2.0 port is maintained as source fragments under
+[`toolchain/gcc/`](gcc/) and is applied automatically to an ignored GCC
+source checkout. Its target is the same `myemulator2-elf` triplet and it
+uses the installed binutils above.
+
+```sh
+./toolchain/scripts/fetch-gcc.sh
+PATH="$PWD/.toolchain-install/bin:$PATH" ./toolchain/scripts/build-gcc.sh
+PATH="$PWD/.toolchain-install/bin:$PATH" \
+  QEMU_MYEMULATOR32="$PWD/.qemu-build/qemu-system-myemulator32" \
+  ./toolchain/scripts/test-gcc.sh
+```
+
+The compiler is freestanding-only at this stage. A typical compile/link
+sequence is:
+
+```sh
+myemulator2-elf-gcc -ffreestanding -nostdlib -c program.c -o program.o
+myemulator2-elf-gcc -ffreestanding -nostdlib \
+  toolchain/examples/crt0.S program.o -lgcc -o program.elf
+```
+
+See [`toolchain/docs/MYEMULATOR_2_GCC.md`](docs/MYEMULATOR_2_GCC.md) for the
+backend model, current limitations, and reproducible build details. GCC
+tests are deliberately separate from the binutils suite; `make gcc-test`
+builds QEMU if needed and runs the C suite at `-O0`, `-O1`, `-O2`, and `-Os`.
+The current harness reaches code generation/linking but reports a known
+call-frame/return-address failure during QEMU execution for the larger C
+fixture.

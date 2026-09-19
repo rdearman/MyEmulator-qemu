@@ -9,7 +9,7 @@ JOBS ?= $(shell getconf _NPROCESSORS_ONLN 2>/dev/null || printf '1')
 
 .PHONY: all build build32 qemu test check cpu-test cpu32-test debug-test device-test \
 	assembler-test emacs-test firmware-test spec-test myfs-demo myfs-test \
-	toolchain-build toolchain-test clean help
+	toolchain-build toolchain-test gcc-build gcc-test clean help
 
 all: build
 
@@ -61,6 +61,15 @@ toolchain-build:
 toolchain-test:
 	$(PROJECT_ROOT)/toolchain/scripts/test-binutils.sh
 
+gcc-build: toolchain-build
+	PATH="$(PROJECT_ROOT)/.toolchain-install/bin:$$PATH" \
+		$(PROJECT_ROOT)/toolchain/scripts/build-gcc.sh
+
+gcc-test: gcc-build build32
+	PATH="$(PROJECT_ROOT)/.toolchain-install/bin:$$PATH" \
+		QEMU_MYEMULATOR32="$(QEMU32_BINARY)" \
+		python3 $(PROJECT_ROOT)/toolchain/scripts/test-gcc.sh
+
 MYFS_BUILD ?= $(PROJECT_ROOT)/build/myfs
 MYFS_IMAGE ?= $(MYFS_BUILD)/myemulator.img
 
@@ -103,6 +112,8 @@ help:
 	@echo '  make spec-test      validate the MyEmulator 2.0 design manifest'
 	@echo '  make toolchain-build build GNU binutils 2.46.0 for MyEmulator2'
 	@echo '  make toolchain-test  run GNU binutils and QEMU ELF integration tests'
+	@echo '  make gcc-build       build the MyEmulator2 GCC cross compiler'
+	@echo '  make gcc-test        run freestanding C through GCC, LD, and QEMU'
 	@echo '  make cpu32-test     run the MyEmulator 2.0 executable CPU tests'
 	@echo '  make myfs-demo      build boot sector, COMMAND.COM, HELLO.COM, and image'
 	@echo '  make myfs-test      run MyFS host-builder tests'
