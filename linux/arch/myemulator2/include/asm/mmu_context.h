@@ -3,8 +3,19 @@
 #include <asm/mmu.h>
 static inline int init_new_context(struct task_struct *tsk, struct mm_struct *mm) { mm->context.pgd = 0; return 0; }
 static inline void destroy_context(struct mm_struct *mm) { }
-static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next, struct task_struct *tsk) { }
-static inline void activate_mm(struct mm_struct *prev, struct mm_struct *next) { }
+static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next, struct task_struct *tsk)
+{
+	if (next && next->pgd) {
+		unsigned long ptbr = (unsigned long)next->pgd;
+		unsigned long mmcr = 1;
+		asm volatile("mtsr ptbr, %0\n\tmtsr mmcr, %1" ::
+				"r"(ptbr), "r"(mmcr) : "memory");
+	}
+}
+static inline void activate_mm(struct mm_struct *prev, struct mm_struct *next)
+{
+	switch_mm(prev, next, NULL);
+}
 static inline void deactivate_mm(struct task_struct *tsk, struct mm_struct *mm)
 { (void)tsk; (void)mm; }
 static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)

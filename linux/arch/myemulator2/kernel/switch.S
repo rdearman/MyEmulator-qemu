@@ -48,33 +48,33 @@ ret_from_fork:
 	/* r1 is the previous task, as required by schedule_tail(). */
 	call schedule_tail
 	call myemulator2_fork_entry
+	/* The C helper has its own frame and therefore cannot derive the
+	 * caller's native exception-frame address from SSP after prologue.
+	 * Pass the frame address explicitly before entering it. */
+	addi r2, r13, 0
+	call myemulator2_prepare_user_frame
 
 	/* User return: r1 points to the child's software pt_regs.  Build the
 	 * CPU's native 16-byte frame at the current supervisor SP, restore the
 	 * general registers, then RFE switches to the child's USP. */
-	addi r15, r1, 0
-	lw r3, 64(r15)
-	sw r3, 0(r13)
-	lw r3, 68(r15)
-	sw r3, 4(r13)
-	sw r0, 8(r13)
-	sw r0, 12(r13)
-
-	lw r3, 52(r15)
+	/* Keep the returned pt_regs pointer in r1 while reading the frame.
+	 * This avoids depending on a fixed-frame-register update immediately
+	 * before the first load on the exception-return path. */
+	lw r3, 52(r1)
 	mtsr usp, r3
-	lw r2, 8(r15)
-	lw r3, 12(r15)
-	lw r4, 16(r15)
-	lw r5, 20(r15)
-	lw r6, 24(r15)
-	lw r7, 28(r15)
-	lw r8, 32(r15)
-	lw r9, 36(r15)
-	lw r10, 40(r15)
-	lw r11, 44(r15)
-	lw r12, 48(r15)
-	lw r14, 56(r15)
-	lw r1, 4(r15)
-	lw r15, 60(r15)
+	lw r2, 8(r1)
+	lw r3, 12(r1)
+	lw r4, 16(r1)
+	lw r5, 20(r1)
+	lw r6, 24(r1)
+	lw r7, 28(r1)
+	lw r8, 32(r1)
+	lw r9, 36(r1)
+	lw r10, 40(r1)
+	lw r11, 44(r1)
+	lw r12, 48(r1)
+	lw r14, 56(r1)
+	lw r15, 60(r1)
+	lw r1, 4(r1)
 	rfe
 	.size ret_from_fork, .-ret_from_fork

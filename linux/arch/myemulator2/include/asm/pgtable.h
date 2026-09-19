@@ -74,7 +74,8 @@ extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
 #define pte_mkyoung(pte) __pte(pte_val(pte) | _PAGE_ACCESSED)
 #define pte_mkold(pte) __pte(pte_val(pte) & ~_PAGE_ACCESSED)
 #define pte_mkread(pte) __pte(pte_val(pte) | _PAGE_READ)
-#define pfn_pte(pfn, prot) __pte(((u32)(pfn) << PAGE_SHIFT) | pgprot_val(prot))
+#define pfn_pte(pfn, prot) __pte(((u32)(pfn) << PAGE_SHIFT) | \
+		pgprot_val(prot))
 #define mk_pte(page, prot) pfn_pte(page_to_pfn(page), prot)
 #define pte_modify(pte, prot) __pte((pte_val(pte) & ~0x1fU) | pgprot_val(prot))
 
@@ -83,7 +84,9 @@ extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
 #define pmd_present(pmd) (pmd_val(pmd) & _PAGE_PRESENT)
 #define pmd_bad(pmd) 0
 #define pmd_clear(pmd) do { *(pmd) = __pmd(0); } while (0)
-#define pmd_populate(mm, pmd, pte) (*(pmd) = __pmd((unsigned long)(pte)))
+#define pmd_populate(mm, pmd, pte) \
+	(*(pmd) = __pmd(((unsigned long)(pte) & PAGE_MASK) | \
+			_PAGE_PRESENT | _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC))
 #define pmd_populate_kernel(mm, pmd, pte) pmd_populate(mm, pmd, pte)
 #define pmd_pfn(pmd) (pmd_val(pmd) >> PAGE_SHIFT)
 
@@ -91,7 +94,7 @@ extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
 struct mm_struct;
 extern pgd_t *pgd_alloc(struct mm_struct *mm);
 static inline unsigned long pmd_page_vaddr(pmd_t pmd)
-{ return pmd_val(pmd); }
+{ return pmd_val(pmd) & PAGE_MASK; }
 static inline unsigned long pud_page_vaddr(pud_t pud)
 { return pud_val(pud); }
 static inline unsigned long p4d_page_vaddr(p4d_t p4d)

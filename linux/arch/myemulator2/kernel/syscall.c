@@ -12,6 +12,8 @@
 
 extern ssize_t ksys_write(unsigned int fd, const char __user *buf,
 			  size_t count);
+extern ssize_t myemulator2_console_write_user(const char __user *buf,
+						      size_t count);
 
 asmlinkage long myemulator2_syscall(unsigned long nr,
 		unsigned long a0, unsigned long a1, unsigned long a2,
@@ -19,6 +21,9 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 {
 	switch (nr) {
 	case MYEMU2_NR_WRITE:
+		if (a0 == 1 || a0 == 2)
+			return myemulator2_console_write_user(
+				(const char __user *)a1, (size_t)a2);
 		return ksys_write((unsigned int)a0,
 			(const char __user *)a1, (size_t)a2);
 	case MYEMU2_NR_EXIT:

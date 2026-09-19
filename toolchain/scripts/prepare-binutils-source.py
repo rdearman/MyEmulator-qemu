@@ -177,6 +177,12 @@ def main() -> None:
     add_before(elf_header, "#include \"elf/reloc-macros.h\"",
                "#define EM_MYEMULATOR2 0xF2E2\n\n")
     backend = elf_backend.read_text()
+    # MyEmulator2 uses 4 KiB virtual pages.  The generated backend starts
+    # from Moxie's byte-granular setting, which produces PT_LOAD segments
+    # whose file offset and virtual address are not page-congruent.  Linux
+    # ELF loading requires the ABI page congruence rule.
+    backend = backend.replace("#define ELF_MAXPAGESIZE\t\t0x1",
+                              "#define ELF_MAXPAGESIZE\t\t0x1000")
     backend = backend.replace("R_MYEMULATOR2_PCREL10", "R_MYEMULATOR2_BRANCH13")
     backend = backend.replace("10 bit PC-relative", "13 bit PC-relative")
     backend = backend.replace("\t 10,", "\t 13,", 1)

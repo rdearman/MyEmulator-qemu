@@ -12,9 +12,7 @@ _start:
 	syscall 0
 	li r1, 93              /* __NR_exit */
 	li r2, 0
-	syscall 0
 1:
-	halt
 	j 1b
 
 	.section .rodata

@@ -13,6 +13,20 @@ unsigned long init_stack[THREAD_SIZE / sizeof(unsigned long)]
 
 asmlinkage void ret_from_fork(void);
 
+/* Keep pt_regs field accesses based on the pointer argument.  Folding
+ * task_pt_regs(task) into a stack-base plus 8176-byte displacement is not
+ * representable by the ISA's signed 12-bit load/store displacement. */
+noinline __used void
+myemulator2_init_user_regs(struct pt_regs *regs, unsigned long pc,
+				   unsigned long usp)
+{
+	regs->pc = pc;
+	regs->r[13] = usp;
+	regs->sr = 0;
+	regs->cause = 0;
+	regs->info = 0;
+}
+
 void arch_cpu_idle(void)
 {
 	for (;;) {
@@ -61,13 +75,18 @@ void start_thread(struct pt_regs *regs, unsigned long pc, unsigned long usp)
 	/* start_thread prepares a User-mode image; ret_from_fork will place
 	 * this SR in the native exception frame consumed by RFE. */
 	regs->sr = 0;
+	/* kernel_execve runs in a kernel thread.  Keep the new image in task
+	 * state as well as the transient pt_regs slot: scheduling or the return
+	 * from the kernel-thread entry function must not restore the old image. */
+	current->thread.exec_pc = pc;
+	current->thread.exec_sp = usp;
+	current->thread.exec_pending = 1;
 }
 
 asmlinkage struct pt_regs *myemulator2_fork_entry(void)
 {
 	struct task_struct *task = current;
 	int (*fn)(void *) = (void *)task->thread.fn;
-
 	/* TP is a real architectural special register, not a GPR. */
 	asm volatile("mtsr tp, %0" :: "r"(task->thread.tp) : "memory");
 
@@ -78,11 +97,30 @@ asmlinkage struct pt_regs *myemulator2_fork_entry(void)
 		 * current task's saved image with a user image.  In that case
 		 * ret_from_fork must perform the user RFE path instead of
 		 * terminating the task as an ordinary kernel thread. */
+		if (task->thread.exec_pending) {
+			struct pt_regs *regs = task_pt_regs(task);
+			myemulator2_init_user_regs(regs, task->thread.exec_pc,
+						   task->thread.exec_sp);
+			task->thread.exec_pending = 0;
+			return regs;
+		}
 		if (!user_mode(task_pt_regs(task)))
 			do_exit(ret);
 	}
 
 	return task_pt_regs(task);
+}
+
+/* Write the native exception frame from C immediately before the assembly
+ * return path.  This keeps the frame construction tied to the active SSP;
+ * the returned pt_regs image is still the source for general registers. */
+asmlinkage void myemulator2_prepare_user_frame(struct pt_regs *regs,
+						unsigned long frame)
+{
+	((u32 *)frame)[0] = regs->pc;
+	((u32 *)frame)[1] = regs->sr;
+	((u32 *)frame)[2] = 0;
+	((u32 *)frame)[3] = 0;
 }
 
 int elf_core_copy_task_fpregs(struct task_struct *task, elf_fpregset_t *fpu)

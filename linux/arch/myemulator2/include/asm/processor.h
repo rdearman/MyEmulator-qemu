@@ -22,6 +22,9 @@ struct thread_struct {
 	unsigned long frame;
 	unsigned long fn;
 	unsigned long fn_arg;
+	unsigned long exec_pc;
+	unsigned long exec_sp;
+	unsigned int exec_pending;
 };
 #define INIT_THREAD { 0 }
 #define cpu_relax() barrier()
