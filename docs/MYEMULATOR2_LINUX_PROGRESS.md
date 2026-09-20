@@ -21,12 +21,14 @@ source set. These constants are being added to the tracked MyEmulator2
 musl syscall header; musl is not yet a completed or runtime-verified
 libc.  The complete static archive and development headers now build when
 the disposable configuration suppresses a target-wchar signedness warning.
-The first static musl link succeeds with GCC soft-fp helpers.  Its QEMU
-runtime remains blocked: the initial short run exposed a truncated user
-stack in the musl `crt_arch.h` logical-`andi` alignment sequence, which is
-fixed in the working tree; a longer run currently spends its bounded test
-window faulting in pages for the large static image and ends in an NMI when
-the timeout terminates QEMU.  This is not yet a verified musl runtime.
+The first static musl link succeeds with GCC soft-fp helpers.  A C `main`
+linked against the static musl archive and the existing minimal Linux entry
+object prints `MUSL C LIBC OK` under QEMU; Linux then reports the expected
+PID-1 exit panic.  The full musl `crt1` startup remains unverified: its
+initial short run exposed a truncated user stack in the musl `crt_arch.h`
+logical-`andi` alignment sequence, which is fixed in the working tree, but
+the larger startup still needs a bounded runtime diagnosis.  BusyBox is not
+yet started.
 
 Reproduction:
 
