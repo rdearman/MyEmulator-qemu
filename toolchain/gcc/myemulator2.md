@@ -11,7 +11,7 @@
         (plus:SI (match_operand:SI 1 "register_operand" "r,r")
                  (match_operand:SI 2 "nonmemory_operand" "r,I")))]
   ""
-  "* return CONST_INT_P (operands[2]) ? \"addi %0, %1, %2\" : \"add %0, %1, %2\";"
+  "* return CONST_INT_P (operands[2]) && INTVAL (operands[2]) < 0 ? \"subi %0, %1, %n2\" : CONST_INT_P (operands[2]) ? \"addi %0, %1, %2\" : \"add %0, %1, %2\";"
   [(set_attr "length" "4,4")])
 
 (define_insn "subsi3"
@@ -19,7 +19,7 @@
         (minus:SI (match_operand:SI 1 "register_operand" "r,r")
                   (match_operand:SI 2 "nonmemory_operand" "r,I")))]
   ""
-  "* return CONST_INT_P (operands[2]) ? \"subi %0, %1, %2\" : \"sub %0, %1, %2\";"
+  "* return CONST_INT_P (operands[2]) && INTVAL (operands[2]) < 0 ? \"addi %0, %1, %n2\" : CONST_INT_P (operands[2]) ? \"subi %0, %1, %2\" : \"sub %0, %1, %2\";"
   [(set_attr "length" "4,4")])
 
 (define_insn "mulsi3"

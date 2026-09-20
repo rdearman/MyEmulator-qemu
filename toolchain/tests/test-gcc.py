@@ -53,6 +53,7 @@ def main():
                root / "toolchain/tests/c-data.c"]
     frame_source = root / "toolchain/tests/c-call-frames.c"
     softfloat_source = root / "toolchain/tests/c-softfloat-compare.c"
+    signed_immediate_source = root / "toolchain/tests/c-signed-immediate.c"
     levels = ("-O0", "-O1", "-O2", "-Os")
     with tempfile.TemporaryDirectory(prefix="myemu2-gcc-") as name:
         out = Path(name)
@@ -78,6 +79,13 @@ def main():
             assert any(name in softfloat_text for name in
                        ("__ltdf2", "__ledf2", "__gtdf2", "__gedf2",
                         "__nedf2"))
+            signed_immediate_asm = out / f"c-signed-immediate-{level[1:]}.s"
+            run([str(gcc), *include, level, "-S", str(signed_immediate_source),
+                 "-o", str(signed_immediate_asm)], env=env)
+            signed_text = signed_immediate_asm.read_text()
+            assert re.search(r"subi [^\n]*, 4", signed_text), signed_text
+            assert re.search(r"addi [^\n]*, 4", signed_text), signed_text
+            assert "addi r13, r13, 4092" not in signed_text
             elf = out / f"c-suite-{level[1:]}.elf"
             run([str(gcc), *include, "-Wl,--gc-sections", *map(str, objects),
                  "-lgcc",
