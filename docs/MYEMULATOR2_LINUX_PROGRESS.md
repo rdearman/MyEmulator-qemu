@@ -41,5 +41,41 @@ MYEMU_MUSL_PREFIX=/tmp/myemu-musl-install10 JOBS=1 \
   ./toolchain/scripts/build-musl.sh
 ```
 
-The next task is to complete this build, then compile and execute a
-statically linked musl program under QEMU before attempting BusyBox.
+The musl architecture overlay now includes `setjmp`/`longjmp` assembly
+which preserves R5-R12, SP, LR, and TP.  The static archive was rebuilt
+strictly and installed at `/tmp/myemu-musl-install10`.  BusyBox 1.37.0
+was cross-compiled from the disposable source tree
+`/tmp/myemu-phase3/busybox-1.37.0` using a minimal applet configuration;
+the resulting file `/tmp/myemu-busybox-build11/busybox` is a valid static
+ELF32 MyEmulator2 executable with entry point `0x00500000` and no
+undefined symbols.
+
+The BusyBox runtime is not yet verified.  A kernel rebuild with an
+initramfs containing `/init` and BusyBox reached normal early Linux
+initialisation under QEMU, but a bounded no-icount run ended before a
+shell prompt.  The next diagnostic must distinguish the emulator's very
+slow execution from a loader, startup, or BusyBox runtime fault.  The
+temporary boot input is `/tmp/myemu-initramfs/list`; it must not be
+committed.
+
+Reproduction of the verified build milestone:
+
+```sh
+MYEMU_SOURCE_CACHE=/tmp/myemu-musl-cache10 \
+MYEMU_MUSL_BUILD=/tmp/myemu-musl-build10 \
+MYEMU_MUSL_PREFIX=/tmp/myemu-musl-install10 JOBS=1 \
+  ./toolchain/scripts/build-musl.sh
+
+MYEMU_MUSL_PREFIX=/tmp/myemu-musl-install10 \
+MYEMU_TARGET_GCC="$PWD/.toolchain-install/bin/myemulator2-elf-gcc" \
+  make -C /tmp/myemu-phase3/busybox-1.37.0 \
+  O=/tmp/myemu-busybox-build11 \
+  CC="$PWD/toolchain/scripts/myemulator2-musl-gcc" \
+  CROSS_COMPILE="$PWD/.toolchain-install/bin/myemulator2-elf-" \
+  CONFIG_EXTRA_LDLIBS='-lc -lgcc' \
+  LDFLAGS='-static -L/tmp/myemu-musl-install10/lib -Wl,-Ttext=0x00500000' \
+  SKIP_STRIP=y
+```
+
+The next task is to isolate the BusyBox startup/runtime timeout, then
+add a reproducible tracked BusyBox configuration and integration test.

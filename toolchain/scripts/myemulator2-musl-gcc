@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+prefix=${MYEMU_MUSL_PREFIX:?set MYEMU_MUSL_PREFIX to the musl install prefix}
+compiler=${MYEMU_TARGET_GCC:?set MYEMU_TARGET_GCC to the MyEmulator2 GCC executable}
+
+for arg in "$@"; do
+    case "$arg" in
+        -c|-r) exec "$compiler" "$@" ;;
+    esac
+done
+
+exec "$compiler" "$prefix/lib/crt1.o" "$prefix/lib/crti.o" "$@" \
+    "$prefix/lib/crtn.o"
