@@ -6,7 +6,7 @@
 /* MyEmulator2 syscall ABI: r1 is the syscall number/result and r2-r7 are
  * the six Linux arguments.  Fixed-register variables preserve that ABI while
  * allowing musl's architecture-independent syscall wrappers to be reused. */
-#define __MYEMU_SYSCALL asm volatile ("syscall 0" : "+r"(r1) : \
+#define __MYEMU_SYSCALL __asm__ volatile ("syscall 0" : "+r"(r1) : \
     "r"(r2), "r"(r3), "r"(r4), "r"(r5), "r"(r6), "r"(r7) : "memory")
 
 static inline long __syscall0(long n)
