@@ -45,8 +45,12 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 bad_area_unlock:
 	mmap_read_unlock(mm);
 bad_area:
-	if (!user)
+	if (!user) {
+		pr_emerg("MyEmulator2 kernel fault: pc=%08lx sp=%08lx lr=%08lx "
+			 "sr=%08lx cause=%lu info=%08lx\\n", regs->pc,
+			 regs->r[13], regs->r[14], regs->sr, cause, address);
 		panic("MyEmulator2 kernel page fault");
+	}
 	force_sig_fault(SIGSEGV,
 			(cause == 4 || cause == 6 || cause == 8) ?
 			SEGV_MAPERR : SEGV_ACCERR,

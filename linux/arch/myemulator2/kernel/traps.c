@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/interrupt.h>
+#include <linux/irq.h>
 #include <linux/ptrace.h>
 #include <linux/sched.h>
 #include <asm/ptrace.h>
@@ -23,9 +25,18 @@ void myemulator2_exception_dispatch(struct pt_regs *regs)
 		regs->pc += 4;
 		return;
 	}
-	/* IRQ1 is vector 16 (vectors 16-22 represent IRQ1-IRQ7). */
-	if (regs->cause == 16) {
-		myemulator2_timer_interrupt();
+	/* Vectors 16-22 represent IRQ1-IRQ7.  IRQ1 has the clockevent's
+	 * architecture-specific accounting; the remaining fixed lines use the
+	 * generic IRQ descriptors so serial-core handlers can run normally. */
+	if (regs->cause >= 16 && regs->cause <= 22) {
+		unsigned int irq = regs->cause - 15;
+		if (irq == IRQ_TIMER) {
+			myemulator2_timer_interrupt();
+		} else {
+			irq_enter();
+			generic_handle_irq(irq);
+			irq_exit();
+		}
 		return;
 	}
 	if (regs->cause >= 4 && regs->cause <= 9) {

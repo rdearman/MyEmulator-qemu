@@ -3,6 +3,7 @@
 #include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/init.h>
+#include <linux/platform_device.h>
 #include <linux/serial_core.h>
 #include <linux/tty_flip.h>
 #include <asm/io.h>
@@ -19,6 +20,7 @@
 
 static struct uart_driver myemu_uart_driver;
 static struct uart_port myemu_uart_port;
+static struct platform_device *myemu_uart_pdev;
 
 static unsigned int myemu_tx_empty(struct uart_port *port)
 {
@@ -123,7 +125,9 @@ static struct uart_driver myemu_uart_driver = {
 	.owner = THIS_MODULE,
 	.driver_name = "myemulator2-uart",
 	.dev_name = "ttyMY",
-	.major = 0,
+	/* Reserve a project-local character major so a tiny initramfs can create
+	 * /dev/ttyMY0 without depending on devtmpfs being mounted first. */
+	.major = 240,
 	.minor = 0,
 	.nr = 1,
 };
@@ -132,8 +136,14 @@ static int __init myemu_uart_init(void)
 {
 	int ret;
 
+	myemu_uart_pdev = platform_device_register_simple("myemulator2-uart",
+							 -1, NULL, 0);
+	if (IS_ERR(myemu_uart_pdev))
+		return PTR_ERR(myemu_uart_pdev);
+
 	myemu_uart_port.mapbase = MYEMU_UART_BASE;
 	myemu_uart_port.membase = (void __iomem *)MYEMU_UART_BASE;
+	myemu_uart_port.dev = &myemu_uart_pdev->dev;
 	myemu_uart_port.iotype = UPIO_MEM;
 	myemu_uart_port.irq = MYEMU_UART_IRQ;
 	myemu_uart_port.fifosize = 1;
@@ -144,8 +154,10 @@ static int __init myemu_uart_init(void)
 	if (ret)
 		return ret;
 	ret = uart_add_one_port(&myemu_uart_driver, &myemu_uart_port);
-	if (ret)
+	if (ret) {
 		uart_unregister_driver(&myemu_uart_driver);
+		platform_device_unregister(myemu_uart_pdev);
+	}
 	return ret;
 }
 device_initcall(myemu_uart_init);
