@@ -186,3 +186,28 @@ python3 toolchain/scripts/test-linux-ext4-persistence.py
 ```
 
 This verifies guest-created file persistence independently of BusyBox.
+
+## BusyBox exec/page-table follow-up
+
+Commit `60e7a82` balances the MyEmulator2 architecture's extra per-mm
+user PTE page with `mm_inc_nr_ptes()`.  Before this fix, replacing the
+initial process image produced `BUG: non-zero pgtables_bytes on freeing
+mm: -4096`; the existing Linux process regression and the two-boot ext4
+persistence regression both pass with the fix.
+
+A focused direct `execve("/bin/busybox", ...)` fixture reaches Linux's
+ELF exec path, but BusyBox startup remains unverified.  After the page
+table accounting fix, the first genuine remaining failure is an irq-work
+list traversal with a node pointer `0x01ed0000`:
+
+```text
+MyEmulator2 kernel fault: ... cause=6 info=01ed0000 ...
+```
+
+This is not the timeout harness's NMI.  It occurs while
+`irq_work_run_list()` dereferences the queued node after `/init` has
+called `execve()`.  The temporary linker/per-CPU experiment did not
+change the pointer and was not retained.  The next action is to trace
+the first `irq_work_queue()` producer and the allocator/per-CPU address
+that supplies `0x01ed0000`, then rerun the direct BusyBox `true`
+fixture before attempting the interactive shell.
