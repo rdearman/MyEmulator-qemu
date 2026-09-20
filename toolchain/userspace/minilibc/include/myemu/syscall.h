@@ -10,6 +10,7 @@ long myemu_getpid(void);
 void myemu_exit(int status);
 long myemu_openat(int dirfd, const char *path, int flags, int mode);
 long myemu_close(int fd);
+long myemu_fsync(int fd);
 long myemu_lseek(int fd, long offset, int whence);
 long myemu_fstat(int fd, void *statbuf);
 long myemu_fstatat(int dirfd, const char *path, void *statbuf, int flags);

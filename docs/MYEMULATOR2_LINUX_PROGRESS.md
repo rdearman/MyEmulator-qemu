@@ -174,3 +174,15 @@ MYEMU_BUSYBOX_BINARY=/tmp/myemu-busybox-build21/busybox \
 MYEMU_EXT4_IMAGE=/tmp/myemu-ext4-test21.img \
   ./toolchain/scripts/run-linux-ext4.sh
 ```
+
+A separate guest-level persistence regression is now verified. PID 1
+creates `/root/myemu-persist.txt`, writes a known pattern, calls the real
+Linux `fsync` syscall, and exits. QEMU is then terminated and restarted
+with the same disposable image; the second PID 1 reads and compares the
+file from ext4 and reports `PERSIST PASS`:
+
+```sh
+python3 toolchain/scripts/test-linux-ext4-persistence.py
+```
+
+This verifies guest-created file persistence independently of BusyBox.

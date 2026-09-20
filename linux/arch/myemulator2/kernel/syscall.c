@@ -15,6 +15,7 @@
 #define MYEMU2_NR_IOCTL      29
 #define MYEMU2_NR_OPENAT     56
 #define MYEMU2_NR_CLOSE      57
+#define MYEMU2_NR_FSYNC      74
 #define MYEMU2_NR_PIPE2      59
 #define MYEMU2_NR_GETDENTS64 61
 #define MYEMU2_NR_DUP        23
@@ -50,6 +51,7 @@ extern ssize_t myemulator2_console_read_user(char __user *buf,
 extern long sys_ioctl(unsigned int fd, unsigned int cmd,
 				      unsigned long arg);
 extern long sys_close(unsigned int fd);
+extern long sys_fsync(unsigned int fd);
 extern long sys_dup(unsigned int fd);
 extern long sys_dup3(unsigned int oldfd, unsigned int newfd, int flags);
 extern long sys_pipe2(int __user *fildes, int flags);
@@ -124,6 +126,8 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 				   (int)a2, (umode_t)a3);
 	case MYEMU2_NR_CLOSE:
 		return sys_close((unsigned int)a0);
+	case MYEMU2_NR_FSYNC:
+		return sys_fsync((unsigned int)a0);
 	case MYEMU2_NR_DUP:
 		return sys_dup((unsigned int)a0);
 	case MYEMU2_NR_DUP3:

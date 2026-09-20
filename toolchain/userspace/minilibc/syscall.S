@@ -52,6 +52,14 @@ myemu_close:
 	syscall 0
 	ret
 
+	.global myemu_fsync
+	.type myemu_fsync,@function
+myemu_fsync:
+	add r2, r1, r0
+	li r1, 74
+	syscall 0
+	ret
+
 	.global myemu_lseek
 	.type myemu_lseek,@function
 myemu_lseek:
