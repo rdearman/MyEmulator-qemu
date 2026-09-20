@@ -12,5 +12,6 @@ obj-y += irq.o
 obj-y += syscall.o
 obj-y += entry.o
 obj-y += ptrace.o
+obj-$(CONFIG_MYEMU2_BLOCK) += block.o
 
 extra-y := vmlinux.lds

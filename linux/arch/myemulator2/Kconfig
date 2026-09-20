@@ -13,6 +13,11 @@ config MYEMULATOR2
 config MMU
 	def_bool y
 
+config MYEMU2_BLOCK
+	bool "MyEmulator2 virtual block device"
+	default y
+	depends on BLOCK
+
 config FPU
 	def_bool n
 

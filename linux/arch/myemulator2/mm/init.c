@@ -71,6 +71,12 @@ void __init paging_init(void)
 	/* Keep the architected UART visible at its fixed virtual/physical
 	 * address once the MMU is enabled. */
 	swapper_pte_mmio[0] = __pte(0xf0000000UL | flags);
+	/* The block controller occupies the next MMIO window.  It shares the
+	 * 0xf0000000 PDE, but its 0xf0100000 page is a separate PTE.  Drivers
+	 * probe during early init, before a process mm exists, so this mapping
+	 * must be present in the master page table as well as copied into new
+	 * address spaces. */
+	swapper_pte_mmio[0x100] = __pte(0xf0100000UL | flags);
 	swapper_pg_dir[0x3c0] = __pgd((unsigned long)swapper_pte_mmio | flags);
 	init_mm.pgd = swapper_pg_dir;
 

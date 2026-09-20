@@ -12,8 +12,10 @@
 #include "target/myemulator32/cpu.h"
 #include "myemulator32-debug.h"
 #include "myemulator32-console.h"
+#include "myemulator32-block.h"
 #include "chardev/char.h"
 #include "sysemu/sysemu.h"
+#include "sysemu/block-backend.h"
 
 #define TYPE_MYEMULATOR32_MACHINE MACHINE_TYPE_NAME("myemulator32")
 #define MYEMU32_DEFAULT_RAM (16 * 1024 * 1024)
@@ -100,6 +102,14 @@ static void myemulator32_machine_init(MachineState *machine)
     sysbus_connect_irq(SYS_BUS_DEVICE(console), 0,
                        qemu_allocate_irq(myemulator32_machine_irq, s->cpu,
                                          MYEMU32_CONSOLE_IRQ));
+
+    BlockBackend *disk = blk_by_name("myemulator2-disk");
+    DeviceState *block = qdev_new(TYPE_MYEMULATOR32_BLOCK);
+    if (disk) {
+        qdev_prop_set_drive(block, "drive", disk);
+    }
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(block), &error_fatal);
+    sysbus_mmio_map(SYS_BUS_DEVICE(block), 0, MYEMU32_BLOCK_BASE);
 
     cpu_reset(CPU(s->cpu));
     cpu_resume(CPU(s->cpu));

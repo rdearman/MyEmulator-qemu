@@ -80,5 +80,29 @@ MYEMU_TARGET_GCC="$PWD/.toolchain-install/bin/myemulator2-elf-gcc" \
   SKIP_STRIP=y
 ```
 
-The next task is to isolate the BusyBox startup/runtime timeout, then
-add a reproducible tracked BusyBox configuration and integration test.
+## Storage bring-up status
+
+A first polling block controller is now implemented at MMIO base
+`0xf0100000`, backed by the QEMU block layer through the named backend
+`myemulator2-disk`.  It exposes a 512-byte sector interface with
+identify, capacity, read, write, range, read-only, and error status
+registers.  The Linux side has a synchronous blk-mq driver and the
+early page tables map the controller before `mm` exists.  QEMU and
+Linux both build, and Linux discovers the disposable 1 MiB backend as
+major 259, minor 0.
+
+The first probe found two real defects: the early kernel page tables
+did not map the block MMIO page, and QEMU had not acquired write
+permission on the backend.  Both are fixed.  A manual instrumented run
+then submitted a sector-1 write and read and showed the expected first
+byte and persisted the pattern in the disposable image.  The tracked
+end-to-end userspace test is not yet a passing regression: in the clean
+reproducible run the userspace operation currently reports
+`BLOCK DATA FAIL` without a corresponding device request, indicating a
+remaining Linux block-device/cache or initramfs integration issue.
+Storage, ext4, and disk boot must therefore remain unclaimed until
+that test passes.
+
+The immediate next task is to isolate that userspace block operation,
+then return to the BusyBox startup/runtime timeout and add the
+reproducible BusyBox configuration and integration test.
