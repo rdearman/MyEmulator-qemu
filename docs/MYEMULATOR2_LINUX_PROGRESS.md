@@ -130,3 +130,27 @@ The existing process, TTY, minilibc, and minilibc-shell regressions also
 pass after the wrapper fix.  The next task is to add the reproducible
 BusyBox build/runtime harness and diagnose its slow startup without
 claiming an interactive BusyBox shell before it is observed.
+
+## Reproducible BusyBox build
+
+The tracked scripts now provide a pinned BusyBox 1.37.0 build and
+initramfs assembly:
+
+```sh
+MYEMU_SOURCE_CACHE=/tmp/myemulator2-sources \
+MYEMU_BUSYBOX_SOURCE=/tmp/myemu-phase3/busybox-1.37.0 \
+MYEMU_BUSYBOX_BUILD=/tmp/myemu-busybox-build21 \
+MYEMU_MUSL_PREFIX=/tmp/myemu-musl-install10 \
+MYEMU_TARGET_GCC="$PWD/.toolchain-install/bin/myemulator2-elf-gcc" \
+  ./toolchain/scripts/build-busybox.sh
+MYEMU_BUSYBOX_BINARY=/tmp/myemu-busybox-build21/busybox \
+  ./toolchain/scripts/build-busybox-initramfs.sh /tmp/myemu-busybox-initramfs21
+```
+
+The source archive is checksum-verified.  The builder selects the
+required shell, filesystem, process, diagnostic, and vi applets and
+does not depend on a generated source-tree configuration.  The static
+BusyBox ELF and initramfs build successfully.  A bounded QEMU boot with
+that initramfs reaches `/bin/busybox` but has not produced a shell prompt;
+at the timeout boundary QEMU termination injects cause 14.  This remains
+`TIMEOUT`, not a BusyBox runtime pass.
