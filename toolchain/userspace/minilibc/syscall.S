@@ -32,12 +32,16 @@ myemu_getpid:
 	.global myemu_openat
 	.type myemu_openat,@function
 myemu_openat:
+	addi r13, r13, -16
+	sw r5, 0(r13)
 	add r5, r4, r0
 	add r4, r3, r0
 	add r3, r2, r0
 	add r2, r1, r0
 	li r1, 56
 	syscall 0
+	lw r5, 0(r13)
+	addi r13, r13, 16
 	ret
 
 	.global myemu_close
@@ -70,12 +74,16 @@ myemu_fstat:
 	.global myemu_fstatat
 	.type myemu_fstatat,@function
 myemu_fstatat:
+	addi r13, r13, -16
+	sw r5, 0(r13)
 	add r5, r4, r0
 	add r4, r3, r0
 	add r3, r2, r0
 	add r2, r1, r0
 	li r1, 79
 	syscall 0
+	lw r5, 0(r13)
+	addi r13, r13, 16
 	ret
 
 	.global myemu_getdents64
@@ -120,12 +128,16 @@ myemu_unlinkat:
 	.global myemu_renameat
 	.type myemu_renameat,@function
 myemu_renameat:
+	addi r13, r13, -16
+	sw r5, 0(r13)
 	add r5, r4, r0
 	add r4, r3, r0
 	add r3, r2, r0
 	add r2, r1, r0
 	li r1, 38
 	syscall 0
+	lw r5, 0(r13)
+	addi r13, r13, 16
 	ret
 
 	.global myemu_chdir
@@ -180,14 +192,22 @@ myemu_brk:
 	.global myemu_mmap
 	.type myemu_mmap,@function
 myemu_mmap:
-	lw r7, 36(sp)
-	lw r6, 32(sp)
+	addi r13, r13, -16
+	sw r5, 0(r13)
+	sw r6, 4(r13)
+	sw r7, 8(r13)
+	lw r7, 52(sp)
+	lw r6, 48(sp)
 	add r5, r4, r0
 	add r4, r3, r0
 	add r3, r2, r0
 	add r2, r1, r0
 	li r1, 222
 	syscall 0
+	lw r5, 0(r13)
+	lw r6, 4(r13)
+	lw r7, 8(r13)
+	addi r13, r13, 16
 	ret
 
 	.global myemu_munmap
@@ -202,24 +222,34 @@ myemu_munmap:
 	.global myemu_clone
 	.type myemu_clone,@function
 myemu_clone:
-	lw r6, 32(sp)
+	addi r13, r13, -16
+	sw r5, 0(r13)
+	sw r6, 4(r13)
+	lw r6, 48(sp)
 	add r5, r4, r0
 	add r4, r3, r0
 	add r3, r2, r0
 	add r2, r1, r0
 	li r1, 220
 	syscall 0
+	lw r5, 0(r13)
+	lw r6, 4(r13)
+	addi r13, r13, 16
 	ret
 
 	.global myemu_wait4
 	.type myemu_wait4,@function
 myemu_wait4:
+	addi r13, r13, -16
+	sw r5, 0(r13)
 	add r5, r4, r0
 	add r4, r3, r0
 	add r3, r2, r0
 	add r2, r1, r0
 	li r1, 260
 	syscall 0
+	lw r5, 0(r13)
+	addi r13, r13, 16
 	ret
 
 	.global myemu_exit

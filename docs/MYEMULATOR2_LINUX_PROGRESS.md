@@ -106,3 +106,27 @@ that test passes.
 The immediate next task is to isolate that userspace block operation,
 then return to the BusyBox startup/runtime timeout and add the
 reproducible BusyBox configuration and integration test.
+
+## Block userspace regression resolution
+
+The userspace block mismatch was caused by the minilibc syscall
+wrappers violating the frozen ABI.  `myemu_openat()`, `myemu_fstatat()`,
+`myemu_renameat()`, `myemu_mmap()`, `myemu_clone()`, and `myemu_wait4()`
+used R5-R7 as argument-shuffling temporaries without preserving the
+callee-saved registers.  The block fixture kept its 512-byte loop count
+in R5; after `openat()` the later write was called with a zero count,
+and the read buffer consequently remained zero.  The wrappers now save
+and restore every callee-saved register they use, including adjusted
+incoming stack-argument offsets for mmap and clone.
+
+The clean tracked block regression now passes, including persistence of
+the written sector in its disposable raw image:
+
+```sh
+python3 toolchain/scripts/test-linux-block.py
+```
+
+The existing process, TTY, minilibc, and minilibc-shell regressions also
+pass after the wrapper fix.  The next task is to add the reproducible
+BusyBox build/runtime harness and diagnose its slow startup without
+claiming an interactive BusyBox shell before it is observed.
