@@ -1,6 +1,7 @@
 # MyEmulator2 Linux port
 
-Status: initial architecture bring-up in progress.
+Status: kernel boot, serial TTY, user ELF execution and basic process
+creation/exit/wait are verified; a hosted libc and BusyBox remain future work.
 
 The selected reproducible baseline is Linux **6.12.1**, downloaded from
 `https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.1.tar.xz` and checked
@@ -37,13 +38,22 @@ toolchain/scripts/run-linux.sh
 ```
 
 The overlay is deliberately small and is not yet a claim of a complete Linux
-port. The current first milestone is kernel entry and early console output;
-MMU page-table activation, full exception register frames, scheduler context
-switching, userspace ELF setup, and initramfs are tracked next in the source
-and this document.
+port. Kernel entry, MMU page-table activation, full exception frames, timer
+scheduling, userspace ELF setup, initramfs, the serial TTY, and a basic
+clone/exit/wait4 lifecycle are exercised by the runtime tests. A hosted libc,
+signals, the complete syscall table and BusyBox are not yet implemented.
 
-The Linux-specific syscall convention will use the frozen C ABI argument
-registers (`r1-r4` first, remaining arguments on the user stack) with the
-syscall number in `r1`; this is a kernel/userspace convention, not a CPU ISA
-change. It remains subject to a Linux port review before userspace ABI is
-declared stable.
+The Linux-specific syscall convention uses `r1` for the syscall number and
+result, with user arguments in `r2-r7` (the first four follow the frozen ABI;
+the additional two are used by six-argument Linux calls such as `mmap`). The
+numbers currently follow the Linux asm-generic/RISC-V-style 32-bit table used
+by the bring-up fixtures: read/write 63/64, clone 220, execve 221, wait4 260,
+and the standard openat/descriptor/memory calls. This is a Linux userspace
+convention, not a CPU ISA change; the architecture syscall table and libc
+ABI still need completion before it is declared stable.
+
+The verified process-management regression is:
+
+```sh
+python3 toolchain/scripts/test-linux-process.py
+```

@@ -11,7 +11,7 @@
 
 asmlinkage long myemulator2_syscall(unsigned long nr,
 		unsigned long a0, unsigned long a1, unsigned long a2,
-		unsigned long a3);
+		unsigned long a3, unsigned long a4, unsigned long a5);
 void myemulator2_timer_interrupt(void);
 asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 				      unsigned long address);
@@ -35,7 +35,7 @@ void myemulator2_exception_dispatch(struct pt_regs *regs)
 		 * while they copy the current register image. */
 		regs->pc += 4;
 		regs->r[1] = myemulator2_syscall(regs->r[1], regs->r[2],
-			regs->r[3], regs->r[4], regs->r[5]);
+			regs->r[3], regs->r[4], regs->r[5], regs->r[6], regs->r[7]);
 		return;
 	}
 	/* Vectors 16-22 represent IRQ1-IRQ7.  IRQ1 has the clockevent's
