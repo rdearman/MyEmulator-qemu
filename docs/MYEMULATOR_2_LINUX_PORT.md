@@ -1,7 +1,8 @@
 # MyEmulator2 Linux port
 
-Status: kernel boot, serial TTY, user ELF execution and basic process
-creation/exit/wait are verified; a hosted libc and BusyBox remain future work.
+Status: kernel boot, serial TTY, user ELF execution, basic process
+creation/exit/wait and a small hosted C syscall runtime are verified; a full
+libc and BusyBox remain future work.
 
 The selected reproducible baseline is Linux **6.12.1**, downloaded from
 `https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.12.1.tar.xz` and checked
@@ -57,3 +58,17 @@ The verified process-management regression is:
 ```sh
 python3 toolchain/scripts/test-linux-process.py
 ```
+
+The hosted C runtime and shell regressions are:
+
+```sh
+python3 toolchain/scripts/test-linux-minilibc.py
+python3 toolchain/scripts/test-linux-minilibc-shell.py
+```
+
+The first userspace-C failure was in the exception-return trampoline, not in
+the compiler's stack setup: the trampoline temporarily stored its returned
+`pt_regs *` in the native frame's Cause word, which the frame-construction
+helper correctly cleared. The pointer is now kept in ABI-preserved `r5`.
+Early `enter_lazy_tlb()` also uses an explicit paging-ready flag, avoiding a
+premature switch to the not-yet-built swapper tables during early boot.
