@@ -16,7 +16,7 @@
 #define DEFAULT_SIGNED_CHAR 0
 #define SIZE_TYPE "unsigned int"
 #define PTRDIFF_TYPE "int"
-#define WCHAR_TYPE "unsigned int"
+#define WCHAR_TYPE "int"
 #define WCHAR_TYPE_SIZE 32
 
 #define MYEMU2_R0 0
