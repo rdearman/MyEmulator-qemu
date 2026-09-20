@@ -2,7 +2,9 @@
 
 ## Current checkpoint
 
-The GCC soft-float comparison ICE is fixed in commit `f3b76de`.
+The GCC soft-float comparison ICE is fixed in commit `f3b76de`; signed
+immediate lowering and its four-level regression are in `e313b76`.  GCC
+soft-fp `libgcc` support is now generated and installed by `38ccfa0`.
 The backend lowers DFmode comparisons through the appropriate libgcc
 comparison helper and then uses the normal MyEmulator2 integer branch
 patterns. The focused comparison fixture and the GCC C suite pass at
@@ -17,7 +19,14 @@ The build has advanced through complex math and is currently exposing
 additional Linux generic syscall constants needed by musl's complete
 source set. These constants are being added to the tracked MyEmulator2
 musl syscall header; musl is not yet a completed or runtime-verified
-libc.
+libc.  The complete static archive and development headers now build when
+the disposable configuration suppresses a target-wchar signedness warning.
+The first static musl link succeeds with GCC soft-fp helpers.  Its QEMU
+runtime remains blocked: the initial short run exposed a truncated user
+stack in the musl `crt_arch.h` logical-`andi` alignment sequence, which is
+fixed in the working tree; a longer run currently spends its bounded test
+window faulting in pages for the large static image and ends in an NMI when
+the timeout terminates QEMU.  This is not yet a verified musl runtime.
 
 Reproduction:
 

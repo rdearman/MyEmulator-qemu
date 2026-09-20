@@ -11,8 +11,10 @@ assembly.  The first required pieces are:
 
 - `syscall_arch.h`: syscall number in `r1`, arguments in `r2`--`r7`, result in
   `r1`, entered with `syscall 0`;
-- `crt_arch.h`: receive the initial stack in `r13`, pass it in `r1` to musl's
-  `_start_c`, and maintain 16-byte stack alignment;
+- `crt_arch.h`: receive the initial, kernel-aligned stack in `r13` and pass it
+  in `r1` to musl's `_start_c`. It must not use `andi` to align the pointer:
+  MyEmulator2 logical immediates are zero-extended, so that would discard the
+  upper 20 address bits. Linux supplies the required 16-byte alignment.
 - `pthread_arch.h`: read the architectural TP special register;
 - `atomic_arch.h`: implement the required compare-and-swap and barriers with
   MyEmulator2 atomics;

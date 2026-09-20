@@ -16,6 +16,11 @@ typedef struct {
 	myemulator2_gregset_t __gregs;
 } mcontext_t;
 
+/* musl's cancellation machinery names the saved instruction pointer
+ * through MC_PC.  The kernel signal frame stores the sixteen GPRs first,
+ * followed by PC, SR, Cause and Info. */
+#define MC_PC __gregs[16]
+
 #if defined(_GNU_SOURCE) || defined(_BSD_SOURCE)
 typedef unsigned long greg_t;
 typedef myemulator2_gregset_t gregset_t;

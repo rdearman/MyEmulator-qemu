@@ -17,7 +17,11 @@ if [[ ! -d "$source_dir" ]]; then
 fi
 if [[ ! -d "$source_dir/arch/myemulator2" ]]; then
 	mkdir -p "$source_dir/arch/myemulator2"
-	cp -a "$root/toolchain/musl/myemulator2/." "$source_dir/arch/myemulator2/"
+fi
+mkdir -p "$source_dir/arch/myemulator2" "$source_dir/src/thread/myemulator2"
+cp -a "$root/toolchain/musl/myemulator2/." "$source_dir/arch/myemulator2/"
+if [[ -d "$root/toolchain/musl/myemulator2/src" ]]; then
+	cp -a "$root/toolchain/musl/myemulator2/src/." "$source_dir/src/"
 fi
 # musl's release configure script has no knowledge of a new architecture.
 # Patch only its target-to-ARCH table in the disposable extracted source;

@@ -6,7 +6,7 @@
 #define __LONG_MAX 0x7fffffffL
 
 #ifndef __cplusplus
-TYPEDEF int wchar_t;
+TYPEDEF unsigned int wchar_t;
 #endif
 
 TYPEDEF int blksize_t;
