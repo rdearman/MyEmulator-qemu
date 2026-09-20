@@ -60,7 +60,11 @@ extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
 #define pte_none(pte) (pte_val(pte) == 0)
 #define pte_present(pte) (pte_val(pte) & _PAGE_PRESENT)
 #define pte_clear(mm, addr, ptep) (*(ptep) = __pte(0))
-#define set_pte(ptep, pte) (*(ptep) = (pte))
+static inline void myemulator2_tlbflush(void)
+{
+	asm volatile("tlbflush" ::: "memory");
+}
+#define set_pte(ptep, pte) do { *(ptep) = (pte); myemulator2_tlbflush(); } while (0)
 #define pte_read(pte) (pte_val(pte) & _PAGE_READ)
 #define pte_write(pte) (pte_val(pte) & _PAGE_WRITE)
 #define pte_user(pte) (pte_val(pte) & _PAGE_USER)
@@ -85,8 +89,9 @@ extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
 #define pmd_bad(pmd) 0
 #define pmd_clear(pmd) do { *(pmd) = __pmd(0); } while (0)
 #define pmd_populate(mm, pmd, pte) \
-	(*(pmd) = __pmd(((unsigned long)(pte) & PAGE_MASK) | \
-			_PAGE_PRESENT | _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC))
+	do { *(pmd) = __pmd(((unsigned long)(pte) & PAGE_MASK) | \
+			_PAGE_PRESENT | _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC); \
+		myemulator2_tlbflush(); } while (0)
 #define pmd_populate_kernel(mm, pmd, pte) pmd_populate(mm, pmd, pte)
 #define pmd_pfn(pmd) (pmd_val(pmd) >> PAGE_SHIFT)
 
