@@ -43,6 +43,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 	struct mm_struct *mm = current->mm;
 	struct vm_area_struct *vma;
 	vm_fault_t fault;
+	bool zero_new_anon = false;
 	unsigned int flags = FAULT_FLAG_DEFAULT;
 	bool user = !(regs->sr & (1u << 5));
 	bool write = cause == 8 || cause == 9;
@@ -86,8 +87,37 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 			}
 		}
 	}
+	/* The generic anonymous-page path normally guarantees a zeroed page.
+	 * Keep that architectural invariant explicit here as well: this port
+	 * can enter the fault handler for supervisor copy_{to,from}_user()
+	 * accesses during ELF loading, and those accesses must not expose a
+	 * recycled physical page as the new image's .bss. */
+	if (!vma->vm_file) {
+		pmd_t *pmd = pmd_off(mm, address);
+		if (!pmd_none(*pmd))
+			zero_new_anon = pte_none(*pte_offset_kernel(pmd, address));
+	}
 
 	fault = handle_mm_fault(vma, address, flags, regs);
+	if (!(fault & VM_FAULT_ERROR) && zero_new_anon) {
+		pmd_t *pmd = pmd_off(mm, address);
+		pte_t *ptep = pte_offset_kernel(pmd, address);
+		if (pte_present(*ptep)) {
+			struct page *page = pfn_to_page(pte_pfn(*ptep));
+			clear_user_page(page_address(page), address, page);
+		}
+	}
+	if (address >= 0x10000000UL && address < 0x10004000UL) {
+		static unsigned int report_count;
+		if (report_count++ < 8) {
+			pmd_t *debug_pmd = pmd_off(mm, address);
+			pte_t *debug_ptep = pte_offset_kernel(debug_pmd, address);
+			pr_emerg("MyEmulator2 mmap fault addr=%08lx cause=%lu result=%x pte=%08lx pfn=%lx vma=%08lx-%08lx flags=%lx\n",
+				 address, cause, fault, pte_val(*debug_ptep),
+				 pte_pfn(*debug_ptep), vma->vm_start, vma->vm_end,
+				 vma->vm_flags);
+		}
+	}
 	mmap_read_unlock(mm);
 	if (fault & VM_FAULT_ERROR)
 		goto bad_area;

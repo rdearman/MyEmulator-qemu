@@ -230,6 +230,23 @@ and BusyBox reach `ash_main()` with a valid argv pointer; the earlier NULL
 the normal PID1 path with status 0. The interactive shell still needs a
 completed socket-backed terminal test.
 
+## BusyBox `.bss` follow-up
+
+The next failure was not another register corruption.  On the second
+`execve()` (the BusyBox image), the anonymous page containing musl's
+`__malloc_context` was recycled with stale list pointers.  `ash` then
+entered `mallocng` with a non-zero active-list head and eventually stored
+through a null list link.  The architecture page-fault path now explicitly
+zeros a newly installed anonymous page, including pages first touched by a
+supervisor `copy_from_user()` during ELF loading.  A direct `busybox sh -c`
+fixture then reached `SHELL_READY`, and the existing process, TTY and hosted
+C-shell regressions still pass.
+
+The remaining BusyBox blocker is the full interactive init path.  The
+serial console is now registered as `ttyMY0` and the initial-console warning
+is gone, but the shell has not yet produced a prompt or echoed input through
+the socket-backed test.  Do not classify this as an interactive-shell pass.
+
 ## BusyBox shell performance diagnosis
 
 The socket-backed BusyBox shell test initially appeared to hang, but QMP
