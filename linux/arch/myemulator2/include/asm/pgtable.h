@@ -79,7 +79,7 @@ static inline void myemulator2_tlbflush(void)
 #define pte_mkold(pte) __pte(pte_val(pte) & ~_PAGE_ACCESSED)
 #define pte_mkread(pte) __pte(pte_val(pte) | _PAGE_READ)
 #define pfn_pte(pfn, prot) __pte(((u32)(pfn) << PAGE_SHIFT) | \
-		pgprot_val(prot))
+	pgprot_val(prot))
 #define mk_pte(page, prot) pfn_pte(page_to_pfn(page), prot)
 #define pte_modify(pte, prot) __pte((pte_val(pte) & ~0x1fU) | pgprot_val(prot))
 
@@ -89,10 +89,15 @@ static inline void myemulator2_tlbflush(void)
 #define pmd_bad(pmd) 0
 #define pmd_clear(pmd) do { *(pmd) = __pmd(0); } while (0)
 #define pmd_populate(mm, pmd, pte) \
-	do { *(pmd) = __pmd(((unsigned long)(pte) & PAGE_MASK) | \
+	do { memset(page_to_virt((pte)), 0, PAGE_SIZE); \
+		*(pmd) = __pmd(((unsigned long)page_to_virt((pte)) & PAGE_MASK) | \
 			_PAGE_PRESENT | _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC); \
 		myemulator2_tlbflush(); } while (0)
-#define pmd_populate_kernel(mm, pmd, pte) pmd_populate(mm, pmd, pte)
+#define pmd_populate_kernel(mm, pmd, pte) \
+	do { memset((pte), 0, PAGE_SIZE); \
+		*(pmd) = __pmd(((unsigned long)(pte) & PAGE_MASK) | \
+			_PAGE_PRESENT | _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC); \
+		myemulator2_tlbflush(); } while (0)
 #define pmd_pfn(pmd) (pmd_val(pmd) >> PAGE_SHIFT)
 
 #ifndef __ASSEMBLY__
