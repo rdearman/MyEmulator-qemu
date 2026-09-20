@@ -153,3 +153,20 @@ with:
 
 The script emits `/tmp/myemu-echo-initramfs/initramfs.cpio`; it does not
 modify tracked images or require `sudo`.
+
+A stack-free bootstrap shell fixture is also available. It supports the
+`help`, `echo`, `uname`, `clear`, and `exit` built-ins over the same polling
+ABI:
+
+```sh
+./toolchain/scripts/build-linux-bootstrap-shell-initramfs.sh /tmp/myemu-shell-initramfs
+cp /tmp/myemu-shell-initramfs/rootfs/init /tmp/myemu-init
+touch /tmp/myemu-initramfs/list
+make -C .linux-build/linux-6.12.1 O="$PWD/.linux-build/build" \
+  ARCH=myemulator2 CROSS_COMPILE="$PWD/.toolchain-install/bin/myemulator2-elf-" \
+  -j4 vmlinux
+```
+
+This is a bring-up shell, not the Linux tty or a libc/BusyBox port. The
+normal tty driver, blocking terminal semantics, process execution, and
+filesystem-backed userspace remain future work.
