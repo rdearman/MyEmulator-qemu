@@ -135,3 +135,21 @@ backend model, current limitations, and reproducible build details. GCC
 tests are deliberately separate from the binutils suite; `make gcc-test`
 builds QEMU if needed and runs the C suite at `-O0`, `-O1`, `-O2`, and `-Os`,
 including a focused recursive/large-frame call regression.
+
+## Linux bootstrap input fixture
+
+The Linux port currently has a deliberately small bootstrap syscall ABI for
+userspace bring-up: `read(0, buffer, count)` polls the MyEmulator2 UART and
+returns one byte or `-EAGAIN`; `write(1/2, buffer, count)` emits to the same
+UART, and `exit`/`exit_group` terminate the task. The real tty driver and
+blocking line-discipline path remain Linux-port work.
+
+Build a disposable initramfs containing the actual MyEmulator2 echo program
+with:
+
+```sh
+./toolchain/scripts/build-linux-bootstrap-initramfs.sh /tmp/myemu-echo-initramfs
+```
+
+The script emits `/tmp/myemu-echo-initramfs/initramfs.cpio`; it does not
+modify tracked images or require `sudo`.

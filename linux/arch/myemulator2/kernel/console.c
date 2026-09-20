@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0
 #include <linux/console.h>
 #include <linux/init.h>
+#include <linux/errno.h>
 #include <linux/uaccess.h>
 #include <asm/io.h>
 
 #define MYEMU2_CONSOLE_DATA ((void __iomem *)0xf0000000UL)
+#define MYEMU2_CONSOLE_STATUS ((void __iomem *)0xf0000001UL)
+#define MYEMU2_STATUS_RX_READY 0x01
 
 static struct console myemulator2_console;
 
@@ -35,6 +38,22 @@ ssize_t myemulator2_console_write_user(const char __user *buf, size_t count)
 		done += n;
 	}
 	return (ssize_t)done;
+}
+
+/* Bootstrap userspace input.  Until the full Linux tty/serial driver is
+ * enabled, read(0) polls the architectural UART FIFO and returns one byte.
+ * EAGAIN is intentional: userspace can retry without inventing blocking
+ * semantics in the architecture port. */
+ssize_t myemulator2_console_read_user(char __user *buf, size_t count)
+{
+	u8 value;
+
+	if (!count)
+		return 0;
+	if (!(readb(MYEMU2_CONSOLE_STATUS) & MYEMU2_STATUS_RX_READY))
+		return -EAGAIN;
+	value = readb(MYEMU2_CONSOLE_DATA);
+	return copy_to_user(buf, &value, 1) ? -EFAULT : 1;
 }
 
 static struct console myemulator2_console = {
