@@ -35,7 +35,7 @@ SECTIONS
 	__init_end = .;
 	_sdata = .;
 	RO_DATA(16)
-	RW_DATA(16, 4096, 16)
+	RW_DATA(16, 4096, THREAD_SIZE)
 	_edata = .;
 	BSS_SECTION(16, 16, 16)
 	EXCEPTION_TABLE(4)

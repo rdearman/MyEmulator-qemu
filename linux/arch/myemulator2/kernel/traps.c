@@ -18,6 +18,9 @@ void myemulator2_exception_dispatch(struct pt_regs *regs)
 	if (regs->cause == 12) {
 		regs->r[1] = myemulator2_syscall(regs->r[1], regs->r[2],
 			regs->r[3], regs->r[4], regs->r[5]);
+		/* SYSCALL is a synchronous exception and the architectural frame
+		 * contains the address of the SYSCALL instruction itself. */
+		regs->pc += 4;
 		return;
 	}
 	/* IRQ1 is vector 16 (vectors 16-22 represent IRQ1-IRQ7). */
