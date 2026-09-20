@@ -24,7 +24,19 @@ def main() -> None:
     shutil.copyfile(fragment / "myemulator2.h", target / "myemulator2.h")
     shutil.copyfile(fragment / "myemulator2.md", target / "myemulator2.md")
     shutil.copyfile(fragment / "myemulator2-protos.h", target / "myemulator2-protos.h")
+    libgcc_target = root / "libgcc/config/myemulator2"
+    libgcc_target.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(fragment / "sfp-machine.h", libgcc_target / "sfp-machine.h")
     (target / "t-myemulator2").write_text("# MyEmulator2 has no multilib variants yet.\n")
+    libgcc_host = root / "libgcc/config.host"
+    host_text = libgcc_host.read_text()
+    old = 'myemulator2-*-elf | moxie-*-elf | moxie-*-moxiebox* | moxie-*-uclinux* | moxie-*-rtems*)\n\ttmake_file="$tmake_file myemulator2/t-myemulator2"'
+    new = 'myemulator2-*-elf)\n\ttmake_file="$tmake_file myemulator2/t-myemulator2 t-softfp-sfdf t-softfp"'
+    if old in host_text:
+        host_text = host_text.replace(old, new, 1)
+    elif 'myemulator2-*-elf)\n\ttmake_file="$tmake_file myemulator2/t-myemulator2 t-softfp-sfdf t-softfp"' not in host_text:
+        raise SystemExit("could not locate MyEmulator2 libgcc target")
+    libgcc_host.write_text(host_text)
     for name in ("constraints.md", "predicates.md"):
         source = fragment / name
         (target / name).write_text(source.read_text() if source.exists() else "\n")
