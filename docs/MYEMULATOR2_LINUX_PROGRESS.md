@@ -214,19 +214,21 @@ fixture before attempting the interactive shell.
 
 ## BusyBox R15 corruption fix
 
-The first bad restore was traced to the MyEmulator2 musl `setjmp`/`longjmp`
-overlay, not to BusyBox or QEMU. `setjmp` stored the architectural thread
-pointer in the slot that GCC uses for the fixed frame pointer `r15`; the
-corresponding `longjmp` restore therefore loaded the TLS pointer into `r15`.
-For BusyBox this produced `r15=0x0076db4c`, corrupting subsequent stack
-frames and eventually causing a NULL dereference in `procargs()`.
+The first corruption was traced to the MyEmulator2 musl `setjmp`/`longjmp`
+overlay, not to BusyBox or QEMU. The overlay initially used `r15` as a
+temporary while saving TP, so `setjmp()` returned with GCC's fixed frame
+pointer holding the TLS pointer. The corresponding `longjmp()` path also
+needed independent `r15` and TP slots. This produced values such as
+`r15=0x0076db4c`, corrupting subsequent stack frames and eventually causing
+a NULL dereference in `procargs()`.
 
-The overlay now stores preserved `r15` at offset 40 and TP at offset 44, and
-`longjmp` restores both independently. With rebuilt musl and BusyBox, the
-direct fixture reaches `BUSYBOX DIRECT START` and BusyBox `true` exits via the
-normal PID1 path with status 0. The process and minilibc regressions also
-pass. The interactive shell still needs a socket-backed terminal test; a
-file-backed run without input is not sufficient evidence.
+The overlay stores preserved `r15` at offset 40 and TP at offset 44, and
+`longjmp()` restores both independently. `setjmp()` now uses caller-saved
+`r3` for the TP temporary so it returns with `r15` unchanged. Rebuilt musl
+and BusyBox reach `ash_main()` with a valid argv pointer; the earlier NULL
+`procargs()` fault is no longer present. The direct `true` fixture exits via
+the normal PID1 path with status 0. The interactive shell still needs a
+completed socket-backed terminal test.
 
 ## BusyBox shell performance diagnosis
 
