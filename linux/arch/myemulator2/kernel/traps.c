@@ -23,9 +23,13 @@ struct pt_regs *myemulator2_current_pt_regs(void)
 
 void myemulator2_exception_dispatch(struct pt_regs *regs)
 {
-	/* copy_thread() must see the live interrupted image, not the stale
-	 * top-of-stack bootstrap slot. */
-	current_thread_info()->regs = regs;
+	/* Keep the live user frame available to copy_thread().  A timer or
+	 * other supervisor exception may interrupt a syscall while it is in
+	 * kernel C code; replacing this pointer with that nested frame would
+	 * make a child inherit a kernel PC instead of its user continuation.
+	 * Explicit exception handlers still use their regs argument directly. */
+	if (!current_thread_info()->regs || user_mode(regs))
+		current_thread_info()->regs = regs;
 	if (regs->cause == 12) {
 		/* Make the interrupted user continuation visible to clone()/execve()
 		 * while they copy the current register image. */

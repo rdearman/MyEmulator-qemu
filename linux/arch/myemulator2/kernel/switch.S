@@ -51,8 +51,14 @@ ret_from_fork:
 	/* The C helper has its own frame and therefore cannot derive the
 	 * caller's native exception-frame address from SSP after prologue.
 	 * Pass the frame address explicitly before entering it. */
+	/* r1 is caller-saved across the following C call.  Preserve the
+	 * returned pt_regs pointer in the native frame's temporary Cause
+	 * slot.  The C helper writes only PC and SR, and the slot is cleared
+	 * again before RFE. */
+	sw r1, 8(r13)
 	addi r2, r13, 0
 	call myemulator2_prepare_user_frame
+	lw r1, 8(r13)
 
 	/* User return: r1 points to the child's software pt_regs.  Build the
 	 * CPU's native 16-byte frame at the current supervisor SP, restore the
@@ -76,5 +82,6 @@ ret_from_fork:
 	lw r14, 56(r1)
 	lw r15, 60(r1)
 	lw r1, 4(r1)
+	sw r0, 8(r13)
 	rfe
 	.size ret_from_fork, .-ret_from_fork
