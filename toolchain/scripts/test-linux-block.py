@@ -15,6 +15,7 @@ QEMU = Path(os.environ.get("QEMU_MYEMULATOR32",
 KERNEL = ROOT / ".linux-build/build/vmlinux"
 BUILD = ROOT / ".linux-build/build"
 LINUX = ROOT / ".linux-build/linux-6.12.1"
+INIT_LIST = Path("/tmp/myemu-initramfs/list")
 
 
 def main():
@@ -42,7 +43,8 @@ def main():
                         str(out / "syscall.o"), str(out / "string.o"),
                         str(out / "main.o")], check=True)
 
-        init_list = out / "initramfs.list"
+        INIT_LIST.parent.mkdir(parents=True, exist_ok=True)
+        init_list = INIT_LIST
         init_list.write_text(
             f"file /init {out / 'init.elf'} 0755 0 0\n"
             "dir /dev 0755 0 0\n"
