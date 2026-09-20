@@ -3,8 +3,13 @@
 
 void __delay(unsigned long loops)
 {
-	while (loops--)
-		asm volatile("addi r0, r0, 0" ::: "memory");
+	/* Keep the decrement explicit: the C post-decrement is lowered to
+	 * the signed-immediate encoding (4095 == -1), which is needlessly
+	 * expensive in the tiny target's delay path. */
+	asm volatile(
+		"1: subi %0, %0, 1\n"
+		"bne %0, r0, 1b\n"
+		: "+r"(loops) :: "memory");
 }
 
 void __const_udelay(unsigned long xloops)

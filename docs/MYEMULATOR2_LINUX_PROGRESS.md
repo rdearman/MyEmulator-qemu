@@ -227,3 +227,12 @@ direct fixture reaches `BUSYBOX DIRECT START` and BusyBox `true` exits via the
 normal PID1 path with status 0. The process and minilibc regressions also
 pass. The interactive shell still needs a socket-backed terminal test; a
 file-backed run without input is not sufficient evidence.
+
+## BusyBox shell performance diagnosis
+
+The socket-backed BusyBox shell test initially appeared to hang, but QMP
+register inspection showed the guest executing Linux `__const_udelay()` rather
+than remaining in BusyBox. The architecture delay primitive now uses an
+explicit `subi 1` loop instead of a C post-decrement. The process regression
+remains passing; BusyBox shell completion is still not verified and requires
+further performance/runtime investigation.
