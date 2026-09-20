@@ -51,12 +51,15 @@ ELF32 MyEmulator2 executable with entry point `0x00500000` and no
 undefined symbols.
 
 The BusyBox runtime is not yet verified.  A kernel rebuild with an
-initramfs containing `/init` and BusyBox reached normal early Linux
-initialisation under QEMU, but a bounded no-icount run ended before a
-shell prompt.  The next diagnostic must distinguish the emulator's very
-slow execution from a loader, startup, or BusyBox runtime fault.  The
-temporary boot input is `/tmp/myemu-initramfs/list`; it must not be
-committed.
+initramfs containing `/init` and BusyBox reached `Run /init as init
+process` and loaded `/bin/busybox`.  A 90-second no-icount run then
+ended with cause 14 while the host timeout terminated QEMU; cause 14 is
+the architectural NMI, so this is harness-induced rather than evidence
+of a BusyBox page fault.  A longer bounded run remains dominated by the
+same very slow emulation and has not reached a shell prompt.  The next
+diagnostic must distinguish emulator performance from a loader/startup
+stall.  The temporary boot input is `/tmp/myemu-initramfs/list`; it must
+not be committed.
 
 Reproduction of the verified build milestone:
 
