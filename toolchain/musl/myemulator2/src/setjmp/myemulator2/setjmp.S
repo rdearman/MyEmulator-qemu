@@ -18,7 +18,8 @@ setjmp:
 	sw r12, 28(r1)
 	sw r13, 32(r1)
 	sw r14, 36(r1)
-	mfsr r15, tp
 	sw r15, 40(r1)
+	mfsr r15, tp
+	sw r15, 44(r1)
 	addi r1, r0, 0
 	jr r14

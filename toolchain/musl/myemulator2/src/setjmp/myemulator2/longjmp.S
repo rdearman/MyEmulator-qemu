@@ -19,7 +19,8 @@ longjmp:
 	lw r13, 32(r1)
 	lw r14, 36(r1)
 	lw r15, 40(r1)
-	mtsr tp, r15
+	lw r3, 44(r1)
+	mtsr tp, r3
 	seq r1, r2, r0
 	add r1, r1, r2
 	jr r14
