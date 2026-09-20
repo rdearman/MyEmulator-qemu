@@ -72,6 +72,20 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 		goto bad_area_unlock;
 	if (!write && !exec && !(vma->vm_flags & (VM_READ | VM_WRITE)))
 		goto bad_area_unlock;
+	/* The low kernel identity map overlaps the initial user image window.
+	 * A copied identity PTE is valid for supervisor accesses but must be
+	 * replaced before Linux installs the user mapping for an executable or
+	 * writable VMA. */
+	if (user) {
+		pmd_t *pmd = pmd_off(mm, address);
+		if (!pmd_none(*pmd)) {
+			pte_t *ptep = pte_offset_kernel(pmd, address);
+			if (pte_present(*ptep) && !pte_user(*ptep)) {
+				pte_clear(mm, address, ptep);
+				flush_tlb_page(vma, address);
+			}
+		}
+	}
 
 	fault = handle_mm_fault(vma, address, flags, regs);
 	mmap_read_unlock(mm);

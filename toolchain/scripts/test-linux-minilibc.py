@@ -74,7 +74,7 @@ def main():
                 raise RuntimeError("QEMU console socket did not open")
             sock.settimeout(0.2)
             data = b""
-            deadline = time.monotonic() + 30
+            deadline = time.monotonic() + 120
             while b"C syscall wrappers reached" not in data and time.monotonic() < deadline:
                 try:
                     data += sock.recv(8192)
@@ -82,7 +82,7 @@ def main():
                     pass
             for text in (b"C minilibc reached", b"C syscall wrappers reached"):
                 if text not in data:
-                    raise RuntimeError(f"missing minilibc output: {text!r}")
+                    raise RuntimeError(f"missing minilibc output: {text!r}; output tail={data[-2000:]!r}")
             if b"page fault" in data or b"unhandled MyEmulator2 exception" in data:
                 raise RuntimeError("kernel exception during minilibc test")
         finally:

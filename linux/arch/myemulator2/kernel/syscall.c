@@ -30,6 +30,16 @@
 #define MYEMU2_NR_CLOCK_GETTIME64 403
 #define MYEMU2_NR_CLONE      220
 #define MYEMU2_NR_WAIT4      260
+#define MYEMU2_NR_GETCWD     17
+#define MYEMU2_NR_MKDIRAT    34
+#define MYEMU2_NR_UNLINKAT   35
+#define MYEMU2_NR_RENAMEAT   38
+#define MYEMU2_NR_CHDIR      49
+#define MYEMU2_NR_LSEEK      62
+#define MYEMU2_NR_FSTATAT   79
+#define MYEMU2_NR_FSTAT      80
+#define MYEMU2_NR_UNAME      160
+#define MYEMU2_NR_SCHED_YIELD 124
 
 extern ssize_t ksys_write(unsigned int fd, const char __user *buf,
 			  size_t count);
@@ -63,6 +73,18 @@ extern long sys_clone(unsigned long flags, unsigned long newsp,
 			      unsigned long tls);
 extern long sys_wait4(pid_t pid, int __user *stat_addr, int options,
 			      struct rusage __user *ru);
+extern long sys_getcwd(char __user *buf, unsigned long size);
+extern long sys_mkdirat(int dfd, const char __user *pathname, umode_t mode);
+extern long sys_unlinkat(int dfd, const char __user *pathname, int flag);
+extern long sys_renameat(int olddfd, const char __user *oldname,
+                         int newdfd, const char __user *newname);
+extern long sys_chdir(const char __user *filename);
+extern long sys_lseek(unsigned int fd, off_t offset, unsigned int whence);
+extern long sys_newfstatat(int dfd, const char __user *filename,
+                           struct stat __user *statbuf, int flag);
+extern long sys_newfstat(unsigned int fd, struct stat __user *statbuf);
+extern long sys_newuname(struct new_utsname __user *name);
+extern long sys_sched_yield(void);
 
 asmlinkage long myemulator2_syscall(unsigned long nr,
 		unsigned long a0, unsigned long a1, unsigned long a2,
@@ -141,6 +163,29 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 	case MYEMU2_NR_WAIT4:
 		return sys_wait4((pid_t)a0, (int __user *)a1, (int)a2,
 				 (struct rusage __user *)a3);
+	case MYEMU2_NR_GETCWD:
+		return sys_getcwd((char __user *)a0, a1);
+	case MYEMU2_NR_MKDIRAT:
+		return sys_mkdirat((int)a0, (const char __user *)a1,
+				   (umode_t)a2);
+	case MYEMU2_NR_UNLINKAT:
+		return sys_unlinkat((int)a0, (const char __user *)a1, (int)a2);
+	case MYEMU2_NR_RENAMEAT:
+		return sys_renameat((int)a0, (const char __user *)a1,
+				   (int)a2, (const char __user *)a3);
+	case MYEMU2_NR_CHDIR:
+		return sys_chdir((const char __user *)a0);
+	case MYEMU2_NR_LSEEK:
+		return sys_lseek((unsigned int)a0, (off_t)a1, (unsigned int)a2);
+	case MYEMU2_NR_FSTATAT:
+		return sys_newfstatat((int)a0, (const char __user *)a1,
+				      (struct stat __user *)a2, (int)a3);
+	case MYEMU2_NR_FSTAT:
+		return sys_newfstat((unsigned int)a0, (struct stat __user *)a1);
+	case MYEMU2_NR_UNAME:
+		return sys_newuname((struct new_utsname __user *)a0);
+	case MYEMU2_NR_SCHED_YIELD:
+		return sys_sched_yield();
 	default:
 		return -ENOSYS;
 	}

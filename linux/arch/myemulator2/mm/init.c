@@ -34,6 +34,10 @@ pgd_t *pgd_alloc(struct mm_struct *mm)
 		memcpy(pgd, swapper_pg_dir, sizeof(swapper_pg_dir));
 	if (!pgd)
 		return NULL;
+	/* The kernel is linked in the low identity-mapped half.  Preserve that
+	 * supervisor mapping in each mm, but give Linux a private second-level
+	 * table for the initial user image window so demand paging can replace
+	 * its entries with user permissions. */
 	user_pte = (pte_t *)get_zeroed_page(GFP_KERNEL);
 	if (user_pte) {
 		memcpy(user_pte, swapper_pte[1], PAGE_SIZE);

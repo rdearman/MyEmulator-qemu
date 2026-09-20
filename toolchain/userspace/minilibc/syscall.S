@@ -29,6 +29,199 @@ myemu_getpid:
 	syscall 0
 	ret
 
+	.global myemu_openat
+	.type myemu_openat,@function
+myemu_openat:
+	add r5, r4, r0
+	add r4, r3, r0
+	add r3, r2, r0
+	add r2, r1, r0
+	li r1, 56
+	syscall 0
+	ret
+
+	.global myemu_close
+	.type myemu_close,@function
+myemu_close:
+	add r2, r1, r0
+	li r1, 57
+	syscall 0
+	ret
+
+	.global myemu_lseek
+	.type myemu_lseek,@function
+myemu_lseek:
+	add r4, r3, r0
+	add r3, r2, r0
+	add r2, r1, r0
+	li r1, 62
+	syscall 0
+	ret
+
+	.global myemu_fstat
+	.type myemu_fstat,@function
+myemu_fstat:
+	add r3, r2, r0
+	add r2, r1, r0
+	li r1, 80
+	syscall 0
+	ret
+
+	.global myemu_fstatat
+	.type myemu_fstatat,@function
+myemu_fstatat:
+	add r5, r4, r0
+	add r4, r3, r0
+	add r3, r2, r0
+	add r2, r1, r0
+	li r1, 79
+	syscall 0
+	ret
+
+	.global myemu_getdents64
+	.type myemu_getdents64,@function
+myemu_getdents64:
+	add r4, r3, r0
+	add r3, r2, r0
+	add r2, r1, r0
+	li r1, 61
+	syscall 0
+	ret
+
+	.global myemu_getcwd
+	.type myemu_getcwd,@function
+myemu_getcwd:
+	add r3, r2, r0
+	add r2, r1, r0
+	li r1, 17
+	syscall 0
+	ret
+
+	.global myemu_mkdirat
+	.type myemu_mkdirat,@function
+myemu_mkdirat:
+	add r4, r3, r0
+	add r3, r2, r0
+	add r2, r1, r0
+	li r1, 34
+	syscall 0
+	ret
+
+	.global myemu_unlinkat
+	.type myemu_unlinkat,@function
+myemu_unlinkat:
+	add r4, r3, r0
+	add r3, r2, r0
+	add r2, r1, r0
+	li r1, 35
+	syscall 0
+	ret
+
+	.global myemu_renameat
+	.type myemu_renameat,@function
+myemu_renameat:
+	add r5, r4, r0
+	add r4, r3, r0
+	add r3, r2, r0
+	add r2, r1, r0
+	li r1, 38
+	syscall 0
+	ret
+
+	.global myemu_chdir
+	.type myemu_chdir,@function
+myemu_chdir:
+	add r2, r1, r0
+	li r1, 49
+	syscall 0
+	ret
+
+	.global myemu_uname
+	.type myemu_uname,@function
+myemu_uname:
+	add r2, r1, r0
+	li r1, 160
+	syscall 0
+	ret
+
+	.global myemu_sched_yield
+	.type myemu_sched_yield,@function
+myemu_sched_yield:
+	li r1, 124
+	syscall 0
+	ret
+
+	.global myemu_nanosleep
+	.type myemu_nanosleep,@function
+myemu_nanosleep:
+	add r3, r2, r0
+	add r2, r1, r0
+	li r1, 101
+	syscall 0
+	ret
+
+	.global myemu_clock_gettime
+	.type myemu_clock_gettime,@function
+myemu_clock_gettime:
+	add r3, r2, r0
+	add r2, r1, r0
+	li r1, 403
+	syscall 0
+	ret
+
+	.global myemu_brk
+	.type myemu_brk,@function
+myemu_brk:
+	add r2, r1, r0
+	li r1, 214
+	syscall 0
+	ret
+
+	.global myemu_mmap
+	.type myemu_mmap,@function
+myemu_mmap:
+	lw r7, 36(sp)
+	lw r6, 32(sp)
+	add r5, r4, r0
+	add r4, r3, r0
+	add r3, r2, r0
+	add r2, r1, r0
+	li r1, 222
+	syscall 0
+	ret
+
+	.global myemu_munmap
+	.type myemu_munmap,@function
+myemu_munmap:
+	add r3, r2, r0
+	add r2, r1, r0
+	li r1, 215
+	syscall 0
+	ret
+
+	.global myemu_clone
+	.type myemu_clone,@function
+myemu_clone:
+	lw r6, 32(sp)
+	add r5, r4, r0
+	add r4, r3, r0
+	add r3, r2, r0
+	add r2, r1, r0
+	li r1, 220
+	syscall 0
+	ret
+
+	.global myemu_wait4
+	.type myemu_wait4,@function
+myemu_wait4:
+	add r5, r4, r0
+	add r4, r3, r0
+	add r3, r2, r0
+	add r2, r1, r0
+	li r1, 260
+	syscall 0
+	ret
+
 	.global myemu_exit
 	.type myemu_exit,@function
 myemu_exit:
