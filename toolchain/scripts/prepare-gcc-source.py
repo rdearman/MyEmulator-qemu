@@ -31,6 +31,8 @@ def main() -> None:
 
     cc = target / "myemulator2.cc"
     text = cc.read_text()
+    text = text.replace('#include "expr.h"',
+                        '#include "expr.h"\n#include "optabs.h"', 1)
     # MyEmulator2 load/store instructions carry a signed 13-bit byte
     # displacement.  The reference Moxie backend accepts a wider offset;
     # retaining that predicate emits encodings whose high bit is interpreted
@@ -272,6 +274,35 @@ myemulator2_va_start (tree valist, rtx nextarg)
     text = text.replace(
         "return regno >= MYEMU2_R1 && regno <= MYEMU2_R12;\n  return regno >= MYEMU2_R1 && regno + nregs <= 12;",
         "return regno >= MYEMU2_R1 && regno <= MYEMU2_R15;\n  return regno >= MYEMU2_R1 && regno + nregs <= 12;")
+    marker = "/* The Global `targetm' Variable.  */"
+    helper = r'''
+void
+myemulator2_expand_cbranchdf4 (rtx *operands)
+{
+  enum rtx_code code = GET_CODE (operands[0]);
+  const char *name;
+  switch (code)
+    {
+    case EQ: name = "__eqdf2"; break;
+    case NE: name = "__nedf2"; break;
+    case LT: name = "__ltdf2"; break;
+    case LE: name = "__ledf2"; break;
+    case GT: name = "__gtdf2"; break;
+    case GE: name = "__gedf2"; break;
+    default: gcc_unreachable ();
+    }
+  rtx libfunc = gen_rtx_SYMBOL_REF (Pmode, name);
+  rtx cmp = emit_library_call_value (libfunc, NULL_RTX, LCT_CONST,
+                                     SImode, operands[1], DFmode,
+                                     operands[2], DFmode);
+  emit_cmp_and_jump_insns (cmp, const0_rtx, code, NULL_RTX, SImode, 0,
+                           operands[3]);
+}
+
+'''
+    if marker not in text:
+        raise SystemExit("could not locate target hook marker")
+    text = text.replace(marker, helper + marker, 1)
     cc.write_text(text)
 
     config_gcc = root / "gcc/config.gcc"

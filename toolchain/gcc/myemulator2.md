@@ -203,6 +203,16 @@
                           (pc)))] ""
   "* switch (GET_CODE (operands[0])) { case EQ: return \"beq %1, %2, %l3\"; case NE: return \"bne %1, %2, %l3\"; case LT: return \"blt %1, %2, %l3\"; case GE: return \"bge %1, %2, %l3\"; case LTU: return \"bltu %1, %2, %l3\"; case GEU: return \"bgeu %1, %2, %l3\"; case GT: return \"blt %2, %1, %l3\"; case LE: return \"bge %2, %1, %l3\"; case GTU: return \"bltu %2, %1, %l3\"; case LEU: return \"bgeu %2, %1, %l3\"; default: gcc_unreachable (); }")
 
+(define_expand "cbranchdf4"
+  [(set (pc) (if_then_else
+               (match_operator 0 "comparison_operator"
+                 [(match_operand:DF 1 "register_operand")
+                  (match_operand:DF 2 "register_operand")])
+               (label_ref (match_operand 3 "" ""))
+               (pc)))]
+  ""
+  "{ myemulator2_expand_cbranchdf4 (operands); DONE; }")
+
 (define_expand "cstoresi4"
   [(set (match_operand:SI 0 "register_operand")
         (match_operator:SI 1 "ordered_comparison_operator"

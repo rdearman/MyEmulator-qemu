@@ -52,6 +52,7 @@ def main():
                root / "toolchain/tests/c-helper.c",
                root / "toolchain/tests/c-data.c"]
     frame_source = root / "toolchain/tests/c-call-frames.c"
+    softfloat_source = root / "toolchain/tests/c-softfloat-compare.c"
     levels = ("-O0", "-O1", "-O2", "-Os")
     with tempfile.TemporaryDirectory(prefix="myemu2-gcc-") as name:
         out = Path(name)
@@ -66,6 +67,17 @@ def main():
                 run([str(gcc), *include, level, "-c", str(source), "-o",
                      str(obj)], env=env)
                 objects.append(obj)
+            # This is deliberately a compile-only test: the normal GCC
+            # suite links against libgcc, while this fixture also exercises
+            # the compiler's soft-float comparison lowering itself.
+            softfloat_asm = out / f"c-softfloat-{level[1:]}.s"
+            run([str(gcc), *include, level, "-S", str(softfloat_source),
+                 "-o", str(softfloat_asm)], env=env)
+            softfloat_text = softfloat_asm.read_text()
+            assert "__eqdf2" in softfloat_text
+            assert any(name in softfloat_text for name in
+                       ("__ltdf2", "__ledf2", "__gtdf2", "__gedf2",
+                        "__nedf2"))
             elf = out / f"c-suite-{level[1:]}.elf"
             run([str(gcc), *include, "-Wl,--gc-sections", *map(str, objects),
                  "-lgcc",
