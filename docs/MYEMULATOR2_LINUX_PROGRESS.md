@@ -154,3 +154,23 @@ BusyBox ELF and initramfs build successfully.  A bounded QEMU boot with
 that initramfs reaches `/bin/busybox` but has not produced a shell prompt;
 at the timeout boundary QEMU termination injects cause 14.  This remains
 `TIMEOUT`, not a BusyBox runtime pass.
+
+## Ext4 disk boot status
+
+The disposable ext4 experiment reached a real disk boot. With the
+initramfs disabled, Linux discovered the 16 MiB `myemu0` device, mounted
+the ext4 filesystem read-write, reported `VFS: Mounted root (ext4
+filesystem) on device 259:0`, and executed `/sbin/init` from that mounted
+root. The init process then launched `/bin/busybox` and hit the same
+unresolved BusyBox startup timeout before printing a shell message. Thus
+ext4 discovery, mounting, and init lookup are observed, but file
+persistence and an interactive disk-based shell are not verified.
+
+Reproduction helpers are tracked:
+
+```sh
+MYEMU_BUSYBOX_BINARY=/tmp/myemu-busybox-build21/busybox \
+  ./toolchain/scripts/build-ext4-rootfs.sh /tmp/myemu-ext4-test21.img
+MYEMU_EXT4_IMAGE=/tmp/myemu-ext4-test21.img \
+  ./toolchain/scripts/run-linux-ext4.sh
+```
