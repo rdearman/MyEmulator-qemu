@@ -7,6 +7,7 @@ obj-y += traps.o
 obj-y += process.o
 obj-y += switch.o
 obj-y += time.o
+obj-y += vmalloc_test.o
 obj-y += irq.o
 obj-y += syscall.o
 obj-y += entry.o

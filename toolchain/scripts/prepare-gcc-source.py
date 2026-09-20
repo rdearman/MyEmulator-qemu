@@ -31,6 +31,19 @@ def main() -> None:
 
     cc = target / "myemulator2.cc"
     text = cc.read_text()
+    # MyEmulator2 load/store instructions carry a signed 13-bit byte
+    # displacement.  The reference Moxie backend accepts a wider offset;
+    # retaining that predicate emits encodings whose high bit is interpreted
+    # as a negative displacement by the MyEmulator2 CPU.
+    text = text.replace(
+        "Return true for memory offset addresses between -32768 and 32767.",
+        "Return true for memory offset addresses between -4096 and 4095.")
+    text = text.replace(
+        "unsigned int v = INTVAL (x) & 0xFFFF8000;\n\t  return (v == 0xFFFF8000 || v == 0x00000000);",
+        "return IN_RANGE (INTVAL (x), -4096, 4095);")
+    text = text.replace(
+        "&& IN_RANGE (INTVAL (XEXP (x, 1)), -32768, 32767))",
+        "&& IN_RANGE (INTVAL (XEXP (x, 1)), -4096, 4095))")
     text = text.replace(
         "return regno >= MYEMU2_R1 && regno <= MYEMU2_R11;",
         "return regno >= MYEMU2_R1 && regno <= MYEMU2_R15;")
@@ -351,6 +364,47 @@ LIB2ADDEHSHARED =
             'else CXXDEPMODE=depmode=$am_cv_CXX_dependencies_compiler_type',
             1)
         configure_path.write_text(text)
+
+    # libcpp's cached host probe can incorrectly conclude that ptrdiff_t is
+    # absent.  The host C++ headers provide it; forcing this probe prevents
+    # the generated config.h from defining ptrdiff_t as a 32-bit int, which
+    # would corrupt host pointer arithmetic while building libcpp.
+    libcpp_configure = root / "libcpp/configure"
+    if libcpp_configure.exists():
+        text = libcpp_configure.read_text()
+        text = text.replace(
+            '  ac_fn_c_check_type "$LINENO" "uintptr_t"',
+            '  ac_cv_type_uintptr_t=yes\n  ac_fn_c_check_type "$LINENO" "uintptr_t"', 1)
+        text = text.replace(
+            'ac_fn_c_find_uintX_t "$LINENO" "64"',
+            'ac_cv_c_uint64_t=yes\nac_fn_c_find_uintX_t "$LINENO" "64"', 1)
+        marker = 'ac_fn_c_check_type "$LINENO" "ptrdiff_t"'
+        if marker in text and 'ac_cv_type_ptrdiff_t=yes\n' not in text:
+            text = text.replace(marker,
+                                'ac_cv_type_ptrdiff_t=yes\n' + marker, 1)
+        libcpp_configure.write_text(text)
+
+    # GCC 15.2.0's host C++ compilation of libcpp/charset.cc uses free()
+    # without including its declaring header on this host toolchain.  Keep
+    # the source preparation reproducible; this is host-build hygiene and
+    # does not affect MyEmulator2 code generation.
+    charset = root / "libcpp/charset.cc"
+    if charset.exists():
+        text = charset.read_text()
+        text = text.replace("#include <cstdlib>\n", "")
+        charset.write_text(text)
+
+    # The generated host config can leave HAVE_STDLIB_H unset even though
+    # the host provides it.  system.h consequently omits the declaration of
+    # free(), which GCC 15's C++ libcpp sources use directly.
+    system_h = root / "libcpp/system.h"
+    if system_h.exists():
+        text = system_h.read_text()
+        if "#include <stdlib.h> /* MyEmulator2 host build */" not in text:
+            text = text.replace(
+                "#include <stdarg.h>\n",
+                "#include <stdarg.h>\n#include <stdlib.h> /* MyEmulator2 host build */\n", 1)
+            system_h.write_text(text)
 
 
 if __name__ == "__main__":

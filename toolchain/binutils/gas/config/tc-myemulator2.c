@@ -244,7 +244,7 @@ void md_assemble(char *line)
   if ((a=memop(name, false)) >= 0 || (a=memop(name, true)) >= 0) {
     bool store = !strcasecmp(name,"sb") || !strcasecmp(name,"sh") || !strcasecmp(name,"sw");
     if (n != 2 || (b=regno(av[0]))<0) bad(_("memory operands"));
-    else { expressionS e; int base; char *m = store ? av[1] : av[1]; if (!memory(m,&base,&e)) bad(_("memory syntax")); else if (e.X_op==O_constant) word(MYEMU2_OP(store?3:2)|MYEMU2_RD(b)|MYEMU2_RA(base)|((uint32_t)(a&7)<<13)|(e.X_add_number&0x1fff)); else fixword(MYEMU2_OP(store?3:2)|MYEMU2_RD(b)|MYEMU2_RA(base)|((uint32_t)(a&7)<<13), &e, false, BFD_RELOC_32); }
+    else { expressionS e; int base; char *m = store ? av[1] : av[1]; if (!memory(m,&base,&e)) bad(_("memory syntax")); else if (e.X_op==O_constant) { if (e.X_add_number < -4096 || e.X_add_number > 4095) bad(_("memory displacement out of range")); else word(MYEMU2_OP(store?3:2)|MYEMU2_RD(b)|MYEMU2_RA(base)|((uint32_t)(a&7)<<13)|(e.X_add_number&0x1fff)); } else fixword(MYEMU2_OP(store?3:2)|MYEMU2_RD(b)|MYEMU2_RA(base)|((uint32_t)(a&7)<<13), &e, false, BFD_RELOC_32); }
     goto done;
   }
   if (br >= 0) {

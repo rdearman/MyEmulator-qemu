@@ -2,6 +2,9 @@
 #define _ASM_MYEMULATOR2_PTRACE_H
 #include <uapi/asm/ptrace.h>
 #ifndef __ASSEMBLY__
+struct pt_regs;
+struct pt_regs *myemulator2_current_pt_regs(void);
+#define current_pt_regs() myemulator2_current_pt_regs()
 struct pt_regs {
 	unsigned long r[16];
 	unsigned long pc;

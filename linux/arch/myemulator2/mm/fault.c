@@ -6,6 +6,36 @@
 #include <linux/perf_event.h>
 
 #include <asm/ptrace.h>
+#include <asm/page.h>
+#include <asm/pgtable.h>
+#include <asm/tlbflush.h>
+
+/*
+ * The initial port gives each address space its own top-level page table,
+ * while the hardware requires the supervisor half of the address space to
+ * be present in the active PTBR.  A vmalloc mapping may be created after a
+ * user mm was allocated, so its kernel PGD entry is not necessarily in that
+ * mm yet.  Synchronise the missing top-level entry on the architected
+ * supervisor fault and retry the instruction.
+ */
+static bool myemulator2_sync_vmalloc_pgd(struct mm_struct *mm,
+		unsigned long address)
+{
+	pgd_t *master;
+	pgd_t *active;
+
+	if (address < VMALLOC_START || address >= VMALLOC_END || !mm)
+		return false;
+
+	master = pgd_offset_k(address);
+	active = pgd_offset(mm, address);
+	if (pgd_val(*master) == 0 || pgd_val(*active) == pgd_val(*master))
+		return false;
+
+	*active = *master;
+	flush_tlb_kernel_page(address);
+	return true;
+}
 
 asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 		unsigned long address)
@@ -21,8 +51,15 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 		flags |= FAULT_FLAG_USER;
 	if (write)
 		flags |= FAULT_FLAG_WRITE;
-	if (unlikely(!mm))
+	if (unlikely(!mm)) {
+		pr_emerg("MyEmulator2 page fault without mm: pid=%d pc=%08lx "
+			 "sp=%08lx lr=%08lx sr=%08lx cause=%lu info=%08lx "
+			 "r1=%08lx r2=%08lx r3=%08lx r4=%08lx r5=%08lx r6=%08lx\n",
+			 current->pid, regs->pc, regs->r[13], regs->r[14],
+			 regs->sr, cause, address, regs->r[1], regs->r[2], regs->r[3],
+			 regs->r[4], regs->r[5], regs->r[6]);
 		panic("MyEmulator2 page fault without mm");
+	}
 
 	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
 	mmap_read_lock(mm);
@@ -46,6 +83,8 @@ bad_area_unlock:
 	mmap_read_unlock(mm);
 bad_area:
 	if (!user) {
+		if (myemulator2_sync_vmalloc_pgd(mm, address))
+			return;
 		pr_emerg("MyEmulator2 kernel fault: pc=%08lx sp=%08lx lr=%08lx "
 			 "sr=%08lx cause=%lu info=%08lx\\n", regs->pc,
 			 regs->r[13], regs->r[14], regs->sr, cause, address);

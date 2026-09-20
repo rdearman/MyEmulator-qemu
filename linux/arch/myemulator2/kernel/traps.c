@@ -7,6 +7,7 @@
 #include <linux/sched.h>
 #include <asm/ptrace.h>
 #include <asm/unistd.h>
+#include <asm/irqflags.h>
 
 asmlinkage long myemulator2_syscall(unsigned long nr,
 		unsigned long a0, unsigned long a1, unsigned long a2,
@@ -15,14 +16,22 @@ void myemulator2_timer_interrupt(void);
 asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 				      unsigned long address);
 
+struct pt_regs *myemulator2_current_pt_regs(void)
+{
+	return current_thread_info()->regs;
+}
+
 void myemulator2_exception_dispatch(struct pt_regs *regs)
 {
+	/* copy_thread() must see the live interrupted image, not the stale
+	 * top-of-stack bootstrap slot. */
+	current_thread_info()->regs = regs;
 	if (regs->cause == 12) {
+		/* Make the interrupted user continuation visible to clone()/execve()
+		 * while they copy the current register image. */
+		regs->pc += 4;
 		regs->r[1] = myemulator2_syscall(regs->r[1], regs->r[2],
 			regs->r[3], regs->r[4], regs->r[5]);
-		/* SYSCALL is a synchronous exception and the architectural frame
-		 * contains the address of the SYSCALL instruction itself. */
-		regs->pc += 4;
 		return;
 	}
 	/* Vectors 16-22 represent IRQ1-IRQ7.  IRQ1 has the clockevent's
@@ -30,6 +39,7 @@ void myemulator2_exception_dispatch(struct pt_regs *regs)
 	 * generic IRQ descriptors so serial-core handlers can run normally. */
 	if (regs->cause >= 16 && regs->cause <= 22) {
 		unsigned int irq = regs->cause - 15;
+		unsigned long flags = arch_local_irq_save();
 		if (irq == IRQ_TIMER) {
 			myemulator2_timer_interrupt();
 		} else {
@@ -37,6 +47,7 @@ void myemulator2_exception_dispatch(struct pt_regs *regs)
 			generic_handle_irq(irq);
 			irq_exit();
 		}
+		arch_local_irq_restore(flags);
 		return;
 	}
 	if (regs->cause >= 4 && regs->cause <= 9) {
