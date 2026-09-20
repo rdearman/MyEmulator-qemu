@@ -280,6 +280,7 @@ void
 myemulator2_expand_cbranchdf4 (rtx *operands)
 {
   enum rtx_code code = GET_CODE (operands[0]);
+  enum rtx_code branch_code = code;
   const char *name;
   switch (code)
     {
@@ -289,13 +290,15 @@ myemulator2_expand_cbranchdf4 (rtx *operands)
     case LE: name = "__ledf2"; break;
     case GT: name = "__gtdf2"; break;
     case GE: name = "__gedf2"; break;
+    case UNORDERED: name = "__unorddf2"; branch_code = NE; break;
+    case ORDERED: name = "__unorddf2"; branch_code = EQ; break;
     default: gcc_unreachable ();
     }
   rtx libfunc = gen_rtx_SYMBOL_REF (Pmode, name);
   rtx cmp = emit_library_call_value (libfunc, NULL_RTX, LCT_CONST,
                                      SImode, operands[1], DFmode,
                                      operands[2], DFmode);
-  emit_cmp_and_jump_insns (cmp, const0_rtx, code, NULL_RTX, SImode, 0,
+  emit_cmp_and_jump_insns (cmp, const0_rtx, branch_code, NULL_RTX, SImode, 0,
                            operands[3]);
 }
 
