@@ -100,8 +100,11 @@ bad_area:
 		if (myemulator2_sync_vmalloc_pgd(mm, address))
 			return;
 		pr_emerg("MyEmulator2 kernel fault: pc=%08lx sp=%08lx lr=%08lx "
-			 "sr=%08lx cause=%lu info=%08lx\\n", regs->pc,
-			 regs->r[13], regs->r[14], regs->sr, cause, address);
+			 "sr=%08lx cause=%lu info=%08lx r1=%08lx r2=%08lx "
+			 "r3=%08lx r4=%08lx r5=%08lx r6=%08lx\\n", regs->pc,
+			 regs->r[13], regs->r[14], regs->sr, cause, address,
+			 regs->r[1], regs->r[2], regs->r[3], regs->r[4], regs->r[5],
+			 regs->r[6]);
 		panic("MyEmulator2 kernel page fault");
 	}
 	force_sig_fault(SIGSEGV,

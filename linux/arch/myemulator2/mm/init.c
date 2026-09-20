@@ -43,6 +43,10 @@ pgd_t *pgd_alloc(struct mm_struct *mm)
 		memcpy(user_pte, swapper_pte[1], PAGE_SIZE);
 		user_pte[256] = __pte(0);
 		pgd[1] = __pgd((unsigned long)user_pte | flags);
+		/* This private second-level table is traversed and released by
+		 * Linux's generic mm teardown just like a demand-allocated PTE
+		 * page.  Keep pgtables_bytes balanced across exec/exit. */
+		mm_inc_nr_ptes(mm);
 	}
 	return pgd;
 }
