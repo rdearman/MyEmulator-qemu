@@ -8,6 +8,7 @@ config MYEMULATOR2
 	select GENERIC_IRQ_SHOW
 	select HAVE_ARCH_TRACEHOOK
 	select MODULES_USE_ELF_RELA
+	select SERIAL_CORE
 
 config MMU
 	def_bool y

@@ -3,4 +3,5 @@
 #define NR_IRQS 8
 #define IRQ_TIMER 1
 #define IRQ_CONSOLE 4
+#define irq_canonicalize(irq) (irq)
 #endif
