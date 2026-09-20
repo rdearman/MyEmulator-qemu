@@ -170,3 +170,10 @@ make -C .linux-build/linux-6.12.1 O="$PWD/.linux-build/build" \
 This is a bring-up shell, not the Linux tty or a libc/BusyBox port. The
 normal tty driver, blocking terminal semantics, process execution, and
 filesystem-backed userspace remain future work.
+
+With the kernel containing this shell as its forced initramfs, its serialized
+interaction regression is:
+
+```sh
+python3 toolchain/scripts/test-linux-bootstrap-shell.py
+```
