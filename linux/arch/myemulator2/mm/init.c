@@ -6,6 +6,7 @@
 #include <asm/setup.h>
 
 pgd_t swapper_pg_dir[PTRS_PER_PGD] __aligned(PAGE_SIZE);
+bool myemulator2_paging_ready;
 static pte_t swapper_pte[4][PTRS_PER_PTE] __aligned(PAGE_SIZE);
 static pte_t swapper_pte_mmio[PTRS_PER_PTE] __aligned(PAGE_SIZE);
 
@@ -79,6 +80,7 @@ void __init paging_init(void)
 	free_area_init(max_zone_pfns);
 	asm volatile("mtsr ptbr, %0\n\tmtsr mmcr, %1" ::
 			"r"((unsigned long)swapper_pg_dir), "r"(1) : "memory");
+	myemulator2_paging_ready = true;
 }
 
 void __init mem_init(void)

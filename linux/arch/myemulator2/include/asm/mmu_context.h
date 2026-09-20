@@ -2,6 +2,7 @@
 #define _ASM_MYEMULATOR2_MMU_CONTEXT_H
 #include <asm/mmu.h>
 #include <asm/pgtable.h>
+extern bool myemulator2_paging_ready;
 static inline int init_new_context(struct task_struct *tsk, struct mm_struct *mm) { mm->context.pgd = 0; return 0; }
 static inline void destroy_context(struct mm_struct *mm) { }
 static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next, struct task_struct *tsk)
@@ -26,7 +27,7 @@ static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
 	/* A kernel thread, and a task after exit_mm(), has no user address
 	 * space.  Keep supervisor execution on the master kernel tables rather
 	 * than leaving the exiting task's PTBR active. */
-	if (init_mm.pgd)
+	if (myemulator2_paging_ready)
 		asm volatile("mtsr ptbr, %0\n\t tlbflush" ::
 			"r"((unsigned long)swapper_pg_dir) : "memory");
 }

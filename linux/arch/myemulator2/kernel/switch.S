@@ -51,14 +51,14 @@ ret_from_fork:
 	/* The C helper has its own frame and therefore cannot derive the
 	 * caller's native exception-frame address from SSP after prologue.
 	 * Pass the frame address explicitly before entering it. */
-	/* r1 is caller-saved across the following C call.  Preserve the
-	 * returned pt_regs pointer in the native frame's temporary Cause
-	 * slot.  The C helper writes only PC and SR, and the slot is cleared
-	 * again before RFE. */
-	sw r1, 8(r13)
+	/* r1 is caller-saved across the following C call.  Keep the returned
+	 * pt_regs pointer in r5, which the MyEmulator2 ABI requires callees to
+	 * preserve.  The native frame's Cause/Info words belong to RFE and are
+	 * intentionally cleared by the C helper. */
+	add r5, r1, r0
 	addi r2, r13, 0
 	call myemulator2_prepare_user_frame
-	lw r1, 8(r13)
+	add r1, r5, r0
 
 	/* User return: r1 points to the child's software pt_regs.  Build the
 	 * CPU's native 16-byte frame at the current supervisor SP, restore the
