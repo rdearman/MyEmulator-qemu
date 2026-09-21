@@ -384,7 +384,7 @@ myemulator2_expand_cbranchdf4 (rtx *operands)
             "\tgas=yes\n"
             "\tgnu_ld=yes\n"
             "\ttm_file=\"elfos.h gnu-user.h linux.h glibc-stdint.h ${tm_file} myemulator2/myemulator2-linux.h\"\n"
-            "\ttmake_file=\"${tmake_file} myemulator2/t-myemulator2 t-linux\"\n"
+            "\ttmake_file=\"${tmake_file} myemulator2/t-myemulator2-linux t-softfp-sfdf t-softfp t-linux\"\n"
             "\t;;\n")
         marker = "moxie-*-elf)\n"
         if marker not in text:
@@ -397,7 +397,7 @@ myemulator2_expand_cbranchdf4 (rtx *operands)
             1)
         text = text.replace(
             'tmake_file="${tmake_file} myemulator2/t-myemulator2"',
-            'tmake_file="${tmake_file} myemulator2/t-myemulator2 t-linux"',
+            'tmake_file="${tmake_file} myemulator2/t-myemulator2-linux t-softfp-sfdf t-softfp t-linux"',
             1)
     config_gcc.write_text(text)
 
@@ -416,6 +416,10 @@ myemulator2_expand_cbranchdf4 (rtx *operands)
     text = text.replace(
         "myemulator2-*-linux-musl*)\n",
         "myemulator2-*-linux-musl* | myemulator2-linux-musl*)\n",
+        1)
+    text = text.replace(
+        '\ttmake_file="$tmake_file myemulator2/t-myemulator2"\n\textra_parts="$extra_parts crti.o crtn.o crtbegin.o crtend.o"',
+        '\ttmake_file="$tmake_file myemulator2/t-myemulator2-linux t-softfp-sfdf t-softfp"\n\textra_parts="$extra_parts crti.o crtn.o crtbegin.o crtend.o"',
         1)
     if not re.search(r"myemulator2-\*-linux-musl", text):
         text = text.replace(
@@ -444,6 +448,7 @@ myemulator2_expand_cbranchdf4 (rtx *operands)
 
     libgcc_target = root / "libgcc/config/myemulator2"
     libgcc_target.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(fragment / "t-myemulator2-linux", libgcc_target / "t-myemulator2-linux")
     libgcc_source = root / "libgcc/config/moxie"
     if libgcc_source.exists():
         for source in libgcc_source.iterdir():

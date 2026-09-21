@@ -1,0 +1,6 @@
+# Hosted MyEmulator2 Linux needs the software floating-point helpers used by
+# musl's printf/scanning and math code.  The freestanding target deliberately
+# excludes these helpers; this hosted fragment does not.
+LIB2ADDEH =
+LIB2ADDEHSTATIC =
+LIB2ADDEHSHARED =
