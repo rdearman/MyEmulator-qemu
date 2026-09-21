@@ -201,7 +201,26 @@
                             (match_operand:SI 2 "register_operand" "r")])
                           (label_ref (match_operand 3 "" ""))
                           (pc)))] ""
-  "* switch (GET_CODE (operands[0])) { case EQ: return \"beq %1, %2, %l3\"; case NE: return \"bne %1, %2, %l3\"; case LT: return \"blt %1, %2, %l3\"; case GE: return \"bge %1, %2, %l3\"; case LTU: return \"bltu %1, %2, %l3\"; case GEU: return \"bgeu %1, %2, %l3\"; case GT: return \"blt %2, %1, %l3\"; case LE: return \"bge %2, %1, %l3\"; case GTU: return \"bltu %2, %1, %l3\"; case LEU: return \"bgeu %2, %1, %l3\"; default: gcc_unreachable (); }")
+  "* switch (GET_CODE (operands[0])) {
+      /* The conditional branch encoding has only a signed 13-bit
+         word displacement.  Use the existing Rikmon long-transfer
+         sequence for every conditional branch: invert the condition
+         around a local skip label, materialise the full destination in
+         the reserved r12 scratch register, and jump indirectly.  r12 is
+         fixed in myemulator2.h, so reload cannot assign it to a live
+         pseudo or require it to be preserved by this branch. */
+      case EQ:  return \"bne %1, %2, .Lmyemu_cbranch_skip%=\\n\\tli r12, %l3\\n\\tjr r12\\n.Lmyemu_cbranch_skip%=: \";
+      case NE:  return \"beq %1, %2, .Lmyemu_cbranch_skip%=\\n\\tli r12, %l3\\n\\tjr r12\\n.Lmyemu_cbranch_skip%=: \";
+      case LT:  return \"bge %1, %2, .Lmyemu_cbranch_skip%=\\n\\tli r12, %l3\\n\\tjr r12\\n.Lmyemu_cbranch_skip%=: \";
+      case GE:  return \"blt %1, %2, .Lmyemu_cbranch_skip%=\\n\\tli r12, %l3\\n\\tjr r12\\n.Lmyemu_cbranch_skip%=: \";
+      case LTU: return \"bgeu %1, %2, .Lmyemu_cbranch_skip%=\\n\\tli r12, %l3\\n\\tjr r12\\n.Lmyemu_cbranch_skip%=: \";
+      case GEU: return \"bltu %1, %2, .Lmyemu_cbranch_skip%=\\n\\tli r12, %l3\\n\\tjr r12\\n.Lmyemu_cbranch_skip%=: \";
+      case GT:  return \"bge %2, %1, .Lmyemu_cbranch_skip%=\\n\\tli r12, %l3\\n\\tjr r12\\n.Lmyemu_cbranch_skip%=: \";
+      case LE:  return \"blt %2, %1, .Lmyemu_cbranch_skip%=\\n\\tli r12, %l3\\n\\tjr r12\\n.Lmyemu_cbranch_skip%=: \";
+      case GTU: return \"bgeu %2, %1, .Lmyemu_cbranch_skip%=\\n\\tli r12, %l3\\n\\tjr r12\\n.Lmyemu_cbranch_skip%=: \";
+      case LEU: return \"bltu %2, %1, .Lmyemu_cbranch_skip%=\\n\\tli r12, %l3\\n\\tjr r12\\n.Lmyemu_cbranch_skip%=: \";
+      default: gcc_unreachable ();
+    }")
 
 (define_expand "cbranchdf4"
   [(set (pc) (if_then_else
