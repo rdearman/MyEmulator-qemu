@@ -48,6 +48,9 @@
 #define MYEMU2_NR_FUTEX       422
 #define MYEMU2_NR_SET_TID_ADDRESS 96
 #define MYEMU2_NR_GETTID      178
+#define MYEMU2_NR_SET_ROBUST_LIST 99
+#define MYEMU2_NR_RT_SIGACTION 134
+#define MYEMU2_NR_RT_SIGPROCMASK 135
 
 extern ssize_t ksys_write(unsigned int fd, const char __user *buf,
 			  size_t count);
@@ -175,6 +178,15 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 		return sys_set_tid_address((int __user *)a0);
 	case MYEMU2_NR_GETTID:
 		return sys_gettid();
+	case MYEMU2_NR_SET_ROBUST_LIST:
+		return sys_set_robust_list((struct robust_list_head __user *)a0, a1);
+	case MYEMU2_NR_RT_SIGACTION:
+		return sys_rt_sigaction((int)a0,
+			(const struct sigaction __user *)a1,
+			(struct sigaction __user *)a2, a3);
+	case MYEMU2_NR_RT_SIGPROCMASK:
+		return sys_rt_sigprocmask((int)a0, (sigset_t __user *)a1,
+			(sigset_t __user *)a2, a3);
 	case MYEMU2_NR_EXECVE:
 		return sys_execve((const char __user *)a0,
 			(const char __user *const __user *)a1,
