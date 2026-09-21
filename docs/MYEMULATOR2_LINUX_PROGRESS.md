@@ -301,3 +301,21 @@ a C program with the staged compiler, boots it as `/init` in a disposable
 initramfs, and verifies `native-gcc-pass` on the QEMU serial console. This is
 the first verified native-toolchain runtime milestone; native binutils and
 GNU Make are not yet installed or verified inside the guest.
+
+## Hosted GNU Make follow-up
+
+The hosted libgcc configuration is now reproducible for the Linux target:
+`toolchain/gcc/t-myemulator2-linux` includes the soft-float support required
+by musl applications while omitting unsupported exception-unwind objects.
+The source-preparation script installs that fragment in `libgcc/config`,
+where GCC's libgcc build actually consumes it. With the staged native GCC,
+binutils and musl installation, GNU Make 4.4.1 compiles and links as a
+static MyEmulator2 ELF32 executable.
+
+The guest Make regression is not yet verified. The current working tree's
+Linux/QEMU process fixture stalls during user instruction page-fault handling
+before its first serial marker, so the Make execution result must not be
+reported as a Make failure until that independent runtime regression is
+restored. The next diagnostic is to capture the first page-table state after
+the fault handler installs the user executable PTE, then rerun the Make
+fixture without broad TCG register reloads.
