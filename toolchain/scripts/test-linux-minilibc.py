@@ -14,6 +14,8 @@ PREFIX = Path(os.environ.get("MYEMU_TOOLCHAIN_PREFIX",
 QEMU = Path(os.environ.get("QEMU_MYEMULATOR32",
                           ROOT / ".qemu-build/qemu-system-myemulator32"))
 KERNEL = ROOT / ".linux-build/build/vmlinux"
+LINUX = ROOT / ".linux-build/linux-6.12.1"
+BUILD = ROOT / ".linux-build/build"
 INIT_LIST = Path("/tmp/myemu-initramfs/list")
 
 
@@ -46,6 +48,9 @@ def main():
             "dir /dev 0755 0 0\n"
             "nod /dev/console 0600 0 0 c 5 1\n"
             "nod /dev/ttyMY0 0600 0 0 c 240 0\n")
+        subprocess.run([str(LINUX / "scripts/config"), "--file",
+                        str(BUILD / ".config"), "--set-str",
+                        "INITRAMFS_SOURCE", str(INIT_LIST)], check=True)
         subprocess.run([str(ROOT / "toolchain/scripts/build-linux.sh")],
                        check=True, stdout=subprocess.DEVNULL)
 
