@@ -155,6 +155,17 @@ static void gen_checked_data(DisasContext *ctx, TCGv_i32 address,
     gen_set_label(aligned);
 }
 
+/* QEMU must be able to reconstruct the architectural register state at a
+ * faulting load/store.  R13 is a TCG global, but its banked architectural
+ * backing value must be materialized before a memory operation can exit the
+ * TB; otherwise restart after a page fault may observe a later stack restore
+ * from the same TB. */
+static void gen_materialize_sp(void)
+{
+    tcg_gen_st_i32(cpu_r[13], tcg_env,
+                   offsetof(CPUMyEmulator32State, r[13]));
+}
+
 static void gen_branch(DisasContext *ctx, TCGCond cond, unsigned ra,
                        unsigned rb, int32_t displacement)
 {
@@ -330,6 +341,7 @@ static void decode_and_translate(DisasContext *ctx)
         unsigned load_size = extract32(insn, 13, 3);
         address = tcg_temp_new_i32();
         tcg_gen_addi_i32(address, gen_reg(ra), sx(extract32(insn, 0, 13), 13));
+        gen_materialize_sp();
         gen_checked_data(ctx, address, load_size == 4 ? 4 :
                         (load_size >= 2 ? 2 : 1));
         tmp = tcg_temp_new_i32();
@@ -349,6 +361,7 @@ static void decode_and_translate(DisasContext *ctx)
         if (store_size > 2) { gen_invalid(ctx, insn); return; }
         address = tcg_temp_new_i32();
         tcg_gen_addi_i32(address, gen_reg(ra), sx(extract32(insn, 0, 13), 13));
+        gen_materialize_sp();
         gen_checked_data(ctx, address, store_size == 0 ? 1 :
                         (store_size == 1 ? 2 : 4));
         switch (store_size) {
