@@ -62,6 +62,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 		panic("MyEmulator2 page fault without mm");
 	}
 
+	retry_fault:
 	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
 	mmap_read_lock(mm);
 	vma = find_vma(mm, address);
@@ -99,6 +100,16 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 	}
 
 	fault = handle_mm_fault(vma, address, flags, regs);
+	/* File-backed faults may drop mmap_lock while waiting for the block
+	 * layer.  VM_FAULT_RETRY asks the architecture to reacquire the lock and
+	 * retry the fault; unlocking unconditionally here corrupts the rwsem and
+	 * leaves execve() stuck when an ELF is loaded from ext4. */
+	if (fault & VM_FAULT_RETRY) {
+		if (flags & FAULT_FLAG_ALLOW_RETRY) {
+			flags &= ~FAULT_FLAG_ALLOW_RETRY;
+			goto retry_fault;
+		}
+	}
 	if (!(fault & VM_FAULT_ERROR) && zero_new_anon) {
 		pmd_t *pmd = pmd_off(mm, address);
 		pte_t *ptep = pte_offset_kernel(pmd, address);

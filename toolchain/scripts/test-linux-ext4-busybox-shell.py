@@ -51,11 +51,13 @@ def main():
                     pass
             if b"# " not in data:
                 raise RuntimeError(f"ext4 BusyBox prompt not reached: {data[-2000:]!r}")
-            commands = b"echo EXT4_READY\ncat /etc/hostname\n"
+            commands = (b"echo EXT4_READY\n"
+                        b"echo EXT4_FILE_VALUE > /root/ext4-shell-test\n"
+                        b"cat /root/ext4-shell-test\n")
             commands += b"".join(f"echo EXT4_CMD{i:02d}\\n".encode() for i in range(1, 21))
             sock.sendall(commands)
             deadline = time.monotonic() + 60
-            while (b"EXT4_READY" not in data or
+            while (b"EXT4_READY" not in data or b"EXT4_FILE_VALUE" not in data or
                    any(f"EXT4_CMD{i:02d}".encode() not in data for i in range(1, 21))):
                 if time.monotonic() >= deadline:
                     raise RuntimeError(f"ext4 shell commands timed out: {data[-3000:]!r}")

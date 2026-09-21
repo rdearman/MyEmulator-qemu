@@ -277,8 +277,10 @@ MYEMU_SHELL_PROMPT_TIMEOUT=20 python3 toolchain/scripts/test-linux-busybox-shell
 This passes the prompt test, terminal input/output, redirection and twenty
 consecutive shell commands.
 
-The ext4 root image mounts read-write and starts `/sbin/init`, but the first
-file-backed BusyBox `execve()` currently emits a Linux `rwsem.h:80` warning and
-does not reach the shell prompt.  This is the next storage-backed userspace
-blocker; the initramfs tty result must not be generalized to ext4 until that
-warning and transition are resolved.
+The ext4 root image now also reaches the interactive shell.  The blocker was
+the architecture page-fault path failing to handle `VM_FAULT_RETRY`: file
+backed faults can drop `mmap_lock` while the block layer supplies an ELF page,
+so the unconditional unlock corrupted the rwsem during the second `execve()`.
+The handler now reacquires the lock and retries once without
+`FAULT_FLAG_ALLOW_RETRY`.  The ext4 shell regression reaches the prompt,
+creates and reads a file, and executes twenty commands.
