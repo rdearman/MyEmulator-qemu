@@ -437,6 +437,12 @@ static void decode_and_translate(DisasContext *ctx)
             gen_invalid(ctx, insn); return;
         }
     case 10: /* SYSCALL */
+        /* The exception entry path reads the complete interrupted register
+         * image from CPUArchState.  Materialize the translated R15 before
+         * entering the non-returning helper; unlike ordinary helper calls,
+         * syscall does not return to this TB for TCG to flush the global. */
+        tcg_gen_st_i32(cpu_r[15], tcg_env,
+                       offsetof(CPUMyEmulator32State, r[15]));
         gen_helper_syscall(tcg_env, tcg_constant_i32(extract32(insn, 0, 26)),
                            tcg_constant_i32(pc));
         ctx->base.is_jmp = DISAS_NORETURN;
@@ -506,6 +512,8 @@ static void myemulator32_tb_start(DisasContextBase *dcbase, CPUState *cs)
                    offsetof(CPUMyEmulator32State, sr));
     tcg_gen_ld_i32(cpu_r[13], tcg_env,
                    offsetof(CPUMyEmulator32State, r[13]));
+    tcg_gen_ld_i32(cpu_r[15], tcg_env,
+                   offsetof(CPUMyEmulator32State, r[15]));
 }
 
 static void myemulator32_insn_start(DisasContextBase *dcbase, CPUState *cs)

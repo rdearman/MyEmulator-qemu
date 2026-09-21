@@ -45,6 +45,9 @@
 #define MYEMU2_NR_FSTAT      80
 #define MYEMU2_NR_UNAME      160
 #define MYEMU2_NR_SCHED_YIELD 124
+#define MYEMU2_NR_FUTEX       422
+#define MYEMU2_NR_SET_TID_ADDRESS 96
+#define MYEMU2_NR_GETTID      178
 
 extern ssize_t ksys_write(unsigned int fd, const char __user *buf,
 			  size_t count);
@@ -168,6 +171,10 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 		return sys_getppid();
 	case MYEMU2_NR_GETEUID:
 		return sys_geteuid();
+	case MYEMU2_NR_SET_TID_ADDRESS:
+		return sys_set_tid_address((int __user *)a0);
+	case MYEMU2_NR_GETTID:
+		return sys_gettid();
 	case MYEMU2_NR_EXECVE:
 		return sys_execve((const char __user *)a0,
 			(const char __user *const __user *)a1,
@@ -207,6 +214,10 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 		return sys_newuname((struct new_utsname __user *)a0);
 	case MYEMU2_NR_SCHED_YIELD:
 		return sys_sched_yield();
+	case MYEMU2_NR_FUTEX:
+		return sys_futex((u32 __user *)a0, (int)a1, (u32)a2,
+			(const struct __kernel_timespec __user *)a3,
+			(u32 __user *)a4, (u32)a5);
 	default:
 		return -ENOSYS;
 	}
