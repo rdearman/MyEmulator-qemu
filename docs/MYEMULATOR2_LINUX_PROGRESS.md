@@ -312,10 +312,11 @@ where GCC's libgcc build actually consumes it. With the staged native GCC,
 binutils and musl installation, GNU Make 4.4.1 compiles and links as a
 static MyEmulator2 ELF32 executable.
 
-The guest Make regression is not yet verified. The current working tree's
-Linux/QEMU process fixture stalls during user instruction page-fault handling
-before its first serial marker, so the Make execution result must not be
-reported as a Make failure until that independent runtime regression is
-restored. The next diagnostic is to capture the first page-table state after
-the fault handler installs the user executable PTE, then rerun the Make
-fixture without broad TCG register reloads.
+The guest Make regression is not yet verified. The corrected test harness now
+embeds its own initramfs, and the process and native-GCC fixtures pass with
+that correction. GNU Make reaches userspace without an exception, but does
+not emit its `native-make-pass` marker within the bounded 45-second test.
+Tracing identified and fixed two prerequisites: R15 must be materialized at
+the syscall/TB boundary, and musl's futex, set_tid_address, gettid,
+rt_sigaction and rt_sigprocmask calls must reach Linux instead of returning
+`-ENOSYS`. The remaining Make-specific hang is still under investigation.
