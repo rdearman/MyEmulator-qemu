@@ -6,6 +6,7 @@
 #include <linux/syscalls.h>
 #include <linux/uaccess.h>
 #include <linux/file.h>
+#include <linux/uio.h>
 
 /* Linux's generic 32-bit syscall numbering is used by this initial port.
  * Keep the small bootstrap dispatcher independent of generated syscall-table
@@ -137,6 +138,35 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 		return ksys_write((unsigned int)a0,
 			(const char __user *)a1, (size_t)a2);
 	case MYEMU2_NR_WRITEV:
+		/* PID 1 starts before the normal console descriptors are inherited.
+		 * Match the write(2) console fallback so libc's stdio writev path is
+		 * usable during early userspace startup as well. */
+		if (a0 == 1 || a0 == 2) {
+			struct file *file = fget((unsigned int)a0);
+			if (!file) {
+				struct iovec iov;
+				ssize_t total = 0;
+				unsigned long i;
+				if (a2 > UIO_MAXIOV)
+					return -EINVAL;
+				for (i = 0; i < a2; i++) {
+					if (copy_from_user(&iov,
+							(const struct iovec __user *)a1 + i,
+							sizeof(iov)))
+						return -EFAULT;
+					if (iov.iov_len > SSIZE_MAX - total)
+						return -EINVAL;
+					if (iov.iov_len &&
+						myemulator2_console_write_user(
+							(const char __user *)iov.iov_base,
+							iov.iov_len) < 0)
+						return -EFAULT;
+					total += iov.iov_len;
+				}
+				return total;
+			}
+			fput(file);
+		}
 		return sys_writev(a0, (const struct iovec __user *)a1, a2);
 	case MYEMU2_NR_FCNTL:
 		return sys_fcntl((unsigned int)a0, (unsigned int)a1, a2);

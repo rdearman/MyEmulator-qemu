@@ -27,7 +27,22 @@ def main():
         tmp = Path(tmp)
         source = tmp / "hello.c"
         binary = tmp / "hello"
-        source.write_text('#include <stdio.h>\nint main(void) { puts("native-gcc-pass"); return 0; }\n')
+        source.write_text(r'''#include <fcntl.h>
+#include <stdio.h>
+#include <unistd.h>
+
+int main(void)
+{
+    int console = open("/dev/console", O_RDWR);
+    if (console >= 0) {
+        dup2(console, STDIN_FILENO);
+        dup2(console, STDOUT_FILENO);
+        dup2(console, STDERR_FILENO);
+    }
+    puts("native-gcc-pass");
+    return 0;
+}
+''')
         env = os.environ.copy()
         env["PATH"] = "/tmp/myemu-native/bin:/tmp/myemu-binutils-install/bin:" + env.get("PATH", "")
         subprocess.run([str(GCC), str(source), "-o", str(binary)], check=True, env=env)
@@ -76,7 +91,8 @@ def main():
                 except socket.timeout:
                     pass
             if b"native-gcc-pass" not in data:
-                raise RuntimeError("native GCC program did not execute")
+                raise RuntimeError("native GCC program did not execute; serial=" +
+                                   repr(data[-12000:]))
         finally:
             if sock is not None:
                 sock.close()
