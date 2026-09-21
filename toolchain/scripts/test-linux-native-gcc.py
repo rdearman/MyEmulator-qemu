@@ -2,6 +2,7 @@
 """Compile and execute a C program with the staged MyEmulator2 Linux GCC."""
 
 import os
+import signal
 import socket
 import subprocess
 import tempfile
@@ -16,6 +17,13 @@ LINUX = ROOT / ".linux-build/linux-6.12.1"
 BUILD = ROOT / ".linux-build/build"
 INITRAMFS = Path("/tmp/myemu-busybox-final-initramfs/initramfs.cpio")
 GEN_INIT_CPIO = ROOT / ".linux-build/build/usr/gen_init_cpio"
+
+
+def _child_death_signal():
+    """Ensure an externally interrupted harness cannot orphan its QEMU."""
+    import ctypes
+    libc = ctypes.CDLL(None)
+    libc.prctl(1, signal.SIGTERM, 0, 0, 0)  # PR_SET_PDEATHSIG
 
 
 def main():
@@ -66,7 +74,8 @@ int main(void)
             "-nographic", "-monitor", "none", "-serial", "chardev:console",
             "-chardev", f"socket,id=console,path={sock_path},server=on,wait=on",
             "-icount", "shift=0,sleep=off"], stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL)
+            stderr=subprocess.DEVNULL, start_new_session=True,
+            preexec_fn=_child_death_signal)
         sock = None
         try:
             for _ in range(300):
@@ -100,7 +109,7 @@ int main(void)
             try:
                 proc.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                proc.kill()
+                os.killpg(proc.pid, signal.SIGKILL)
                 proc.wait()
     print("MyEmulator2 Linux native GCC: PASS")
 

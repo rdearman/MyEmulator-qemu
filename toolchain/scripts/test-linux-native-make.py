@@ -2,6 +2,7 @@
 """Execute a statically linked GNU Make target inside MyEmulator2 Linux."""
 
 import os
+import signal
 import socket
 import subprocess
 import tempfile
@@ -19,6 +20,13 @@ GEN_INIT_CPIO = ROOT / ".linux-build/build/usr/gen_init_cpio"
 INITRAMFS = Path("/tmp/myemu-busybox-final-initramfs/initramfs.cpio")
 
 
+def _child_death_signal():
+    """Ensure an externally interrupted harness cannot orphan its QEMU."""
+    import ctypes
+    libc = ctypes.CDLL(None)
+    libc.prctl(1, signal.SIGTERM, 0, 0, 0)  # PR_SET_PDEATHSIG
+
+
 def main():
     for path in (GCC, MAKE, QEMU, KERNEL, GEN_INIT_CPIO):
         if not path.exists():
@@ -27,11 +35,18 @@ def main():
         tmp = Path(tmp_name)
         runner = tmp / "runner.c"
         init = tmp / "init"
-        runner.write_text(r'''#include <stdio.h>
+        runner.write_text(r'''#include <fcntl.h>
+#include <stdio.h>
 #include <unistd.h>
 int main(void) {
     char *const argv[] = { (char *)"make", (char *)"-f", (char *)"/Makefile", NULL };
     char *const envp[] = { (char *)"PATH=/bin", NULL };
+    int console = open("/dev/console", O_RDWR);
+    if (console >= 0) {
+        dup2(console, STDIN_FILENO);
+        dup2(console, STDOUT_FILENO);
+        dup2(console, STDERR_FILENO);
+    }
     execve("/bin/make", argv, envp);
     perror("execve make");
     return 111;
@@ -60,12 +75,15 @@ int main(void) {
                         "INITRAMFS_SOURCE", str(INITRAMFS)], check=True)
         subprocess.run([str(ROOT / "toolchain/scripts/build-linux.sh")], check=True, stdout=subprocess.DEVNULL)
         sock_path = tmp / "console.sock"
-        proc = subprocess.Popen([
+        qemu_args = [
             str(QEMU), "-M", "myemulator32", "-m", "16M", "-kernel", str(KERNEL),
             "-nographic", "-monitor", "none",
-            "-serial", "chardev:console", "-chardev", f"socket,id=console,path={sock_path},server=on,wait=on",
-            "-icount", "shift=0,sleep=off"], stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL)
+            "-serial", "chardev:console", "-chardev", f"socket,id=console,path={sock_path},server=on,wait=on"]
+        if not os.environ.get("MYEMU_NATIVE_MAKE_NO_ICOUNT"):
+            qemu_args += ["-icount", "shift=0,sleep=off"]
+        proc = subprocess.Popen(qemu_args, stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, start_new_session=True,
+            preexec_fn=_child_death_signal)
         sock = None
         try:
             for _ in range(300):
@@ -83,7 +101,7 @@ int main(void) {
                 raise RuntimeError("QEMU console socket did not open")
             sock.settimeout(0.2)
             data = b""
-            deadline = time.monotonic() + 45
+            deadline = time.monotonic() + float(os.environ.get("MYEMU_NATIVE_MAKE_TIMEOUT", "45"))
             while b"native-make-pass" not in data and time.monotonic() < deadline:
                 try:
                     data += sock.recv(8192)
@@ -98,7 +116,7 @@ int main(void) {
             try:
                 proc.wait(timeout=5)
             except subprocess.TimeoutExpired:
-                proc.kill()
+                os.killpg(proc.pid, signal.SIGKILL)
                 proc.wait()
     print("MyEmulator2 Linux native GNU Make: PASS")
 

@@ -15,7 +15,11 @@ pgprot_t vm_get_page_prot(unsigned long vm_flags)
 	pgprot_t prot = _PAGE_PRESENT;
 	if (vm_flags & VM_READ)
 		prot |= _PAGE_READ;
-	if (vm_flags & VM_WRITE)
+	/* Private writable VMAs must initially use a read-only zero/COW page.
+	 * The generic anonymous fault path upgrades the PTE on a write fault.
+	 * Granting write here lets a read fault map physical frame zero as
+	 * writable, so the first later store can corrupt low kernel memory. */
+	if ((vm_flags & VM_WRITE) && (vm_flags & VM_SHARED))
 		prot |= _PAGE_WRITE;
 	if (vm_flags & VM_EXEC)
 		prot |= _PAGE_EXEC;
