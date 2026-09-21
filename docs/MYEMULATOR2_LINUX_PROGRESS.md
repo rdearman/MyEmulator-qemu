@@ -255,3 +255,30 @@ than remaining in BusyBox. The architecture delay primitive now uses an
 explicit `subi 1` loop instead of a C post-decrement. The process regression
 remains passing; BusyBox shell completion is still not verified and requires
 further performance/runtime investigation.
+## BusyBox interactive tty milestone
+
+The real serial-core tty path is now verified for the initramfs system.  The
+init handoff explicitly redirects BusyBox ash through `/dev/console`, because
+PID 1 starts without inherited descriptors on this architecture port.  The
+Linux syscall dispatcher now includes the `fcntl`, `writev`, `getppid`, and
+`geteuid` operations needed by ash startup and terminal output.
+
+Reproduce the verified shell test with:
+
+```sh
+MYEMU_BUSYBOX_BINARY=/tmp/myemu-busybox-build23/busybox \
+  ./toolchain/scripts/build-busybox-initramfs.sh /tmp/myemu-busybox-shell-ttyfix
+.linux-build/linux-6.12.1/scripts/config --file .linux-build/build/.config \
+  --set-str INITRAMFS_SOURCE /tmp/myemu-busybox-shell-ttyfix/initramfs.cpio
+./toolchain/scripts/build-linux.sh
+MYEMU_SHELL_PROMPT_TIMEOUT=20 python3 toolchain/scripts/test-linux-busybox-shell.py
+```
+
+This passes the prompt test, terminal input/output, redirection and twenty
+consecutive shell commands.
+
+The ext4 root image mounts read-write and starts `/sbin/init`, but the first
+file-backed BusyBox `execve()` currently emits a Linux `rwsem.h:80` warning and
+does not reach the shell prompt.  This is the next storage-backed userspace
+blocker; the initramfs tty result must not be generalized to ext4 until that
+warning and transition are resolved.

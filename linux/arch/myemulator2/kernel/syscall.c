@@ -12,6 +12,8 @@
  * headers until the full architecture syscall table is wired in. */
 #define MYEMU2_NR_READ       63
 #define MYEMU2_NR_WRITE      64
+#define MYEMU2_NR_WRITEV     66
+#define MYEMU2_NR_FCNTL      25
 #define MYEMU2_NR_IOCTL      29
 #define MYEMU2_NR_OPENAT     56
 #define MYEMU2_NR_CLOSE      57
@@ -27,6 +29,8 @@
 #define MYEMU2_NR_EXIT_GROUP 94
 #define MYEMU2_NR_NANOSLEEP  101
 #define MYEMU2_NR_GETPID     172
+#define MYEMU2_NR_GETPPID    173
+#define MYEMU2_NR_GETEUID    175
 #define MYEMU2_NR_EXECVE     221
 #define MYEMU2_NR_CLOCK_GETTIME64 403
 #define MYEMU2_NR_CLONE      220
@@ -70,6 +74,11 @@ extern long sys_nanosleep_time32(struct old_timespec32 __user *rqtp,
 extern long sys_clock_gettime32(clockid_t which_clock,
 					 struct old_timespec32 __user *tp);
 extern long sys_getpid(void);
+extern long sys_getppid(void);
+extern long sys_geteuid(void);
+extern long sys_fcntl(unsigned int fd, unsigned int cmd, unsigned long arg);
+extern long sys_writev(unsigned long fd, const struct iovec __user *vec,
+		       unsigned long vlen);
 extern long sys_clone(unsigned long flags, unsigned long newsp,
 			      int __user *parent_tid, int __user *child_tid,
 			      unsigned long tls);
@@ -121,6 +130,10 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 		}
 		return ksys_write((unsigned int)a0,
 			(const char __user *)a1, (size_t)a2);
+	case MYEMU2_NR_WRITEV:
+		return sys_writev(a0, (const struct iovec __user *)a1, a2);
+	case MYEMU2_NR_FCNTL:
+		return sys_fcntl((unsigned int)a0, (unsigned int)a1, a2);
 	case MYEMU2_NR_OPENAT:
 		return do_sys_open((int)a0, (const char __user *)a1,
 				   (int)a2, (umode_t)a3);
@@ -151,6 +164,10 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 		return 0;
 	case MYEMU2_NR_GETPID:
 		return sys_getpid();
+	case MYEMU2_NR_GETPPID:
+		return sys_getppid();
+	case MYEMU2_NR_GETEUID:
+		return sys_geteuid();
 	case MYEMU2_NR_EXECVE:
 		return sys_execve((const char __user *)a0,
 			(const char __user *const __user *)a1,
