@@ -45,7 +45,15 @@ pgd_t *pgd_alloc(struct mm_struct *mm)
 	user_pte = (pte_t *)get_zeroed_page(GFP_KERNEL);
 	if (user_pte) {
 		memcpy(user_pte, swapper_pte[1], PAGE_SIZE);
-		user_pte[256] = __pte(0);
+		/* Native Linux executables are linked at 0x00700000.  The
+		 * corresponding 7--8 MiB identity window must not remain in a
+		 * process page table: supervisor copy_to/from_user() and ELF
+		 * padzero() must resolve through the user mapping, otherwise they
+		 * write the physical identity page before demand paging installs
+		 * the executable's page.  Keep the lower 4--7 MiB identity map
+		 * available for the low-linked kernel. */
+		for (unsigned int i = 0x300; i < PTRS_PER_PTE; i++)
+			user_pte[i] = __pte(0);
 		pgd[1] = __pgd((unsigned long)user_pte | flags);
 		/* This private second-level table is traversed and released by
 		 * Linux's generic mm teardown just like a demand-allocated PTE

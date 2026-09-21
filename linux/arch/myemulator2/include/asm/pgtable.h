@@ -43,9 +43,9 @@ extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
 #include <asm-generic/pgtable-nopud.h>
 
 #define PAGE_NONE __pgprot(0)
-#define PAGE_SHARED __pgprot(0x0f)
-#define PAGE_COPY __pgprot(0x0d)
-#define PAGE_READONLY __pgprot(0x15)
+#define PAGE_SHARED __pgprot(0x0f | 0x002)
+#define PAGE_COPY __pgprot(0x005 | 0x002)
+#define PAGE_READONLY __pgprot(0x15 | 0x002)
 #define PAGE_KERNEL __pgprot(0x1f)
 #define PAGE_KERNEL_EXEC __pgprot(0x1f)
 

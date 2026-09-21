@@ -320,3 +320,81 @@ Tracing identified and fixed two prerequisites: R15 must be materialized at
 the syscall/TB boundary, and musl's futex, set_tid_address, gettid,
 rt_sigaction and rt_sigprocmask calls must reach Linux instead of returning
 `-ENOSYS`. The remaining Make-specific hang is still under investigation.
+
+## Native GCC MMU regression fix
+
+The native-GCC startup regression was traced to the per-process copy of
+the kernel's low identity page tables. Linux user executables are linked
+at `0x00700000`, but `pgd_alloc()` previously removed only the stale
+`0x00500000` PTE. The remaining supervisor-only identity entries covered
+the 7--8 MiB user image window. During ELF `padzero()` and other supervisor
+accesses to user addresses, those entries resolved to physical identity
+memory instead of the user mapping, leaving the final TLS/BSS page corrupt.
+The resulting bad pointer caused repeated faults in musl startup.
+
+`pgd_alloc()` now clears the 7--8 MiB PTE range in each user page table while
+retaining the lower kernel identity mappings. Demand faults then install the
+actual user PTE before supervisor accesses are retried. Separately, QEMU
+reloads R1--R12 at translation-block boundaries after exception/syscall
+return; R0 remains hardwired and R13/R15 retain their existing targeted
+handling. This is required because Linux writes the saved return registers
+while the exception path does not return through the interrupted TB.
+
+The investigation command is:
+
+```sh
+python3 toolchain/scripts/test-linux-native-gcc.py
+python3 toolchain/scripts/test-linux-process.py
+```
+
+An intermediate run passed native GCC after the page-table change, but the
+current clean rerun still fails during the supervisor `padzero()` access at
+`0x00702754`, before the user program can start. The fix is therefore not
+yet committed or classified as verified; the next session must instrument
+the supervisor page-fault return and confirm that the user VMA mapping is
+installed before accepting this change. Native GNU Make remains blocked.
+
+## Native GCC follow-up (2026-09-21)
+
+The rebuilt hosted compiler and the supervisor page-fault/QEMU stack-state
+work in `0e77f38` now pass the native GCC guest regression. The last fixture
+failure was environmental: PID 1 had no inherited standard descriptors while
+musl stdio selected `writev(2)`. The dispatcher now provides the same
+`/dev/console` fallback for `writev` as for `write`, and the fixture explicitly
+opens and duplicates `/dev/console` before printing.
+
+Verified:
+
+```sh
+make spec-test
+make cpu32-test
+python3 toolchain/scripts/test-linux-process.py
+MYEMU_NATIVE_GCC=/tmp/myemu-native-new/bin/myemulator2-linux-musl-gcc \
+  python3 toolchain/scripts/test-linux-native-gcc.py
+```
+
+Native GCC prints `native-gcc-pass`. Native GNU Make remains unverified: it
+reaches mmap/heap startup but does not emit `native-make-pass` within a bounded
+180-second diagnostic run. The last captured state is repeated user loads
+against zero-page mappings near `0x1000...`; this is the next MMU/page-fault
+investigation, not a Make acceptance result.
+
+## Native GNU Make page-fault investigation (2026-09-21)
+
+The bounded Make fixture was instrumented at the QEMU TLB boundary. The
+reported `0x1000...` accesses are in GNU Make's `hash_find_slot()` (for
+example PC `0x007111cc`), and QEMU reads the corresponding present PDE/PTE
+with valid user read permissions. The `0x0000000f` PTEs were private writable
+VMA zero-page mappings, not failed translations. The architecture now keeps
+private writable VMAs read-only until a write fault (`PAGE_COPY` is also
+read-only), preventing a read fault from exposing physical frame zero as
+writable. The process, minilibc and native-GCC regressions still pass after
+this change.
+
+The remaining Make result is `TIMEOUT`, not a pass: a 60-second run reaches
+valid heap pages and a legitimate stack-growth fault but does not emit
+`native-make-pass`. This is currently a severe guest-startup/emulation
+performance issue or a later Make/libc defect; no GNU Make acceptance claim
+has been made. The native Make harness now uses a parent-death signal,
+separate process groups and a configurable bounded timeout so interrupted
+host runs do not leave QEMU children behind.
