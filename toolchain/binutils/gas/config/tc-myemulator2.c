@@ -275,7 +275,25 @@ void md_number_to_chars(char *p, valueT v, int n) { number_to_chars_littleendian
 const char *md_atof(int type, char *lit, int *size) { *size=0; return _("floating point unsupported"); }
 int md_parse_option(int c ATTRIBUTE_UNUSED, const char *a ATTRIBUTE_UNUSED) { return 0; }
 void md_show_usage(FILE *s ATTRIBUTE_UNUSED) {}
-void md_apply_fix(fixS *f ATTRIBUTE_UNUSED, valueT *v ATTRIBUTE_UNUSED, segT s ATTRIBUTE_UNUSED) {}
+void
+md_apply_fix (fixS *f, valueT *v, segT s)
+{
+  /* GCC emits .2byte differences in DWARF line tables.  These are
+     resolved entirely within the debug section and are not part of the
+     REM ELF relocation ABI.  Resolve them here instead of passing the
+     generic BFD_RELOC_16 fixup to tc_gen_reloc, where there is deliberately
+     no 16-bit REM relocation.  */
+  if (f->fx_r_type == BFD_RELOC_16
+      && (f->fx_addsy == NULL
+          || (f->fx_subsy != NULL
+              && S_GET_SEGMENT (f->fx_addsy) == s
+              && S_GET_SEGMENT (f->fx_subsy) == s)))
+    {
+      number_to_chars_littleendian (f->fx_frag->fr_literal + f->fx_where,
+                                    *v, 2);
+      f->fx_done = 1;
+    }
+}
 arelent *tc_gen_reloc(asection *section ATTRIBUTE_UNUSED, fixS *fixP)
 {
   arelent *relP = notes_alloc(sizeof(*relP));

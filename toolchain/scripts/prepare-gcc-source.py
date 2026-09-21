@@ -401,15 +401,23 @@ myemulator2_expand_cbranchdf4 (rtx *operands)
             1)
     config_gcc.write_text(text)
 
-    config_sub = root / "config.sub"
-    text = config_sub.read_text()
-    if "myemulator2" not in text:
-        marker = "\t\t\t| moxie " + "\\" + "\n"
-        replacement = "\t\t\t| myemulator2 " + "\\" + "\n" + marker
+    # GCC bundles additional Autoconf projects (notably gettext) with their
+    # own config.sub copies.  A Canadian build uses those copies to validate
+    # the host triplet, so teach every bundled copy about MyEmulator2 rather
+    # than only patching GCC's top-level script.
+    marker = "\t\t\t| moxie " + "\\" + "\n"
+    replacement = "\t\t\t| myemulator2 " + "\\" + "\n" + marker
+    patched_config_sub = 0
+    for config_sub in root.rglob("config.sub"):
+        text = config_sub.read_text()
+        if "myemulator2" in text:
+            continue
         if marker not in text:
-            raise SystemExit("could not find config.sub machine-name list")
-        text = text.replace(marker, replacement, 1)
-    config_sub.write_text(text)
+            continue
+        config_sub.write_text(text.replace(marker, replacement, 1))
+        patched_config_sub += 1
+    if not patched_config_sub and "myemulator2" not in (root / "config.sub").read_text():
+        raise SystemExit("could not find config.sub machine-name list")
 
     host = root / "libgcc/config.host"
     text = host.read_text()
