@@ -410,3 +410,21 @@ a Canadian-cross build whose GCC, assembler and linker executables are
 themselves REM Linux ELFs, followed by compilation entirely inside the guest.
 The current native GNU Make fixture remains `TIMEOUT`, so the self-hosted
 toolchain, GDB, applications and Android package are not yet verified.
+
+The Canadian-cross binutils investigation began from the existing x86-64
+host driver. The first attempt exposed malformed BFD source lists caused by
+over-broad `cpu-moxie`/`elf32-moxie` substitutions in
+`prepare-binutils-source.py`; commit `5825a88` narrows those substitutions
+to exact `.c` and `.lo` names and adds Linux target triples to BFD target
+selection. A fresh source tree now configures cleanly, but the guest-hosted
+build currently stops in the recursive `ld` configure because it cannot create
+`sub/conftest.c`. This remains an implementation blocker for the Canadian
+cross and is not a verified native-toolchain result.
+
+The fresh Canadian-cross retry reaches the recursive `ld` configure, but
+that configure's dependency-mode probe fails before compiling its test
+source (`cc1: conftest.c: No such file or directory` / `sub/conftest.c`).
+The generated BFD lists are now correct; the remaining work is to make the
+binutils build system's host/target configure recursion work with the REM
+host compiler, then build and install the guest binutils before bootstrapping
+guest GCC.
