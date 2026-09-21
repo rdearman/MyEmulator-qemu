@@ -398,3 +398,15 @@ performance issue or a later Make/libc defect; no GNU Make acceptance claim
 has been made. The native Make harness now uses a parent-death signal,
 separate process groups and a configurable bounded timeout so interrupted
 host runs do not leave QEMU children behind.
+
+## Self-hosting and deployment status (2026-09-21)
+
+The current `test-linux-native-gcc.py` fixture must not be described as
+guest-native compilation. Its `MYEMU_NATIVE_GCC` executable is an x86-64
+Linux host driver which invokes the REM cross compiler to produce a guest
+ELF, and that ELF is then executed under QEMU. `file` reports the driver as
+x86-64, not MyEmulator2/REM. A genuine self-hosted milestone still requires
+a Canadian-cross build whose GCC, assembler and linker executables are
+themselves REM Linux ELFs, followed by compilation entirely inside the guest.
+The current native GNU Make fixture remains `TIMEOUT`, so the self-hosted
+toolchain, GDB, applications and Android package are not yet verified.
