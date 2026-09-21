@@ -6,6 +6,7 @@ source "$root/toolchain/scripts/versions.env"
 downloads=${MYEMU_TOOLCHAIN_DOWNLOADS:-$root/.toolchain-downloads}
 build=${MYEMU_TOOLCHAIN_BUILD:-$root/.toolchain-build}
 prefix=${MYEMU_TOOLCHAIN_PREFIX:-$root/.toolchain-install}
+target=${MYEMU_TARGET_TRIPLET:-myemulator2-elf}
 archive="$downloads/binutils-$BINUTILS_VERSION.tar.xz"
 
 [[ -f "$archive" ]] || "$root/toolchain/scripts/fetch-binutils.sh" >/dev/null
@@ -18,7 +19,7 @@ python3 "$root/toolchain/scripts/prepare-binutils-source.py" "$build/source"
 mkdir -p "$build/build"
 cd "$build/build"
 "$build/source/configure" \
-  --target=myemulator2-elf \
+  --target="$target" \
   --prefix="$prefix" \
   --disable-nls \
   --disable-werror \

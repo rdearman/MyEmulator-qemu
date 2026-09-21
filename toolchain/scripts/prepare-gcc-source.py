@@ -22,6 +22,7 @@ def main() -> None:
         destination.write_text(text)
 
     shutil.copyfile(fragment / "myemulator2.h", target / "myemulator2.h")
+    shutil.copyfile(fragment / "myemulator2-linux.h", target / "myemulator2-linux.h")
     shutil.copyfile(fragment / "myemulator2.md", target / "myemulator2.md")
     shutil.copyfile(fragment / "myemulator2-protos.h", target / "myemulator2-protos.h")
     libgcc_target = root / "libgcc/config/myemulator2"
@@ -32,10 +33,27 @@ def main() -> None:
     host_text = libgcc_host.read_text()
     old = 'myemulator2-*-elf | moxie-*-elf | moxie-*-moxiebox* | moxie-*-uclinux* | moxie-*-rtems*)\n\ttmake_file="$tmake_file myemulator2/t-myemulator2"'
     new = 'myemulator2-*-elf)\n\ttmake_file="$tmake_file myemulator2/t-myemulator2 t-softfp-sfdf t-softfp"'
+    # GCC source trees may be fresh, or may already have been prepared by a
+    # previous invocation.  Accept both forms and make the transformation
+    # idempotent instead of requiring one exact upstream line layout.
     if old in host_text:
         host_text = host_text.replace(old, new, 1)
-    elif 'myemulator2-*-elf)\n\ttmake_file="$tmake_file myemulator2/t-myemulator2 t-softfp-sfdf t-softfp"' not in host_text:
-        raise SystemExit("could not locate MyEmulator2 libgcc target")
+    elif not re.search(r"(?m)^myemulator2-\*-elf\)", host_text):
+        moxie_case = re.compile(
+            r"(?m)^(moxie-\*-elf \| moxie-\*-moxiebox\* \| "
+            r"moxie-\*-uclinux\* \| moxie-\*-rtems\*)\)\n")
+        host_text, count = moxie_case.subn(
+            "myemulator2-*-elf)\n"
+            "\ttmake_file=\"$tmake_file myemulator2/t-myemulator2 "
+            "t-softfp-sfdf t-softfp\"\n"
+            "\t;;\n\\1)\n", host_text, count=1)
+        if count != 1:
+            raise SystemExit("could not locate MyEmulator2 libgcc target")
+    # Repair the form produced by older versions of this preparation script.
+    host_text = host_text.replace(
+        "moxie-*-elf | moxie-*-moxiebox* | moxie-*-uclinux* | moxie-*-rtems*\n",
+        "moxie-*-elf | moxie-*-moxiebox* | moxie-*-uclinux* | moxie-*-rtems*)\n",
+        1)
     libgcc_host.write_text(host_text)
     for name in ("constraints.md", "predicates.md"):
         source = fragment / name
@@ -43,6 +61,8 @@ def main() -> None:
 
     cc = target / "myemulator2.cc"
     text = cc.read_text()
+    text = text.replace('#include "builtins.h"',
+                        '#include "builtins.h"\n#include "config/linux-protos.h"', 1)
     text = text.replace('#include "expr.h"',
                         '#include "expr.h"\n#include "optabs.h"', 1)
     # MyEmulator2 load/store instructions carry a signed 13-bit byte
@@ -292,26 +312,58 @@ void
 myemulator2_expand_cbranchdf4 (rtx *operands)
 {
   enum rtx_code code = GET_CODE (operands[0]);
-  enum rtx_code branch_code = code;
-  const char *name;
+  auto emit_call = [&](const char *name) {
+    rtx libfunc = gen_rtx_SYMBOL_REF (Pmode, name);
+    return emit_library_call_value (libfunc, NULL_RTX, LCT_CONST,
+                                    SImode, operands[1], DFmode,
+                                    operands[2], DFmode);
+  };
+  auto emit_branch = [&](rtx cmp, enum rtx_code branch) {
+    emit_cmp_and_jump_insns (cmp, const0_rtx, branch, NULL_RTX, SImode, 0,
+                             operands[3]);
+  };
+
   switch (code)
     {
-    case EQ: name = "__eqdf2"; break;
-    case NE: name = "__nedf2"; break;
-    case LT: name = "__ltdf2"; break;
-    case LE: name = "__ledf2"; break;
-    case GT: name = "__gtdf2"; break;
-    case GE: name = "__gedf2"; break;
-    case UNORDERED: name = "__unorddf2"; branch_code = NE; break;
-    case ORDERED: name = "__unorddf2"; branch_code = EQ; break;
+    case EQ: emit_branch (emit_call ("__eqdf2"), EQ); return;
+    case NE: emit_branch (emit_call ("__nedf2"), NE); return;
+    case LT: emit_branch (emit_call ("__ltdf2"), LT); return;
+    case LE: emit_branch (emit_call ("__ledf2"), LE); return;
+    case GT: emit_branch (emit_call ("__gtdf2"), GT); return;
+    case GE: emit_branch (emit_call ("__gedf2"), GE); return;
+    case UNORDERED: emit_branch (emit_call ("__unorddf2"), NE); return;
+    case ORDERED: emit_branch (emit_call ("__unorddf2"), EQ); return;
+    case UNEQ:
+      emit_branch (emit_call ("__unorddf2"), NE);
+      emit_branch (emit_call ("__eqdf2"), EQ);
+      return;
+    case UNLT:
+      emit_branch (emit_call ("__unorddf2"), NE);
+      emit_branch (emit_call ("__ltdf2"), LT);
+      return;
+    case UNLE:
+      emit_branch (emit_call ("__unorddf2"), NE);
+      emit_branch (emit_call ("__ledf2"), LE);
+      return;
+    case UNGT:
+      emit_branch (emit_call ("__unorddf2"), NE);
+      emit_branch (emit_call ("__gtdf2"), GT);
+      return;
+    case UNGE:
+      emit_branch (emit_call ("__unorddf2"), NE);
+      emit_branch (emit_call ("__gedf2"), GE);
+      return;
+    case LTGT:
+      {
+        rtx ordered = gen_label_rtx ();
+        emit_cmp_and_jump_insns (emit_call ("__unorddf2"), const0_rtx,
+                                 EQ, NULL_RTX, SImode, 0, ordered);
+        emit_branch (emit_call ("__nedf2"), NE);
+        emit_label (ordered);
+        return;
+      }
     default: gcc_unreachable ();
     }
-  rtx libfunc = gen_rtx_SYMBOL_REF (Pmode, name);
-  rtx cmp = emit_library_call_value (libfunc, NULL_RTX, LCT_CONST,
-                                     SImode, operands[1], DFmode,
-                                     operands[2], DFmode);
-  emit_cmp_and_jump_insns (cmp, const0_rtx, branch_code, NULL_RTX, SImode, 0,
-                           operands[3]);
 }
 
 '''
@@ -322,9 +374,31 @@ myemulator2_expand_cbranchdf4 (rtx *operands)
 
     config_gcc = root / "gcc/config.gcc"
     text = config_gcc.read_text()
+    # Remove any stale insertion from older script revisions before placing
+    # the hosted-only define in the correct target case.
+    text = text.replace('\n\ttm_defines="MYEMU2_HOSTED_LINUX=1"', '')
     text = text.replace("moxie*)\tcpu_type=moxie", "myemulator2*)\tcpu_type=myemulator2\n\ttarget_has_targetm_common=no\n\t;;\nmoxie*)\tcpu_type=moxie")
-    if "myemulator2-*-elf)" not in text:
-        text = text.replace("moxie-*-elf)\n", "myemulator2-*-elf)\n\tgas=yes\n\tgnu_ld=yes\n\ttm_file=\"elfos.h newlib-stdint.h ${tm_file}\"\n\ttmake_file=\"${tmake_file} myemulator2/t-myemulator2\"\n\t;;\nmoxie-*-elf)\n", 1)
+    if "myemulator2-*-linux-musl*)" not in text:
+        linux_case = (
+            "myemulator2-*-linux-musl*)\n"
+            "\tgas=yes\n"
+            "\tgnu_ld=yes\n"
+            "\ttm_file=\"elfos.h gnu-user.h linux.h glibc-stdint.h ${tm_file} myemulator2/myemulator2-linux.h\"\n"
+            "\ttmake_file=\"${tmake_file} myemulator2/t-myemulator2 t-linux\"\n"
+            "\t;;\n")
+        marker = "moxie-*-elf)\n"
+        if marker not in text:
+            raise SystemExit("could not locate GCC moxie ELF target case")
+        text = text.replace(marker, linux_case + marker, 1)
+    else:
+        text = text.replace(
+            'tm_file="elfos.h gnu-user.h linux.h glibc-stdint.h ${tm_file}"',
+            'tm_file="elfos.h gnu-user.h linux.h glibc-stdint.h ${tm_file} myemulator2/myemulator2-linux.h"',
+            1)
+        text = text.replace(
+            'tmake_file="${tmake_file} myemulator2/t-myemulator2"',
+            'tmake_file="${tmake_file} myemulator2/t-myemulator2 t-linux"',
+            1)
     config_gcc.write_text(text)
 
     config_sub = root / "config.sub"
@@ -339,14 +413,26 @@ myemulator2_expand_cbranchdf4 (rtx *operands)
 
     host = root / "libgcc/config.host"
     text = host.read_text()
+    text = text.replace(
+        "myemulator2-*-linux-musl*)\n",
+        "myemulator2-*-linux-musl* | myemulator2-linux-musl*)\n",
+        1)
+    if not re.search(r"myemulator2-\*-linux-musl", text):
+        text = text.replace(
+            "myemulator2-*-elf)\n",
+            "myemulator2-*-linux-musl* | myemulator2-linux-musl*)\n"
+            "\ttmake_file=\"$tmake_file myemulator2/t-myemulator2\"\n"
+            "\textra_parts=\"$extra_parts crti.o crtn.o crtbegin.o crtend.o\"\n"
+            "\t;;\nmyemulator2-*-elf)\n",
+            1)
     if "myemulator2*) cpu_type=myemulator2" not in text:
         marker = "moxie*)"
         if marker not in text:
             raise SystemExit("could not find libgcc moxie cpu_type case")
         text = text.replace(marker, "myemulator2*) cpu_type=myemulator2\n\t;;\n" + marker, 1)
-    if "myemulator2-*-elf" not in text:
+    if "myemulator2-*-linux-musl" not in text:
         text = text.replace("moxie-*-elf | moxie-*-moxiebox* | moxie-*-uclinux* | moxie-*-rtems*)",
-                            "myemulator2-*-elf | moxie-*-elf | moxie-*-moxiebox* | moxie-*-uclinux* | moxie-*-rtems*)")
+                            "myemulator2-*-linux-musl | myemulator2-*-elf | moxie-*-elf | moxie-*-moxiebox* | moxie-*-uclinux* | moxie-*-rtems*)")
         text = re.sub(r"moxie/t-moxie", "myemulator2/t-myemulator2", text, count=1)
     # The copied Moxie configuration also enables soft-fp support.  MyEmulator2
     # has no floating-point ISA, so the target libgcc must remain integer-only

@@ -8,6 +8,8 @@ downloads=${MYEMU_GCC_DOWNLOADS:-$root/.toolchain-downloads}
 build_root=${MYEMU_GCC_BUILD:-$root/.toolchain-build/gcc}
 prefix=${MYEMU_GCC_PREFIX:-$root/.toolchain-install}
 binutils_prefix=${MYEMU_TOOLCHAIN_PREFIX:-$root/.toolchain-install}
+target=${MYEMU_TARGET_TRIPLET:-myemulator2-elf}
+hosted_linux=${MYEMU_HOSTED_LINUX:-0}
 jobs=${JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)}
 archive="$downloads/gcc-$GCC_VERSION.tar.xz"
 source_dir="$build_root/gcc-$GCC_VERSION"
@@ -18,6 +20,11 @@ if [[ ! -f "$archive" ]]; then
 fi
 
 mkdir -p "$build_root"
+if [[ "$hosted_linux" == 1 ]]; then
+  mkdir -p "$prefix/$target/lib"
+  install -m 0644 "$root/toolchain/userspace/myemulator2-user.ld" \
+    "$prefix/$target/lib/myemulator2-user.ld"
+fi
 if [[ ! -d "$source_dir/gcc" ]]; then
   tar -xf "$archive" -C "$build_root"
 fi
@@ -43,14 +50,11 @@ am_cv_CC_dependencies_compiler_type=none
 EOF
 cd "$build_dir"
 
-CONFIG_SITE="$site_file" "$source_dir/configure" \
-  --target=myemulator2-elf \
+configure_args=(
+  --target="$target"
   --prefix="$prefix" \
   --with-as="$binutils_prefix/bin/myemulator2-elf-as" \
   --with-ld="$binutils_prefix/bin/myemulator2-elf-ld" \
-  --with-sysroot="$prefix/myemulator2-elf" \
-  --without-headers \
-  --with-newlib \
   --disable-nls \
   --disable-libssp \
   --disable-libquadmath \
@@ -64,6 +68,13 @@ CONFIG_SITE="$site_file" "$source_dir/configure" \
   --disable-shared \
   --disable-multilib \
   --enable-languages=c
+)
+if [[ "$hosted_linux" == 1 ]]; then
+  configure_args+=(--with-sysroot="$prefix/$target" --disable-newlib)
+else
+  configure_args+=(--with-sysroot="$prefix/myemulator2-elf" --without-headers --with-newlib)
+fi
+CONFIG_SITE="$site_file" "$source_dir/configure" "${configure_args[@]}"
 
 make -j"$jobs" all-gcc all-target-libgcc
 make install-gcc install-target-libgcc

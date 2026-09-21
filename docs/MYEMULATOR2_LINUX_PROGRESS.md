@@ -284,3 +284,20 @@ so the unconditional unlock corrupted the rwsem during the second `execve()`.
 The handler now reacquires the lock and retries once without
 `FAULT_FLAG_ALLOW_RETRY`.  The ext4 shell regression reaches the prompt,
 creates and reads a file, and executes twenty commands.
+
+## Native Linux GCC bring-up
+
+The hosted GCC build now supports the `myemulator2-linux-musl` target. The
+target-specific libgcc configuration excludes unsupported DWARF exception
+unwinding, includes the MyEmulator2 libgcc fragment, and handles all GCC
+soft-float comparison predicates. A separate hosted target header supplies
+musl startup and libc link specs while preserving the freestanding compiler
+target.
+
+The compiler installs the user linker script into the Linux sysroot so normal
+invocations produce the same 0x00700000 user image layout as the existing
+musl programs. `python3 toolchain/scripts/test-linux-native-gcc.py` compiles
+a C program with the staged compiler, boots it as `/init` in a disposable
+initramfs, and verifies `native-gcc-pass` on the QEMU serial console. This is
+the first verified native-toolchain runtime milestone; native binutils and
+GNU Make are not yet installed or verified inside the guest.
