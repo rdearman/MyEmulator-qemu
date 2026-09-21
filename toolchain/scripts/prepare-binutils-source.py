@@ -63,8 +63,10 @@ def main() -> None:
     # from Moxie.  The maintained fragments replace its instruction and ELF
     # definitions; these small table edits make configure/build discover them.
     for makefile in (root / "bfd/Makefile.am", root / "bfd/Makefile.in"):
-        replace(makefile, "cpu-moxie", "cpu-moxie cpu-myemulator2")
-        replace(makefile, "elf32-moxie", "elf32-moxie elf32-myemulator2")
+        replace(makefile, "cpu-moxie.lo", "cpu-moxie.lo cpu-myemulator2.lo")
+        replace(makefile, "cpu-moxie.c", "cpu-moxie.c cpu-myemulator2.c")
+        replace(makefile, "elf32-moxie.lo", "elf32-moxie.lo elf32-myemulator2.lo")
+        replace(makefile, "elf32-moxie.c", "elf32-moxie.c elf32-myemulator2.c")
     for configure in (root / "bfd/configure.ac", root / "bfd/configure"):
         add_after(configure,
                   "    moxie_elf32_le_vec)\t\t tb=\"$tb elf32-moxie.lo elf32.lo $elf\" ;;",
@@ -92,7 +94,7 @@ def main() -> None:
 
     add_before(root / "bfd/config.bfd",
                "  moxie-*-elf | moxie-*-rtems* | moxie-*-uclinux)",
-               "  myemulator2-*-elf)\n    targ_defvec=myemulator2_elf32_le_vec\n    ;;\n\n")
+               "  myemulator2-*-linux* | myemulator2-*-elf)\n    targ_defvec=myemulator2_elf32_le_vec\n    ;;\n\n")
     add_after(root / "gas/configure.tgt", "  moxie-*-*)\t\t\t\tfmt=elf ;;\n",
               "  myemulator2-*-*)\t\t\t\tfmt=elf endian=little ;;\n")
     add_after(root / "ld/configure.tgt", "moxie-*-*)\t\ttarg_emul=elf32moxie\n\t\t\t;;\n",
