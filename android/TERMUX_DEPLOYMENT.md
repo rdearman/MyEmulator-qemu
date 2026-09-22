@@ -37,7 +37,7 @@ file .android-build/deployment-input/rootfs.ext4
 dumpe2fs -h .android-build/deployment-input/rootfs.ext4 | sed -n '1,12p'
 ```
 
-## Desktop: build the deployment archive
+## Desktop: build and validate the deployment archive
 
 Use the ARM64 binary produced by the committed NDK build. The package script
 also bundles GLib, zlib, PCRE2, libffi-related Termux support, and iconv when
@@ -45,14 +45,19 @@ the cross-build sysroot is available:
 
 ```sh
 cd /home/rick/Development/Active/REM-android
-rm -rf .android-build/rem-deployment
+rm -rf .android-build/rem-deployment REM-android-arm64.zip
 ./android/package-rem.sh \
   .android-build/ndk-test/qemu-system-myemulator32 \
   .android-build/deployment-input/vmlinux \
   .android-build/deployment-input/rootfs.ext4 \
   .android-build/rem-deployment
-tar -C .android-build -czf REM-android-arm64.tar.gz rem-deployment
-sha256sum REM-android-arm64.tar.gz
+./android/validate-package.sh .android-build/rem-deployment
+(
+  cd .android-build
+  zip -qr ../REM-android-arm64.zip rem-deployment
+)
+sha256sum REM-android-arm64.zip
+unzip -l REM-android-arm64.zip
 ```
 
 The package uses the `myemulator32` machine, 16 MiB guest RAM, the REM block
@@ -67,7 +72,7 @@ Linux desktop:
 
 ```sh
 adb devices
-adb push REM-android-arm64.tar.gz /sdcard/Download/
+adb push REM-android-arm64.zip /sdcard/Download/
 ```
 
 In Termux, grant storage access once and extract the archive into the Termux
@@ -76,19 +81,13 @@ home directory:
 ```sh
 termux-setup-storage
 pkg update
-pkg install bash coreutils tar
+pkg install bash coreutils tar unzip glib zlib
 mkdir -p "$HOME/rem"
-tar -xzf "$HOME/storage/downloads/REM-android-arm64.tar.gz" \
-  -C "$HOME/rem" --strip-components=1
+unzip -q "$HOME/storage/downloads/REM-android-arm64.zip" -d "$HOME/rem"
+mv "$HOME/rem/rem-deployment"/* "$HOME/rem/"
+rmdir "$HOME/rem/rem-deployment"
 cd "$HOME/rem"
 chmod 700 launch-rem.sh qemu-system-myemulator32
-```
-
-If the package was built without bundled libraries, install the required
-runtime packages:
-
-```sh
-pkg install glib zlib
 ```
 
 The launcher prepends its bundled `lib/` directory and Termux's `$PREFIX/lib`
