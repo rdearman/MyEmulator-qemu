@@ -40,7 +40,7 @@ if [[ ! -f "$build_dir/.config" ]]; then
 	}
 	for option in LFS STATIC STATIC_LIBGCC INSTALL_APPLET_SYMLINKS \
 		SHELL_ASH ASH TRUE LS CAT ECHO PWD UNAME MKDIR TOUCH CP MV RM \
-		HEAD TAIL GREP FIND PS MOUNT UMOUNT DMESG VI; do
+		HEAD TAIL GREP FIND PS MOUNT UMOUNT DMESG VI SYNC; do
 		set_config "$option" y
 	done
 	set +e

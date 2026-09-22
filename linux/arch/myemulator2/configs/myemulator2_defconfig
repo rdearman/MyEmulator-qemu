@@ -30,7 +30,6 @@ CONFIG_MODULES=n
 # CONFIG_NET is not set
 CONFIG_SOUND=n
 CONFIG_USB=n
-# CONFIG_BLOCK is not set
 # CONFIG_INPUT is not set
 # CONFIG_VT is not set
 # CONFIG_HID is not set
