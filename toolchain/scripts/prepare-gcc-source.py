@@ -412,10 +412,18 @@ myemulator2_expand_cbranchdf4 (rtx *operands)
         text = config_sub.read_text()
         if "myemulator2" in text:
             continue
-        if marker not in text:
+        if marker in text:
+            config_sub.write_text(text.replace(marker, replacement, 1))
+            patched_config_sub += 1
             continue
-        config_sub.write_text(text.replace(marker, replacement, 1))
-        patched_config_sub += 1
+        # Older bundled Autoconf projects use a compact, unaligned case
+        # list.  They are still used by Canadian builds, so accept that
+        # spelling as well instead of silently leaving a stale config.sub.
+        compact = re.compile(r"(?m)^(\s*\|\s*)moxie(\s*\\\s*)$")
+        updated, count = compact.subn(r"\1myemulator2\2\n\g<0>", text, count=1)
+        if count:
+            config_sub.write_text(updated)
+            patched_config_sub += 1
     if not patched_config_sub and "myemulator2" not in (root / "config.sub").read_text():
         raise SystemExit("could not find config.sub machine-name list")
 
