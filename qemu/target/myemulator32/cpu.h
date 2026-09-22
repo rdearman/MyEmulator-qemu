@@ -14,7 +14,11 @@
 #define MMU_USER_IDX 1
 
 enum {
-    MYEMU32_EXCP_ILLEGAL = 1,
+    /* Keep QEMU-internal exception indices separate from the architectural
+     * vector numbers stored by myemu32_enter_exception().  In particular,
+     * vector 7 is instruction-protection, while the old sequential enum
+     * assigned 7 to MYEMU32_EXCP_NMI. */
+    MYEMU32_EXCP_ILLEGAL = 0x100,
     MYEMU32_EXCP_PRIVILEGE,
     MYEMU32_EXCP_INSN_ALIGN,
     MYEMU32_EXCP_DATA_ALIGN,

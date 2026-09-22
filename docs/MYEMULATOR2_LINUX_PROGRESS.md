@@ -465,3 +465,15 @@ guest-native GCC fixture still does not reach its marker: after the native
 compiler artifacts were relinked at `0x02000000`, the guest enters an
 NMI/panic path during the fork/exec test. The exact NMI injection source
 remains open; no QEMU process is left running by the test harness.
+
+## QEMU exception-index collision (2026-09-22)
+
+The apparent native-GCC NMI was traced to a QEMU namespace collision. The
+internal `MYEMU32_EXCP_NMI` index had value 7, the same value as architectural
+vector 7 (`MYEMU32_VECTOR_INSN_PROT`). A normal instruction-protection fault
+therefore re-entered QEMU as an NMI and Linux panicked while handling it. The
+internal exception indices now start at `0x100`, separate from architectural
+vectors. With the fix, `make spec-test`, `make cpu32-test`, the Linux process
+regression and ext4 persistence regression pass without the false NMI or
+panic. Native GCC still has a separate guest-process failure after this
+correction and is not yet accepted.
