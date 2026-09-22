@@ -183,6 +183,7 @@ bool myemulator32_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
     uint32_t pde, pte;
     uint32_t pde_addr, pte_addr;
     uint32_t perms;
+    bool allowed;
     uint32_t pde_index = (address >> 22) & 0x3ff;
     uint32_t pte_index = (address >> 12) & 0x3ff;
     MemTxResult result = MEMTX_OK;
@@ -235,10 +236,21 @@ bool myemulator32_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
         return false;
     }
 
-    perms = (pde & pte) >> 1;
-    if ((user && !(pde & 2) ) || (user && !(pte & 2)) ||
-        (fetch ? !(perms & (1u << 3)) :
-         store ? !(perms & (1u << 2)) : !(perms & (1u << 1)))) {
+    /* The Linux PTE format uses the low flag bits directly: USER=bit 1,
+     * READ=bit 2, WRITE=bit 3, EXEC=bit 4.  Check those flags directly
+     * instead of deriving a second, shifted permission namespace.  This
+     * keeps the hardware permission test identical to the documented PTE
+     * format and avoids rejecting executable user pages after a demand
+     * fault has installed them. */
+    allowed = !user || ((pde & (1u << 1)) && (pte & (1u << 1)));
+    if (allowed && fetch) {
+        allowed = (pde & (1u << 4)) && (pte & (1u << 4));
+    } else if (allowed && store) {
+        allowed = (pde & (1u << 3)) && (pte & (1u << 3));
+    } else if (allowed) {
+        allowed = (pde & (1u << 2)) && (pte & (1u << 2));
+    }
+    if (!allowed) {
         if (!probe) {
             myemulator32_mmu_fault(cs, env, retaddr, fault_prot, address);
         }
