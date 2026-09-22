@@ -19,6 +19,7 @@ toolchain/install/
 .userspace-downloads/
 .userspace-build/
 .userspace-stage/
+.userspace-archives/
 toolchain/examples/*.o
 toolchain/examples/*.elf
 toolchain/examples/*.bin

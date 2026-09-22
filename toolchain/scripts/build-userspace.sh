@@ -7,7 +7,12 @@ root=$(cd "$(dirname "$0")/../.." && pwd)
 packages=(
 	sysroot
 	zlib
+	bzip2
+	xz
 	readline
+	atomic-compat
+	openssl
+	libevent
 	make
 	diffutils
 	patch
@@ -19,6 +24,12 @@ packages=(
 	sqlite
 	lua
 	emacs
+	bash
+	curl
+	openssh
+	git
+	tmux
+	python
 )
 
 mkdir -p "$log_dir"

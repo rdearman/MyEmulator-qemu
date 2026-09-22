@@ -46,7 +46,12 @@ validation helpers. The per-package wrappers are:
 | --- | --- | --- |
 | sysroot/ncurses terminfo | `build-userspace-sysroot.sh` | existing `.musl-install` / ncurses 6.5 |
 | zlib | `build-userspace-zlib.sh` | 1.3.1 |
+| bzip2 | `build-userspace-bzip2.sh` | 1.0.8 |
+| xz | `build-userspace-xz.sh` | 5.6.4 |
 | GNU Readline | `build-userspace-readline.sh` | 8.2 |
+| atomic compatibility runtime | `build-userspace-atomic-compat.sh` | project source |
+| OpenSSL | `build-userspace-openssl.sh` | 3.4.1 |
+| libevent | `build-userspace-libevent.sh` | 2.1.12-stable |
 | GNU Make | `build-userspace-make.sh` | 4.4.1 |
 | GNU diffutils | `build-userspace-diffutils.sh` | 3.10 |
 | GNU patch | `build-userspace-patch.sh` | 2.7.6 |
@@ -58,6 +63,12 @@ validation helpers. The per-package wrappers are:
 | SQLite CLI/library | `build-userspace-sqlite.sh` | 3.46.1 |
 | Lua | `build-userspace-lua.sh` | 5.4.7 |
 | Emacs executable/Lisp/data | `build-userspace-emacs.sh` | 30.1 |
+| Bash | `build-userspace-bash.sh` | 5.2.37 |
+| curl | `build-userspace-curl.sh` | 8.12.1 |
+| OpenSSH client | `build-userspace-openssh.sh` | 9.9p2 |
+| Git | `build-userspace-git.sh` | 2.48.1 |
+| tmux | `build-userspace-tmux.sh` | 3.5a |
+| Python | `build-userspace-python.sh` | 3.12.9 |
 
 The top-level `build-userspace.sh` runs the wrappers in dependency order,
 continues across package failures, writes `.userspace-build/logs/summary.txt`,
@@ -101,8 +112,10 @@ helpers.
 
 ## Validation status
 
-The successful stage built all requested packages. Final package failures:
-none.
+The preserved stage built all previously supported packages plus Bash,
+OpenSSL, curl, OpenSSH client tools, Git, libevent, tmux, bzip2, and xz.
+Python is the final priority-one package failure; its exact build boundary is
+recorded below.
 
 The build verified staged ELF executables with
 `.toolchain-install/bin/myemulator2-elf-readelf`. The aggregate verifier checks
@@ -124,6 +137,60 @@ Runtime behavior is not claimed here. The stage has not been executed under
 REM Linux/QEMU, so terminal behavior, process semantics, filesystem
 persistence, Emacs interactivity, and SQLite database operation remain
 unverified until a REM Linux runtime test is available.
+
+The current REM kernel defconfig disables `CONFIG_NET`. Network clients and
+TLS support can therefore be cross-built and inspected, but SSH, Git network
+transports, and HTTPS cannot be runtime-tested with that kernel.
+
+Python 3.12.9 is not part of the preserved stage. Its two-stage cross-build
+compiled the interpreter core and the requested static `_ssl`, `_hashlib`,
+zlib, bzip2, xz, SQLite, Readline, and curses sources, then failed when
+CPython attempted to link a default shared extension with the static REM
+linker script supplied twice. No interpreter or partial standard-library tree
+was installed, so Python is not reported as complete.
+
+## Reproducible userspace archive
+
+Commit all build scripts before archiving so the archive metadata identifies
+the exact script revision. The archive command reads the existing stage and
+does not rebuild, delete, or modify it:
+
+```sh
+toolchain/scripts/archive-userspace.sh
+```
+
+The script writes an ignored `.userspace-archives/rem-userspace-<commit>.tar.gz`
+and adjacent `.metadata.txt`. Entries are sorted, numeric ownership is
+normalized to root, mtimes use the build-script commit timestamp, and gzip
+stores no host timestamp or filename. Permissions, symbolic links, and the
+complete directory structure are retained. The metadata records the absolute
+archive path, SHA-256, byte size, regular-file count, total-entry count,
+symlink count, full Git commit, source-date epoch, and whether Python was
+actually staged. It refuses to overwrite an existing archive.
+
+To install into a copy of a verified ext4 image while leaving the baseline
+unchanged:
+
+```sh
+baseline=/path/to/verified-rem-rootfs.img
+image=/tmp/rem-rootfs-with-userspace.img
+mountpoint=/tmp/rem-rootfs-with-userspace
+archive=/absolute/path/from/archive-metadata.tar.gz
+
+cp --reflink=auto --preserve=all "$baseline" "$image"
+mkdir -p "$mountpoint"
+sudo mount -o loop "$image" "$mountpoint"
+sudo tar --numeric-owner --same-owner --same-permissions \
+  --overwrite -xzf "$archive" -C "$mountpoint"
+sync
+sudo umount "$mountpoint"
+```
+
+Only `image`, the copy, is mounted and changed. Use a normal copy instead of
+`--reflink=auto` if the filesystem does not support reflinks. Verify the
+archive checksum against its metadata before mounting, and boot only the copy.
+Extraction may replace paths in the copied image, such as `/bin/sh`; the
+verified baseline remains byte-for-byte untouched.
 
 ## Integrating into the REM root filesystem
 

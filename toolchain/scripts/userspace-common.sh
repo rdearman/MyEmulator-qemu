@@ -24,7 +24,7 @@ userspace_init() {
 
 userspace_prepare_stage() {
 	mkdir -p "$stage_dir/bin" "$stage_dir/usr/bin" "$stage_dir/usr/include" \
-		"$stage_dir/usr/lib" "$stage_dir/usr/share/terminfo"
+		"$stage_dir/usr/lib" "$stage_dir/usr/share/terminfo" "$stage_dir/etc/ssl/certs"
 }
 
 userspace_require_safe_stage() {
@@ -116,7 +116,15 @@ userspace_autoconf_build() {
 			--disable-shared \
 			--enable-static \
 			"$@"
-		make -j"$jobs" LIBS="$LIBS"
+		if declare -F userspace_configure_fixup >/dev/null; then
+			userspace_configure_fixup
+		fi
+		if [[ ${MYEMU_USERSPACE_PRESERVE_MAKE_LIBS:-0} == 1 ]]; then
+			env -u LIBS make -j"$jobs" ${MYEMU_USERSPACE_MAKE_ARGS:-}
+		else
+			make -j"$jobs" LIBS="${MYEMU_USERSPACE_MAKE_LIBS:-$LIBS}" \
+				${MYEMU_USERSPACE_MAKE_ARGS:-}
+		fi
 		make DESTDIR="$stage_dir" LIBS="$LIBS" ${MYEMU_USERSPACE_INSTALL_ARGS:-} install
 	)
 }
@@ -160,6 +168,16 @@ userspace_verify_bins() {
 			{ echo "missing staged binary: $path" >&2; exit 1; }
 		userspace_verify_elf "$path" >/dev/null
 	done
+}
+
+userspace_stage_ca_bundle() {
+	local version=2025-02-25
+	local url=https://curl.se/ca/cacert-$version.pem
+	local sha256=50a6277ec69113f00c5fd45f09e8b97a4b3e32daa35d3a95ab30137a55386cef
+	local bundle
+	bundle=$(userspace_fetch_archive ca-certificates "$url" "$sha256")
+	install -Dm0644 "$bundle" "$stage_dir/etc/ssl/certs/ca-certificates.crt"
+	ln -sfn certs/ca-certificates.crt "$stage_dir/etc/ssl/cert.pem"
 }
 
 userspace_verify_stage_elfs() {
