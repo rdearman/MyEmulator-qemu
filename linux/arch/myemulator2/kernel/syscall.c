@@ -54,6 +54,10 @@
 #define MYEMU2_NR_SET_ROBUST_LIST 99
 #define MYEMU2_NR_RT_SIGACTION 134
 #define MYEMU2_NR_RT_SIGPROCMASK 135
+#define MYEMU2_NR_KILL        129
+#define MYEMU2_NR_TKILL       130
+#define MYEMU2_NR_TGKILL      131
+#define MYEMU2_NR_SIGALTSTACK 132
 
 extern ssize_t ksys_write(unsigned int fd, const char __user *buf,
 			  size_t count);
@@ -108,6 +112,11 @@ extern long sys_newuname(struct new_utsname __user *name);
 extern long sys_sched_yield(void);
 extern long sys_statx(int dfd, const char __user *path, unsigned flags,
 			 unsigned mask, struct statx __user *buffer);
+extern long sys_kill(pid_t pid, int sig);
+extern long sys_tkill(pid_t pid, int sig);
+extern long sys_tgkill(pid_t tgid, pid_t pid, int sig);
+extern long sys_sigaltstack(const struct sigaltstack __user *uss,
+				    struct sigaltstack __user *uoss);
 
 asmlinkage long myemulator2_syscall(unsigned long nr,
 		unsigned long a0, unsigned long a1, unsigned long a2,
@@ -225,6 +234,15 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 	case MYEMU2_NR_RT_SIGPROCMASK:
 		return sys_rt_sigprocmask((int)a0, (sigset_t __user *)a1,
 			(sigset_t __user *)a2, a3);
+	case MYEMU2_NR_KILL:
+		return sys_kill((pid_t)a0, (int)a1);
+	case MYEMU2_NR_TKILL:
+		return sys_tkill((pid_t)a0, (int)a1);
+	case MYEMU2_NR_TGKILL:
+		return sys_tgkill((pid_t)a0, (pid_t)a1, (int)a2);
+	case MYEMU2_NR_SIGALTSTACK:
+		return sys_sigaltstack((const struct sigaltstack __user *)a0,
+			(struct sigaltstack __user *)a1);
 	case MYEMU2_NR_EXECVE:
 		return sys_execve((const char __user *)a0,
 			(const char __user *const __user *)a1,

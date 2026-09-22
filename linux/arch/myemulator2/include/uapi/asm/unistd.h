@@ -1,6 +1,7 @@
 #ifndef _UAPI_ASM_MYEMULATOR2_UNISTD_H
 #define _UAPI_ASM_MYEMULATOR2_UNISTD_H
 #define __NR_arch_specific_syscall 244
+#define __NR_rt_sigreturn 139
 #define __ARCH_WANT_NEW_STAT
 #define __ARCH_WANT_RENAMEAT
 #endif

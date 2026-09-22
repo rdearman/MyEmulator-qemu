@@ -26,6 +26,7 @@ myemulator2_init_user_regs(struct pt_regs *regs, unsigned long pc,
 	regs->sr = 0;
 	regs->cause = 0;
 	regs->info = 0;
+	regs->orig_r1 = -1;
 }
 
 /*
@@ -85,6 +86,7 @@ void start_thread(struct pt_regs *regs, unsigned long pc, unsigned long usp)
 	/* start_thread prepares a User-mode image; ret_from_fork will place
 	 * this SR in the native exception frame consumed by RFE. */
 	regs->sr = 0;
+	regs->orig_r1 = -1;
 	/* kernel_execve runs in a kernel thread.  Keep the new image in task
 	 * state as well as the transient pt_regs slot: scheduling or the return
 	 * from the kernel-thread entry function must not restore the old image. */
