@@ -14,6 +14,7 @@ clang="$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${api
 llvm="$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin"
 tools="$project_root/.android-build/ndk-tools"
 target_prefix="$tools/aarch64-linux-android-"
+networking="${REM_ENABLE_NETWORKING:-0}"
 
 [[ -x "$clang" ]] || { echo "missing NDK compiler: $clang" >&2; exit 2; }
 [[ -x "$qemu_source/configure" ]] || { echo "missing QEMU source: $qemu_source" >&2; exit 2; }
@@ -27,6 +28,7 @@ if [[ ! -f "$sysroot/data/data/com.termux/files/usr/lib/pkgconfig/glib-2.0.pc" ]
     pool/main/libf/libffi/libffi_3.8.0_aarch64.deb
     pool/main/liba/libandroid-support/libandroid-support_29-1_aarch64.deb
     pool/main/libi/libiconv/libiconv_1.19_aarch64.deb
+    pool/main/libs/libslirp/libslirp_4.8.0-2_aarch64.deb
     pool/main/p/pcre2/pcre2_10.47_aarch64.deb
     pool/main/r/resolv-conf/resolv-conf_1.3_aarch64.deb
     pool/main/z/zlib/zlib_1.3.2_aarch64.deb
@@ -51,21 +53,28 @@ fi
 mkdir -p "$build"
 (
   cd "$build"
+  configure_args=(
+    --cross-prefix="$target_prefix"
+    --host-cc=cc
+    --target-list=myemulator32-softmmu,myemulator-softmmu
+    --without-default-features
+    --enable-system
+    --enable-tools
+    --disable-fdt
+    --disable-docs
+    --disable-plugins
+    --disable-werror
+  )
+  if [[ "$networking" == 1 ]]; then
+    configure_args+=(--enable-slirp)
+  else
+    configure_args+=(--disable-slirp)
+  fi
   PKG_CONFIG_SYSROOT_DIR="$sysroot" \
   PKG_CONFIG_LIBDIR="$sysroot/data/data/com.termux/files/usr/lib/pkgconfig:$sysroot/data/data/com.termux/files/usr/share/pkgconfig" \
   PKG_CONFIG_PATH='' \
   CC="$clang" \
-    "$qemu_source/configure" \
-      --cross-prefix="$target_prefix" \
-      --host-cc=cc \
-      --target-list=myemulator32-softmmu,myemulator-softmmu \
-      --without-default-features \
-      --enable-system \
-      --enable-tools \
-      --disable-fdt \
-      --disable-docs \
-      --disable-plugins \
-      --disable-werror
+    "$qemu_source/configure" "${configure_args[@]}"
   PKG_CONFIG_SYSROOT_DIR="$sysroot" \
   PKG_CONFIG_LIBDIR="$sysroot/data/data/com.termux/files/usr/lib/pkgconfig:$sysroot/data/data/com.termux/files/usr/share/pkgconfig" \
   PKG_CONFIG_PATH='' ninja -j"$jobs" qemu-system-myemulator32 qemu-system-myemulator

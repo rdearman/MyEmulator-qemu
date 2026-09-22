@@ -1,6 +1,9 @@
 #include "qemu/osdep.h"
 #include "qapi/error.h"
 #include "qemu/error-report.h"
+#include "hw/virtio/virtio-mmio.h"
+#include "hw/virtio/virtio-net.h"
+#include "net/net.h"
 #include "hw/boards.h"
 #include "hw/loader.h"
 #include "hw/core/cpu.h"
@@ -22,6 +25,8 @@
 #define MYEMU32_ELF_MACHINE 0xF2E2
 #define MYEMU32_RESET_SSP_ADDR 0x00000400
 #define MYEMU32_RESET_PC_ADDR  0x00000404
+#define MYEMU32_VIRTIO_NET_BASE 0xf0200000u
+#define MYEMU32_VIRTIO_NET_IRQ  5u
 
 typedef struct MyEmulator32MachineState {
     MachineState parent_obj;
@@ -35,6 +40,31 @@ DECLARE_INSTANCE_CHECKER(MyEmulator32MachineState, MYEMULATOR32_MACHINE,
 static void myemulator32_machine_irq(void *opaque, int number, int level)
 {
     myemulator32_cpu_set_irq(CPU(opaque), number, level != 0);
+}
+
+static void myemulator32_create_network(MyEmulator32MachineState *s)
+{
+    DeviceState *transport;
+    DeviceState *net;
+    VirtIOMMIOProxy *proxy;
+    BusState *bus;
+
+    net = qemu_create_nic_device(TYPE_VIRTIO_NET, true, NULL);
+    if (!net) {
+        return;
+    }
+
+    transport = qdev_new(TYPE_VIRTIO_MMIO);
+    qdev_prop_set_bit(transport, "force-legacy", false);
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(transport), &error_fatal);
+    sysbus_mmio_map(SYS_BUS_DEVICE(transport), 0, MYEMU32_VIRTIO_NET_BASE);
+    sysbus_connect_irq(SYS_BUS_DEVICE(transport), 0,
+                       qemu_allocate_irq(myemulator32_machine_irq,
+                                         s->cpu, MYEMU32_VIRTIO_NET_IRQ));
+
+    proxy = VIRTIO_MMIO(transport);
+    bus = BUS(&proxy->bus);
+    qdev_realize_and_unref(net, bus, &error_fatal);
 }
 
 static void myemulator32_machine_init(MachineState *machine)
@@ -111,6 +141,8 @@ static void myemulator32_machine_init(MachineState *machine)
     sysbus_realize_and_unref(SYS_BUS_DEVICE(block), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(block), 0, MYEMU32_BLOCK_BASE);
 
+    myemulator32_create_network(s);
+
     cpu_reset(CPU(s->cpu));
     cpu_resume(CPU(s->cpu));
 }
@@ -119,7 +151,7 @@ static void myemulator32_machine_class_init(ObjectClass *oc, void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
 
-    mc->desc = "MyEmulator 2.0 32-bit computer (initial CPU milestone)";
+    mc->desc = "MyEmulator 2.0 32-bit computer";
     mc->init = myemulator32_machine_init;
     mc->default_cpu_type = MYEMULATOR32_CPU_TYPE_NAME("myemu32");
     mc->default_ram_size = MYEMU32_DEFAULT_RAM;
@@ -129,6 +161,7 @@ static void myemulator32_machine_class_init(ObjectClass *oc, void *data)
     mc->no_floppy = 1;
     mc->no_cdrom = 1;
     mc->no_parallel = 1;
+    mc->default_nic = TYPE_VIRTIO_NET;
 }
 
 static const TypeInfo myemulator32_machine_types[] = {
