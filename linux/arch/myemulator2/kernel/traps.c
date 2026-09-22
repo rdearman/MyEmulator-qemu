@@ -12,9 +12,11 @@
 asmlinkage long myemulator2_syscall(unsigned long nr,
 		unsigned long a0, unsigned long a1, unsigned long a2,
 		unsigned long a3, unsigned long a4, unsigned long a5);
+asmlinkage long myemulator2_rt_sigreturn(struct pt_regs *regs);
 void myemulator2_timer_interrupt(void);
 asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 				      unsigned long address);
+void arch_do_signal_or_restart(struct pt_regs *regs);
 
 struct pt_regs *myemulator2_current_pt_regs(void)
 {
@@ -23,6 +25,7 @@ struct pt_regs *myemulator2_current_pt_regs(void)
 
 void myemulator2_exception_dispatch(struct pt_regs *regs)
 {
+	void myemulator2_finish_user_exception(struct pt_regs *);
 	/* Keep the live user frame available to copy_thread().  A timer or
 	 * other supervisor exception may interrupt a syscall while it is in
 	 * kernel C code; replacing this pointer with that nested frame would
@@ -30,12 +33,21 @@ void myemulator2_exception_dispatch(struct pt_regs *regs)
 	 * Explicit exception handlers still use their regs argument directly. */
 	if (!current_thread_info()->regs || user_mode(regs))
 		current_thread_info()->regs = regs;
+	if (regs->cause != 12)
+		regs->orig_r1 = -1;
 	if (regs->cause == 12) {
 		/* Make the interrupted user continuation visible to clone()/execve()
 		 * while they copy the current register image. */
+		regs->orig_r1 = regs->r[1];
 		regs->pc += 4;
+		if (regs->r[1] == 139) {
+			myemulator2_rt_sigreturn(regs);
+			myemulator2_finish_user_exception(regs);
+			return;
+		}
 		regs->r[1] = myemulator2_syscall(regs->r[1], regs->r[2],
 			regs->r[3], regs->r[4], regs->r[5], regs->r[6], regs->r[7]);
+		myemulator2_finish_user_exception(regs);
 		return;
 	}
 	/* Vectors 16-22 represent IRQ1-IRQ7.  IRQ1 has the clockevent's
@@ -52,15 +64,29 @@ void myemulator2_exception_dispatch(struct pt_regs *regs)
 			irq_exit();
 		}
 		arch_local_irq_restore(flags);
+		myemulator2_finish_user_exception(regs);
 		return;
 	}
 	if (regs->cause >= 4 && regs->cause <= 9) {
 		do_page_fault(regs, regs->cause, regs->info);
+		myemulator2_finish_user_exception(regs);
 		return;
 	}
 	pr_emerg("MyEmulator2 exception: pc=%08lx sr=%08lx cause=%lu info=%08lx\n",
 		regs->pc, regs->sr, regs->cause, regs->info);
 	panic("unhandled MyEmulator2 exception");
+}
+
+void myemulator2_finish_user_exception(struct pt_regs *regs)
+{
+	if (!user_mode(regs))
+		return;
+	/* This early architecture port predates the generic entry-common hooks.
+	 * Run the same arch signal hook directly while interrupts are enabled,
+	 * then leave the native exception return with IRQs disabled. */
+	local_irq_enable();
+	arch_do_signal_or_restart(regs);
+	local_irq_disable();
 }
 
 void show_regs(struct pt_regs *regs)

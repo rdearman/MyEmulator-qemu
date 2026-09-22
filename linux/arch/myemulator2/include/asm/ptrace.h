@@ -11,6 +11,8 @@ struct pt_regs {
 	unsigned long sr;
 	unsigned long cause;
 	unsigned long info;
+	/* Syscall number captured before r1 is replaced by its result. */
+	long orig_r1;
 };
 #define user_mode(regs) (!((regs)->sr & (1u << 5)))
 #define instruction_pointer(regs) ((regs)->pc)

@@ -10,7 +10,8 @@
 myemulator2_exception_entry:
 	sw r15, -4(sp)
 	addi r15, sp, 0
-	addi sp, sp, -80
+	/* 84 bytes of pt_regs plus 12 bytes padding keeps the C stack aligned. */
+	addi sp, sp, -96
 	sw r0, 0(sp)
 	sw r1, 4(sp)
 	sw r2, 8(sp)
@@ -40,7 +41,7 @@ myemulator2_exception_entry:
 	addi r1, sp, 0
 	call myemulator2_exception_dispatch
 	/* Reconstruct the native-frame pointer; C is allowed to use r15. */
-	addi r15, sp, 80
+	addi r15, sp, 96
 	lw r3, 64(sp)
 	sw r3, 0(r15)
 	lw r3, 68(sp)
@@ -63,6 +64,6 @@ myemulator2_exception_entry:
 	lw r12, 48(sp)
 	lw r14, 56(sp)
 	lw r15, 60(sp)
-	addi sp, sp, 80
+	addi sp, sp, 96
 	rfe
 	.size myemulator2_exception_entry, .-myemulator2_exception_entry
