@@ -3,6 +3,8 @@
 
 void __delay(unsigned long loops)
 {
+	if (!loops)
+		return;
 	/* Keep the decrement explicit: the C post-decrement is lowered to
 	 * the signed-immediate encoding (4095 == -1), which is needlessly
 	 * expensive in the tiny target's delay path. */

@@ -32,25 +32,58 @@ pgd_t *pgd_alloc(struct mm_struct *mm)
 {
 	pgd_t *pgd = (pgd_t *)get_zeroed_page(GFP_KERNEL);
 	pte_t *user_pte;
-	unsigned int flags = _PAGE_PRESENT | _PAGE_USER | _PAGE_READ |
+	unsigned int kernel_flags = _PAGE_PRESENT | _PAGE_READ |
 		_PAGE_WRITE | _PAGE_EXEC;
+	unsigned int user_flags = kernel_flags | _PAGE_USER;
+	unsigned int i;
 	if (pgd)
 		memcpy(pgd, swapper_pg_dir, sizeof(swapper_pg_dir));
 	if (!pgd)
 		return NULL;
-	/* The kernel uses a low identity map through the end of physical RAM.
-	 * Keep the user image above that range so supervisor accesses through
-	 * the kernel's physical pointers cannot alias user mappings. */
+	/* The kernel uses low identity mappings for supervisor accesses.  The
+	 * master PTE pages cannot be shared with a user mm: a user page fault in
+	 * the low address range would otherwise replace a kernel identity PTE
+	 * with the user's physical page.  Keep private supervisor-only copies in
+	 * every mm.  This also makes an incorrectly linked low-address user ELF
+	 * fail safely instead of corrupting the kernel address space. */
+	for (i = 0; i < 4; i++) {
+		pte_t *private_pte = (pte_t *)get_zeroed_page(GFP_KERNEL);
+		if (!private_pte) {
+			while (i)
+				free_page((unsigned long)(pgd[--i].pgd & PAGE_MASK));
+			free_page((unsigned long)pgd);
+			return NULL;
+		}
+		memcpy(private_pte, swapper_pte[i], PAGE_SIZE);
+		pgd[i] = __pgd((unsigned long)private_pte | kernel_flags);
+	}
+	/* Keep the user image above the kernel identity range. */
 	user_pte = (pte_t *)get_zeroed_page(GFP_KERNEL);
 	if (user_pte) {
 		pgd[MYEMU_USER_IMAGE_BASE >> PGDIR_SHIFT] =
-			__pgd((unsigned long)user_pte | flags);
+			__pgd((unsigned long)user_pte | user_flags);
 		/* This private second-level table is traversed and released by
 		 * Linux's generic mm teardown just like a demand-allocated PTE
 		 * page.  Keep pgtables_bytes balanced across exec/exit. */
 		mm_inc_nr_ptes(mm);
 	}
 	return pgd;
+}
+
+void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+{
+	unsigned int i;
+
+	if (!pgd)
+		return;
+	/* This port stores second-level PTE pages directly in PGD entries. */
+	for (i = 0; i < 4; i++) {
+		if (pgd[i].pgd)
+			free_page((unsigned long)(pgd[i].pgd & PAGE_MASK));
+	}
+	if (pgd[MYEMU_USER_IMAGE_BASE >> PGDIR_SHIFT].pgd)
+		free_page((unsigned long)(pgd[MYEMU_USER_IMAGE_BASE >> PGDIR_SHIFT].pgd & PAGE_MASK));
+	free_page((unsigned long)pgd);
 }
 
 void __init paging_init(void)

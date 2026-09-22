@@ -103,6 +103,8 @@ static inline void myemulator2_tlbflush(void)
 #ifndef __ASSEMBLY__
 struct mm_struct;
 extern pgd_t *pgd_alloc(struct mm_struct *mm);
+extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
+#define __HAVE_ARCH_PGD_FREE
 static inline unsigned long pmd_page_vaddr(pmd_t pmd)
 { return pmd_val(pmd) & PAGE_MASK; }
 static inline unsigned long pud_page_vaddr(pud_t pud)

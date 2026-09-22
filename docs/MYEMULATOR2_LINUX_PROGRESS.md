@@ -447,3 +447,21 @@ base.  The temporary allocator and MMU traces were removed.  `make spec-test`,
 with the rebuilt QEMU and kernel.  Genuine guest-native GCC compilation is
 still not accepted: the existing self-hosted fixture currently stalls in a
 later boot/console or block-I/O path and needs separate diagnosis.
+
+## Private low PTEs and delay-loop safety (2026-09-22)
+
+The shared-PTE alias was corrected by giving each process private copies of
+the four low identity-map PTE pages, with supervisor-only PDE flags. The
+architecture now also frees the direct PGD-resident PTE pages during
+`pgd_free`, preventing low user faults from rewriting kernel identity
+mappings and avoiding leaks across `execve`/exit. A zero guard was added to
+the optimized `__delay` loop; without it, a sub-256-unit delay shifted to
+zero and decremented to `0xffffffff`, creating an apparent kernel hang.
+
+After rebuilding the kernel and clean QEMU, `make spec-test`, `make
+cpu32-test`, `python3 toolchain/scripts/test-linux-process.py`, and
+`python3 toolchain/scripts/test-linux-ext4-persistence.py` pass. The genuine
+guest-native GCC fixture still does not reach its marker: after the native
+compiler artifacts were relinked at `0x02000000`, the guest enters an
+NMI/panic path during the fork/exec test. The exact NMI injection source
+remains open; no QEMU process is left running by the test harness.
