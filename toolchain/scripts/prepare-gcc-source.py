@@ -378,6 +378,18 @@ myemulator2_expand_cbranchdf4 (rtx *operands)
     # the hosted-only define in the correct target case.
     text = text.replace('\n\ttm_defines="MYEMU2_HOSTED_LINUX=1"', '')
     text = text.replace("moxie*)\tcpu_type=moxie", "myemulator2*)\tcpu_type=myemulator2\n\ttarget_has_targetm_common=no\n\t;;\nmoxie*)\tcpu_type=moxie")
+    if "myemulator2-*-elf)" not in text:
+        bare_case = (
+            "myemulator2-*-elf)\n"
+            "\tgas=yes\n"
+            "\tgnu_ld=yes\n"
+            "\ttm_file=\"elfos.h newlib-stdint.h ${tm_file}\"\n"
+            "\ttmake_file=\"${tmake_file} myemulator2/t-myemulator2\"\n"
+            "\t;;\n")
+        marker = "moxie-*-elf)\n"
+        if marker not in text:
+            raise SystemExit("could not locate GCC moxie ELF target case")
+        text = text.replace(marker, bare_case + marker, 1)
     if "myemulator2-*-linux-musl*)" not in text:
         linux_case = (
             "myemulator2-*-linux-musl*)\n"

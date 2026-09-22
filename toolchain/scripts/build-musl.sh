@@ -41,5 +41,9 @@ if [[ ! -f "$build_dir/config.mak" ]]; then
 		--disable-shared \
 		--disable-wrapper)
 fi
-make -C "$build_dir" -j"${JOBS:-1}"
+if [[ -n "${MYEMU_MUSL_MAKE_CFLAGS:-}" ]]; then
+	make -C "$build_dir" CFLAGS="$MYEMU_MUSL_MAKE_CFLAGS" -j"${JOBS:-1}"
+else
+	make -C "$build_dir" -j"${JOBS:-1}"
+fi
 make -C "$build_dir" install

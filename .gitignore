@@ -10,6 +10,10 @@ toolchain/downloads/
 toolchain/install/
 .linux-downloads/
 .linux-build/
+.emacs-downloads/
+.emacs-build/
+.musl-build/
+.musl-install/
 toolchain/examples/*.o
 toolchain/examples/*.elf
 toolchain/examples/*.bin
