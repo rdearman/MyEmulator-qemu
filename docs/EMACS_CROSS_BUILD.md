@@ -76,12 +76,18 @@ The script configures and builds native host utilities in
 (`etags`, `ctags`, `make-docfile`, `make-fingerprint`, and `ebrowse`) into
 the target build. The target link uses the REM musl startup objects followed
 by `libncursesw.a`, `libtinfo.a`, libc, libm, and libgcc in static-link order.
-The resulting executable is `.emacs-build/target/src/emacs`.
+The target prefix defaults to `/usr`, and the resulting executable is
+`.emacs-build/target/src/emacs`.
 
 The final target is verified as a static ELF32 executable with the REM
 machine identifier (`readelf` reports machine value `0xf2e2`). It has not
 been run under REM Linux: no QEMU executable is available in this authorized
 clone, so terminal editing, saving, and persistence remain unverified.
+
+For the REM Linux userspace stage, `toolchain/scripts/build-userspace-emacs.sh`
+copies the target executable to `.userspace-stage/usr/bin/emacs`, stages the
+Emacs 30.1 Lisp/data directories under `.userspace-stage/usr/share/emacs/30.1`,
+and copies ncurses terminfo into `.userspace-stage/usr/share/terminfo`.
 
 The earlier `stdckdint.h` failure was a host/target configuration mix-up.
 Native configuration generates Emacs's gnulib replacement, while target

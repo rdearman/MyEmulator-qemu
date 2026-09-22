@@ -177,3 +177,19 @@ interaction regression is:
 ```sh
 python3 toolchain/scripts/test-linux-bootstrap-shell.py
 ```
+
+## REM Linux userspace stage
+
+A broader static userspace can be cross-built and staged under the ignored
+`.userspace-stage` tree:
+
+```sh
+JOBS=2 ./toolchain/scripts/build-userspace.sh
+```
+
+The orchestrator uses the REM GCC in `.toolchain-install`, the REM
+musl/ncurses sysroot in `.musl-install`, native host build tools, and
+per-package wrappers for GNU make, diffutils, patch, tar, grep, sed, gzip,
+less, SQLite, Lua, zlib, Readline, and Emacs staging. See
+[`../docs/REM_LINUX_USERSPACE.md`](../docs/REM_LINUX_USERSPACE.md) for the
+package versions, stage layout, validation logs, and runtime caveats.

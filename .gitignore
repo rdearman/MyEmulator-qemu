@@ -16,6 +16,9 @@ toolchain/install/
 .musl-install/
 .ncurses-downloads/
 .ncurses-build/
+.userspace-downloads/
+.userspace-build/
+.userspace-stage/
 toolchain/examples/*.o
 toolchain/examples/*.elf
 toolchain/examples/*.bin

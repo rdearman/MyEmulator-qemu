@@ -11,4 +11,4 @@ for arg in "$@"; do
 done
 
 exec "$compiler" "$prefix/lib/crt1.o" "$prefix/lib/crti.o" "$@" \
-    "$prefix/lib/crtn.o"
+    -lc -lgcc "$prefix/lib/crtn.o"

@@ -9,7 +9,7 @@ JOBS ?= $(shell getconf _NPROCESSORS_ONLN 2>/dev/null || printf '1')
 
 .PHONY: all build build32 qemu test check cpu-test cpu32-test debug-test device-test \
 	assembler-test emacs-test firmware-test spec-test myfs-demo myfs-test \
-	toolchain-build toolchain-test gcc-build gcc-test clean help
+	toolchain-build toolchain-test gcc-build gcc-test userspace-build clean help
 
 all: build
 
@@ -70,6 +70,9 @@ gcc-test: gcc-build build32
 		QEMU_MYEMULATOR32="$(QEMU32_BINARY)" \
 		python3 $(PROJECT_ROOT)/toolchain/scripts/test-gcc.sh
 
+userspace-build:
+	JOBS="$(JOBS)" $(PROJECT_ROOT)/toolchain/scripts/build-userspace.sh
+
 MYFS_BUILD ?= $(PROJECT_ROOT)/build/myfs
 MYFS_IMAGE ?= $(MYFS_BUILD)/myemulator.img
 
@@ -114,6 +117,7 @@ help:
 	@echo '  make toolchain-test  run GNU binutils and QEMU ELF integration tests'
 	@echo '  make gcc-build       build the MyEmulator2 GCC cross compiler'
 	@echo '  make gcc-test        run freestanding C through GCC, LD, and QEMU'
+	@echo '  make userspace-build build and stage the REM Linux userspace'
 	@echo '  make cpu32-test     run the MyEmulator 2.0 executable CPU tests'
 	@echo '  make myfs-demo      build boot sector, COMMAND.COM, HELLO.COM, and image'
 	@echo '  make myfs-test      run MyFS host-builder tests'

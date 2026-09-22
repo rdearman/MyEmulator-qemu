@@ -6,6 +6,7 @@ source_dir=${MYEMU_EMACS_SOURCE:-$root/.emacs-build/emacs-30.1}
 host_build=${MYEMU_EMACS_HOST_BUILD:-$root/.emacs-build/host}
 target_build=${MYEMU_EMACS_BUILD:-$root/.emacs-build/target}
 host_prefix=${MYEMU_EMACS_HOST_PREFIX:-$root/.emacs-host-install}
+target_prefix=${MYEMU_EMACS_TARGET_PREFIX:-/usr}
 tool_prefix=${MYEMU_TOOLCHAIN_PREFIX:-$root/.toolchain-install}
 musl_prefix=${MYEMU_MUSL_PREFIX:-$root/.musl-install}
 jobs=${JOBS:-2}
@@ -58,7 +59,7 @@ mkdir -p "$host_build" "$target_build"
 	LDFLAGS="-static -L$musl_prefix/lib" \
 	LIBS="-lncursesw -ltinfo -lc -lm -lgcc" \
 	"$source_dir/configure" \
-		--prefix="$root/.emacs-install" \
+	--prefix="$target_prefix" \
 		--build=x86_64-pc-linux-gnu \
 		--host=myemulator2-linux-musl \
 		--without-x \
