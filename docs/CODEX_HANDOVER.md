@@ -361,3 +361,45 @@ into: (1) the r14 link-register fix + full signal.c/traps.c/entry.S/etc.
 signal-handling implementation, and (2) the Problem #1 IRQ fix, as separate
 commits, with the two remaining diagnostic pr_warns removed before either
 commit lands.
+
+## UPDATE (2026-09-22) — BusyBox artifact and stable kernel baseline
+
+The reported `getopt32()`/`r14` failure was reproduced against the exact
+old artifact `/tmp/rem-busybox-fixed-bin` (SHA-256
+`b35851f850ca7bc0a71aed90c4dc26ec0b64e88aac63794460f7866cabbd0860`).
+That binary is the stale build23 output, built before the committed GCC
+alloca/VLA fix (`b4dedb3`). The current corrected BusyBox was rebuilt from
+pinned 1.37.0 source with the repaired compiler and `/tmp/rem-musl-fixed`;
+its SHA-256 is `464f7682599ebd0b5408bdadde2f3fdf8aea3741b88caba9c9146a9e9ea4e54f`.
+The corrected binary's `getopt32` object is materially different: its
+unstripped image is 770124 bytes versus 638388 bytes for build23. A
+disposable direct-`ls` fixture showed the stale binary terminating while
+the corrected binary completed the applet and returned normally. The
+corruption was therefore in the stale GCC-generated BusyBox artifact, not
+signal delivery or QEMU's `getopt32` call/return path.
+
+The later shell timeout exposed a separate kernel configuration problem:
+generic `kcompactd0` was installing invalid migration PTEs on the 16 MiB
+single-node REM machine (`MYEMU_BAD_PTE`, followed by `Bad page map`). The
+same warnings occurred with both BusyBox binaries. Adding
+`# CONFIG_COMPACTION is not set` to the REM architecture defconfig removes
+that unsupported background path. A kernel rebuilt from defconfig plus the
+ext4 command-line overrides completed the corrected BusyBox shell test
+without bad-PTE warnings, SIGBUS, or user faults.
+
+Stable verification artifacts:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `.qemu-build/qemu-system-myemulator32` | `cb42a18e2b72238cb9351aee462e4536426e3bae4c9063220c8ba1c2636ca56d` |
+| `.linux-build/build/vmlinux` | `d5934c1975476090662bde8d0ff485176f248ad16378d1177f6839d6315afc13` |
+| corrected BusyBox | `464f7682599ebd0b5408bdadde2f3fdf8aea3741b88caba9c9146a9e9ea4e54f` |
+| pristine disposable ext4 rootfs | `c14e497cb6278aeb33bc863346321ef766027b1498dc0ad8bbaeb98a0c9ef3f2` |
+
+The first boot verified `echo`, `pwd`, `ls /`, `mkdir`, file redirection,
+`cat`, `sync`, and a completion marker. The same image was rebooted and
+`cat /root/persist-test/value` returned `persisted`, followed by a second
+completion marker. No `qemu-system-myemulator32` process remained.
+
+The ext4 and initramfs rootfs builders now also create `/bin/sync` whenever
+the configured BusyBox contains the enabled `sync` applet.

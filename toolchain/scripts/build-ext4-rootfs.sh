@@ -10,7 +10,7 @@ work=${MYEMU_EXT4_WORK:-${image}.root}
 rm -rf "$work"
 mkdir -p "$work"/{bin,sbin,dev,proc,sys,tmp,etc,root,var,home}
 install -m 0755 "$busybox" "$work/bin/busybox"
-for applet in sh ls cat echo pwd uname mkdir touch cp mv rm head tail grep find ps mount umount dmesg vi; do
+for applet in sh ls cat echo pwd uname mkdir touch cp mv rm head tail grep find ps mount umount dmesg vi sync; do
 	ln -sf busybox "$work/bin/$applet"
 done
 cat > "$work/sbin/init" <<'EOF'

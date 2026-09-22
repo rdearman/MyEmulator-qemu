@@ -8,7 +8,7 @@ mkdir -p "$out/rootfs" "$out/rootfs/bin" "$out/rootfs/sbin" \
 	"$out/rootfs/dev" "$out/rootfs/proc" "$out/rootfs/sys" "$out/rootfs/tmp" \
 	"$out/rootfs/etc" "$out/rootfs/root"
 install -m 0755 "$busybox" "$out/rootfs/bin/busybox"
-for applet in sh ls cat echo pwd uname mkdir touch cp mv rm head tail grep find ps mount umount dmesg vi; do
+for applet in sh ls cat echo pwd uname mkdir touch cp mv rm head tail grep find ps mount umount dmesg vi sync; do
 	ln -sf busybox "$out/rootfs/bin/$applet"
 done
 # Provide the console devices expected by the serial/TTY path and by

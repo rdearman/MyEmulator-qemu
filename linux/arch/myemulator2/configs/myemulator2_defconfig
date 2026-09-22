@@ -4,6 +4,11 @@ CONFIG_SMP=n
 CONFIG_PREEMPT_NONE=y
 CONFIG_EXPERT=y
 CONFIG_HZ_100=y
+# The 16 MiB REM machine has no migration/compaction implementation.
+# Generic kcompactd otherwise attempts to install migration PTEs using
+# unsupported page-state paths and corrupts user mappings under shell load.
+# Keep the stable single-node kernel configuration non-compacting.
+# CONFIG_COMPACTION is not set
 CONFIG_BLK_DEV_INITRD=y
 CONFIG_BLOCK=y
 CONFIG_MYEMU2_BLOCK=y
