@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute a small hosted C shell through Linux's MyEmulator2 console ABI."""
+"""Execute a small hosted C shell through Linux's REM console ABI."""
 
 import os
 import socket
@@ -88,7 +88,7 @@ def main():
                 raise RuntimeError("C shell prompt did not appear")
             for command, response in ((b"help\n", b"help echo uname mem exit"),
                                        (b"echo hello\n", b"hello"),
-                                       (b"uname\n", b"MyEmulator2 Linux 6.12.1"),
+                                       (b"uname\n", b"REM Linux 6.12.1"),
                                        (b"mem\n", b"userspace memory OK")):
                 sock.sendall(command)
                 end = time.monotonic() + 10
@@ -108,7 +108,7 @@ def main():
             except subprocess.TimeoutExpired:
                 proc.kill()
                 proc.wait()
-    print("MyEmulator2 Linux hosted C shell: PASS")
+    print("REM Linux hosted C shell: PASS")
 
 
 if __name__ == "__main__":

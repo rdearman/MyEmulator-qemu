@@ -58,13 +58,13 @@ void myemulator2_exception_dispatch(struct pt_regs *regs)
 		do_page_fault(regs, regs->cause, regs->info);
 		return;
 	}
-	pr_emerg("MyEmulator2 exception: pc=%08lx sr=%08lx cause=%lu info=%08lx\n",
+	pr_emerg("REM exception: pc=%08lx sr=%08lx cause=%lu info=%08lx\n",
 		regs->pc, regs->sr, regs->cause, regs->info);
-	panic("unhandled MyEmulator2 exception");
+	panic("unhandled REM exception");
 }
 
 void show_regs(struct pt_regs *regs)
 {
-	pr_emerg("MyEmulator2 registers: pc=%08lx sr=%08lx sp=%08lx\n",
+	pr_emerg("REM registers: pc=%08lx sr=%08lx sp=%08lx\n",
 		regs->pc, regs->sr, regs->r[13]);
 }

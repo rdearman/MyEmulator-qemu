@@ -54,10 +54,11 @@ sha256sum REM-android-arm64.zip
 unzip -l REM-android-arm64.zip
 ```
 
-The package uses the `myemulator32` machine, 16 MiB guest RAM, the REM block
-backend ID `myemulator2-disk`, an interactive serial console, and the same
-rootfs file on every launch. The rootfs is not copied or recreated by the
-launcher, so guest-created files persist across restarts.
+The package launches REM with the `myemulator32` compatibility machine
+identifier, 16 MiB guest RAM, the REM block backend ID `myemulator2-disk`, an
+interactive serial console, and the same rootfs file on every launch. The
+rootfs is not copied or recreated by the launcher, so guest-created files
+persist across restarts.
 
 ## Desktop to phone transfer
 

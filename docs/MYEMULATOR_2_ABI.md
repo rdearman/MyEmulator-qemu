@@ -1,8 +1,8 @@
-# MyEmulator2 ABI Version 1
+# REM ABI Version 1
 
 **Status: DESIGN / ABI v1 candidate**
 
-This document defines the MyEmulator2 software and toolchain ABI. It is
+This document defines the REM software and toolchain ABI. It is
 separate from the CPU specification in
 [`MYEMULATOR_2_ARCHITECTURE.md`](MYEMULATOR_2_ARCHITECTURE.md) and the
 machine-readable instruction manifest in
@@ -113,8 +113,8 @@ li rd, constant  one addi or a lui/ori pair, as described below
 ```
 
 No push/pop, compare, or other compatibility pseudo-instructions are part of
-ABI v1. Relocation modifiers use the GNU-style forms `%hi(expr)` and
-`%lo(expr)`.
+ABI v1. Relocation modifiers use the GNU-style forms `expr` and
+`expr`.
 
 ## 4. Calling convention
 
@@ -216,8 +216,8 @@ RISC-style sign-adjusted high-half carry is used.
 The pair constructs every 32-bit address:
 
 ```asm
-        lui     r5, %hi(symbol)       # R_MYEMU_HI20
-        ori     r5, r5, %lo(symbol)   # R_MYEMU_LO12
+        lui     r5, symbol       # R_MYEMU_HI20
+        ori     r5, r5, symbol   # R_MYEMU_LO12
 ```
 
 For example, if `symbol + A = 0x12345678`, the linker writes `0x12345` into
@@ -369,5 +369,6 @@ The following are intentionally not ABI-v1 decisions:
   PC-relative formulas.
 - Approve the 2.0 physical map, including the proposed RIKMON ROM window and
   `0x00100000` bare-metal load address.
-- Approve the GNU memory syntax `displacement(base)` and `%hi/%lo` modifiers.
+- Approve the GNU memory syntax `displacement(base)` and the target's
+  direct-symbol HI20/LO12 relocations (`lui rN, symbol`; `ori rN, rN, symbol`).
 - Approve the initial bare-metal linker symbols and section alignment rules.

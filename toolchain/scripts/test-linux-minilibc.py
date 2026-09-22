@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile and execute a C program with the MyEmulator2 Linux minilibc."""
+"""Compile and execute a C program with the REM Linux minilibc."""
 
 import os
 import socket
@@ -88,7 +88,7 @@ def main():
             for text in (b"C minilibc reached", b"C syscall wrappers reached"):
                 if text not in data:
                     raise RuntimeError(f"missing minilibc output: {text!r}; output tail={data[-2000:]!r}")
-            if b"page fault" in data or b"unhandled MyEmulator2 exception" in data:
+            if b"page fault" in data or b"unhandled REM exception" in data:
                 raise RuntimeError("kernel exception during minilibc test")
         finally:
             if sock is not None:
@@ -99,7 +99,7 @@ def main():
             except subprocess.TimeoutExpired:
                 proc.kill()
                 proc.wait()
-    print("MyEmulator2 Linux C minilibc syscall test: PASS")
+    print("REM Linux C minilibc syscall test: PASS")
 
 
 if __name__ == "__main__":

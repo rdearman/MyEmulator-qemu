@@ -3,8 +3,8 @@
 
 int main(void)
 {
-	static const char message[] = "MyEmulator2 C minilibc reached\n";
-	static const char pid_message[] = "MyEmulator2 C syscall wrappers reached\n";
+	static const char message[] = "REM C minilibc reached\n";
+	static const char pid_message[] = "REM C syscall wrappers reached\n";
 	if (myemu_write(1, message, myemu_strlen(message)) < 0)
 		return 1;
 	if (myemu_getpid() < 1)

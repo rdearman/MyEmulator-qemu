@@ -22,6 +22,7 @@ rootfs="${REM_ROOTFS:-$home/rootfs.ext4}"
 termux_prefix="${PREFIX:-/data/data/com.termux/files/usr}"
 export LD_LIBRARY_PATH="$home/lib:$termux_prefix/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
+echo "Starting REM Linux (QEMU machine: myemulator32)"
 exec "$qemu" \
   -M myemulator32 \
   -m 16M \

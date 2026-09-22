@@ -92,7 +92,7 @@ def main():
         second_data = boot(image, second)
         if b"PERSIST PASS" not in second_data:
             raise RuntimeError("second boot did not read the guest-created file")
-    print("MyEmulator2 ext4 guest persistence: PASS")
+    print("REM ext4 guest persistence: PASS")
 
 
 if __name__ == "__main__":

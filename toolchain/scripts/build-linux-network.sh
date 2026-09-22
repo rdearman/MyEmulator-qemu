@@ -8,7 +8,7 @@ build="$root/.linux-build-network/build"
 jobs=${JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2)}
 
 if [[ ! -x "${CROSS_COMPILE:-$root/.toolchain-install/bin/myemulator2-elf-}gcc" ]]; then
-  echo "missing MyEmulator2 cross compiler; run configure-linux-network.sh with a valid CROSS_COMPILE" >&2
+  echo "missing REM cross compiler; run configure-linux-network.sh with a valid CROSS_COMPILE" >&2
   exit 2
 fi
 

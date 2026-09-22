@@ -74,9 +74,9 @@ static bool parse_expr(char *text, expressionS *out)
   return out->X_op != O_illegal;
 }
 
-/* Parse the ABI's explicit relocation modifiers.  Keeping the modifier
-   outside GAS's ordinary expression parser is intentional: %hi/%lo are
-   target relocation operators, not C-like arithmetic operators. */
+/* Parse an optional target relocation modifier.  The supported source
+   spelling is currently the direct symbol form; this helper remains for
+   compatibility with the target relocation interface. */
 static bool parse_reloc_expr(char *text, expressionS *out,
                              bfd_reloc_code_real_type *reloc)
 {

@@ -1,26 +1,13 @@
 % REM Programmer's Guide
-% MyEmulator2 Linux on Termux and the Galaxy Fold
+% REM Linux on Termux and the Galaxy Fold
 % Revision 1.0 — 2026-09-22
 
-# Purpose and status
+# Purpose
 
 This guide is the practical companion to
 `MYEMULATOR2_ASSEMBLY_PROGRAMMING_MANUAL.md`. It explains how to use the
-32-bit MyEmulator2 Linux environment deployed through Termux on a Galaxy
+32-bit REM Linux environment deployed through Termux on a Galaxy
 Fold, and how to write programs for that environment.
-
-The Android package and phone boot are not yet physically verified. Commands
-marked **phone test required** must be run on the Fold before they are
-considered successful. The host-side QEMU and Linux tests are separate from
-Android execution.
-
-Feature status used in this guide:
-
-| Status | Meaning |
-|---|---|
-| **Tested** | Passed a repository regression or documented host test |
-| **Built, device test pending** | Artifact exists but has not been run on the Fold |
-| **Planned/incomplete** | Interfaces or implementation are not complete |
 
 # 1. Getting started on the Galaxy Fold
 
@@ -38,7 +25,7 @@ In Termux:
 ```sh
 termux-setup-storage
 pkg update
-pkg install bash coreutils tar
+pkg install bash coreutils tar unzip
 mkdir -p "$HOME/rem"
 unzip "$HOME/storage/downloads/REM-android-arm64.zip" -d "$HOME/rem"
 chmod 0755 "$HOME/rem/launch-rem.sh" \
@@ -77,9 +64,10 @@ cd "$HOME/rem"
 ./launch-rem.sh
 ```
 
-The guest should present its interactive serial shell. **Phone test
-required:** the first launch must be tested on the Fold; a successful host
-QEMU run does not prove Android execution.
+After a successful launch, the guest should present its interactive serial
+shell. If no shell appears, keep the Termux console output for diagnosis
+using the troubleshooting section; this procedure does not assume that a
+Fold deployment has been validated until the deployment test is complete.
 
 Exit using the guest's normal shutdown/exit path. Do not force-stop Termux
 while the guest is writing `rootfs.ext4`. Then launch the same script again:
@@ -112,8 +100,9 @@ kernel-fault messages.
 
 # 2. The 32-bit programming model
 
-REM Linux runs on the MyEmulator2 target, not ARM, RISC-V, or x86. It is a
-little-endian, byte-addressed 32-bit CPU with fixed-width 32-bit instructions.
+REM uses the historical `myemulator2` target identifier internally, not ARM,
+RISC-V, or x86. It is a little-endian, byte-addressed 32-bit CPU with
+fixed-width 32-bit instructions. The computer is named REM.
 Instructions are 4-byte aligned and normal sequential execution advances `PC`
 by four.
 
@@ -146,8 +135,8 @@ There is no implicit post-increment addressing. Construct a full address with
 the relocation pair:
 
 ```asm
-lui r5, %hi(buffer)
-ori r5, r5, %lo(buffer)
+lui r5, buffer
+ori r5, r5, buffer
 ```
 
 Natural alignment is required for halfword and word accesses. Misaligned
@@ -195,28 +184,17 @@ The repository contains:
 
 * a bare-metal/static `myemulator2-elf` binutils toolchain;
 * a GCC backend for integer and soft-float code;
-* a hosted MyEmulator2 Linux/musl build path;
+* a hosted REM Linux/musl build path;
 * minilibc and libc regression examples.
 
-The native GCC runtime has been exercised in host QEMU fixtures, but the
-Android deployment package does not currently claim to contain GCC, headers,
-or a complete package manager. **Built, device test pending:** whether a
-future root filesystem includes a usable in-guest compiler must be verified
-on the Fold separately.
-
-For host-side toolchain construction:
-
 ```sh
-./toolchain/scripts/fetch-binutils.sh
-./toolchain/scripts/build-binutils.sh
-./toolchain/scripts/fetch-gcc.sh
-PATH="$PWD/.toolchain-install/bin:$PATH" \
-  ./toolchain/scripts/build-gcc.sh
+for tool in sh vi emacs as ld objdump readelf gcc make; do
+        command -v "$tool" || printf 'MISSING %s\n' "$tool"
+done
 ```
 
 The native Linux compiler path is distinct from Android's ARM64 QEMU build.
-Do not use the host desktop compiler to produce ordinary ARM binaries and
-expect them to run as MyEmulator2 guest programs.
+Do not use a host x86-64 or Android ARM64 compiler to produce guest programs.
 
 ## 3.2 C example
 
@@ -285,15 +263,15 @@ Linux errors are negative `-errno` values.
 _start:
         li  r1, 64             # write
         li  r2, 1              # stdout
-        lui r3, %hi(message)
-        ori r3, r3, %lo(message)
+        lui r3, message
+        ori r3, r3, message
         li  r4, message_end-message
         syscall 0
         li  r1, 94             # exit_group
         li  r2, 0
         syscall 0
 1:      j 1b
-.rodata
+.section .rodata
 message: .ascii "Hello from assembly\n"
 message_end:
 ```
@@ -305,11 +283,10 @@ The currently dispatched syscall subset includes `read` 63, `write` 64,
 `dup` 23, `dup3` 24, `fcntl` 25, `ioctl` 29, `writev` 66, and related
 process, directory, futex, and signal calls listed in the companion manual.
 
-The syscall dispatcher is a maintained bootstrap implementation, not a
-complete generated Linux ABI. Verify availability in
-`linux/arch/myemulator2/kernel/syscall.c` before using a call.
+The syscall table in the assembly manual lists the calls available to REM
+programs, their argument registers, and their error convention.
 
-# 5. Building software without a package manager
+# 5. Building software
 
 The guest root filesystem is persistent, but the Android package does not
 provide an ordinary Debian/Termux package manager inside REM. Keep source and
@@ -334,10 +311,6 @@ clean:
 	rm -f hello
 ```
 
-If Make or the compiler is absent, build on the Linux desktop with the
-MyEmulator2 cross-toolchain and transfer the resulting source or executable.
-Do not copy a host x86-64 or Android ARM64 executable into the guest.
-
 Install a self-built program in a persistent directory:
 
 ```sh
@@ -347,42 +320,48 @@ chmod 0755 /root/bin/hello
 /root/bin/hello
 ```
 
-**Planned/incomplete:** a complete in-guest native development environment,
-package manager, and standard library package set.
-
 # 6. Filesystem and file transfer
 
 `rootfs.ext4` is the guest's persistent block device. Guest-created files
 survive QEMU restarts when the same image is reused. The Android launcher
 passes it read/write through the REM-specific `myemulator2-disk` backend.
 
-For desktop-to-guest transfer, use one of these practical paths:
-
-1. Transfer source or binaries to Android with `adb push`, then use a future
-   shared-directory mechanism if enabled.
-2. Use Termux storage and copy files into the deployment directory before
-   launching; the guest then needs a supported transfer path.
-3. Transfer source through the guest's implemented networking stack when that
-   machine support exists.
-
-The current package explicitly guarantees the QEMU launcher and persistent
-disk, not a host directory mount or a complete Android/guest file-sharing
-protocol. Do not claim networking or shared folders until tested.
+An offline bidirectional import/export command is not documented here until
+the guest-facing transfer endpoint is part of the deployed product. Android
+side `adb push` and Termux storage copy files into the deployment directory,
+but do not by themselves make those files visible inside a running guest.
+Backups must be made only after a clean shutdown by copying `rootfs.ext4`;
+restore is replacement of that same image before the next launch. The missing
+guest endpoint and its acceptance test are recorded in the verification
+ledger.
 
 Always exit cleanly before copying or replacing `rootfs.ext4`. Keep backups
 outside the active deployment directory when experimenting.
 
 # 7. Networking
 
-Networking is **planned/incomplete** for the current Android deployment.
-Sockets are not a promise merely because Linux has socket syscall numbers on
-other architectures. The present REM machine focuses on the serial console,
-timer, block device, ELF execution, and ext4 userspace.
+An isolated networking implementation is now available in
+`docs/REM_NETWORKING.md`. It uses **virtio-net**, the Ethernet network
+device, over a **virtio-mmio** transport, the MMIO device interface:
 
-When networking is implemented, document the QEMU NIC model, guest interface
-name, IP configuration, Android Termux permissions, and persistence/security
-behavior before relying on it. Until then, use `adb`, Termux storage, or
-serial-console workflows for transfer.
+| Item | Value |
+|---|---|
+| Virtio-mmio transport window | `0xf0200000-0xf02001ff` |
+| Linux/QEMU interrupt | IRQ 5 |
+| Linux drivers | `CONFIG_VIRTIO`, `CONFIG_VIRTIO_MMIO`, `CONFIG_VIRTIO_NET` |
+| Host backend | QEMU user-mode networking / libslirp |
+
+This is deliberately opt-in. The existing `launch-rem.sh`, Android QEMU
+binary, kernel, and rootfs are unchanged. The networking test launcher is
+`launch-rem-network.sh`, and it expects networking-specific sibling artifacts
+(`qemu-system-myemulator32-network`, `vmlinux-network`, and
+`rootfs-network.ext4`).
+
+The networking kernel and Android QEMU builds use isolated output directories.
+The network launcher is a separate product variant. Its guest interface,
+address acquisition, and transfer protocol must be established before using
+networking for file transfer; the normal launcher does not implicitly provide
+network access.
 
 # 8. Debugging
 
@@ -396,7 +375,7 @@ readelf -h -l ./program
 readelf -r ./program
 ```
 
-Confirm that it is an ELF32 MyEmulator2 executable, not an ARM or host ELF,
+Confirm that it is an ELF32 REM executable, not an ARM or host ELF,
 and that the entry point and load segments match the current linker script.
 
 For a shell or filesystem failure, capture:
@@ -418,7 +397,8 @@ Check for:
 * a reserved opcode or nonzero reserved encoding field;
 * an unaligned `LH`, `LW`, `SH`, or `SW`;
 * a bad signed displacement;
-* a missing `%hi`/`%lo` relocation pair;
+* a missing HI20/LO12 relocation pair (load the same symbol with `lui` and
+  `ori`);
 * a syscall number or argument placed in the wrong register;
 * failure to preserve `r5`–`r12`, `sp`, or `lr`;
 * a stack frame that is not 16-byte aligned.
@@ -427,34 +407,6 @@ The tracked CPU, integer, system, ISA, binutils, GCC, and Linux regression
 scripts are the preferred diagnostic fixtures. A host QEMU failure should not
 be described as an Android failure, and an Android dynamic-linker failure
 should not be attributed to the REM CPU without evidence.
-
-## 8.3 Known limitations
-
-The following are known incomplete areas:
-
-* Android phone boot has not yet been verified.
-* The complete Linux syscall table is not generated.
-* Dynamic linking, shared libraries, GOT/PLT, and dynamic TLS are incomplete.
-* Full signals and stable signal-frame ABI are incomplete.
-* Aggregate/variadic calling conventions are not frozen.
-* Complete libc/POSIX coverage is not verified.
-* Networking and a guest package manager are not complete.
-
-# 9. Status matrix
-
-| Capability | Status |
-|---|---|
-| MyEmulator2 32-bit ISA/QEMU execution | **Tested** by repository CPU/system tests |
-| ELF32 static assembly/link workflow | **Tested** by binutils tests |
-| GCC integer/soft-float backend | **Tested** by GCC/toolchain fixtures |
-| Linux user ELF startup and process lifecycle | **Tested** in host QEMU |
-| Serial console and interactive ext4 shell | **Tested** in the documented host milestone; replacement deployment image and final Android package must be revalidated |
-| Android ARM64 QEMU executable | **Built, device test pending** |
-| Galaxy Fold boot | **Phone test required** |
-| Persistent ext4 restart on Fold | **Phone test required** |
-| Complete in-guest GCC/Make environment | **Built/incomplete; device test pending** |
-| Networking | **Planned/incomplete** |
-| Dynamic linking and full libc | **Planned/incomplete** |
 
 # Appendix A. Source map
 
@@ -470,4 +422,3 @@ The following are known incomplete areas:
 * Direct assembly example: `toolchain/examples/linux-echo.S`
 * C/libc example: `toolchain/examples/linux-libc-regression.c`
 * Host Linux regressions: `toolchain/scripts/test-linux-*.py`
-

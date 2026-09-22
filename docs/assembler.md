@@ -65,7 +65,7 @@ compatibility form.
 
 Numbers can be decimal, `0x` hexadecimal, `0b` binary, or `0o` octal, with
 optional underscores. Expressions support symbols, the current address `.`,
-parentheses, `+ - * / % << >> & | ^ ~`, and `hi(expr)`/`lo(expr)`. Division is
+parentheses, `+ - * / % << >> & | ^ ~`, and `expr`/`expr`. Division is
 integer division truncated toward zero. Character constants are one byte:
 `'A'`, `'\n'`, `'\r'`, `'\t'`, `'\0'`, `'\\'`, `\'`, and `'\x41'`.
 

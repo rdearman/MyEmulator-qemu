@@ -86,7 +86,7 @@ def main():
             except subprocess.TimeoutExpired:
                 proc.kill()
                 proc.wait()
-    print("MyEmulator2 Linux TTY: 20 consecutive input lines PASS")
+    print("REM Linux TTY: 20 consecutive input lines PASS")
 
 
 if __name__ == "__main__":

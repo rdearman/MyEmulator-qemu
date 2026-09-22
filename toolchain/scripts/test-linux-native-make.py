@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute a statically linked GNU Make target inside MyEmulator2 Linux."""
+"""Execute a statically linked GNU Make target inside REM Linux."""
 
 import os
 import signal
@@ -118,7 +118,7 @@ int main(void) {
             except subprocess.TimeoutExpired:
                 os.killpg(proc.pid, signal.SIGKILL)
                 proc.wait()
-    print("MyEmulator2 Linux native GNU Make: PASS")
+    print("REM Linux native GNU Make: PASS")
 
 
 if __name__ == "__main__":

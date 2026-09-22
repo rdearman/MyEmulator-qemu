@@ -6,15 +6,15 @@
 _start:
 	li r1, 64
 	li r2, 1
-	lui r3, %hi(banner)
-	ori r3, r3, %lo(banner)
+	lui r3, banner
+	ori r3, r3, banner
 	li r4, banner_end-banner
 	syscall 0
 
 	li r1, 56
 	li r2, -100
-	lui r3, %hi(path)
-	ori r3, r3, %lo(path)
+	lui r3, path
+	ori r3, r3, path
 	li r4, 2
 	li r5, 0
 	syscall 0
@@ -23,23 +23,23 @@ _start:
 
 	li r1, 64
 	add r2, r8, r0
-	lui r3, %hi(tx)
-	ori r3, r3, %lo(tx)
+	lui r3, tx
+	ori r3, r3, tx
 	li r4, tx_end-tx
 	syscall 0
 
 	li r1, 63
 	add r2, r8, r0
-	lui r3, %hi(rx)
-	ori r3, r3, %lo(rx)
+	lui r3, rx
+	ori r3, r3, rx
 	li r4, 1
 	syscall 0
 	blt r1, r0, read_failed
 
 	li r1, 64
 	add r2, r8, r0
-	lui r3, %hi(rx)
-	ori r3, r3, %lo(rx)
+	lui r3, rx
+	ori r3, r3, rx
 	li r4, 1
 	syscall 0
 
@@ -54,8 +54,8 @@ _start:
 open_failed:
 	li r1, 64
 	li r2, 1
-	lui r3, %hi(open_failure)
-	ori r3, r3, %lo(open_failure)
+	lui r3, open_failure
+	ori r3, r3, open_failure
 	li r4, open_failure_end-open_failure
 	syscall 0
 	li r1, 94
@@ -66,8 +66,8 @@ open_failed:
 read_failed:
 	li r1, 64
 	li r2, 1
-	lui r3, %hi(read_failure)
-	ori r3, r3, %lo(read_failure)
+	lui r3, read_failure
+	ori r3, r3, read_failure
 	li r4, read_failure_end-read_failure
 	syscall 0
 	li r1, 94

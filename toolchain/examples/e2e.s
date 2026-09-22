@@ -27,4 +27,4 @@ answer:
 
 .section .rodata
 message:
-        .asciz "MyEmulator2\n"
+        .asciz "REM\n"

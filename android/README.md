@@ -1,11 +1,11 @@
 # REM QEMU on Termux (Android ARM64)
 
 This directory contains the Android-specific build and launch workflow. It
-does not alter the normal Linux Mint QEMU build. The Android runtime target is
-`myemulator32-softmmu`; its executable is `qemu-system-myemulator32` and its
-machine name is `myemulator32`. This is the current 32-bit REM CPU used by the
-Linux port. The older firmware target remains `myemulator-softmmu` /
-`myemulator`.
+does not alter the normal Linux Mint QEMU build. The Android runtime is REM,
+the current 32-bit computer. Its compatibility target is
+`myemulator32-softmmu`, its executable is `qemu-system-myemulator32`, and its
+machine identifier is `myemulator32`. The older firmware target remains
+`myemulator-softmmu` / `myemulator`.
 
 ## Build on the Galaxy Fold
 

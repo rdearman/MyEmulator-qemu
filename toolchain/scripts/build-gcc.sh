@@ -79,4 +79,4 @@ CONFIG_SITE="$site_file" "$source_dir/configure" "${configure_args[@]}"
 make -j"$jobs" all-gcc all-target-libgcc
 make install-gcc install-target-libgcc
 
-echo "installed MyEmulator2 GCC $GCC_VERSION under $prefix"
+echo "installed REM GCC $GCC_VERSION under $prefix"

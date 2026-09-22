@@ -1,11 +1,11 @@
-/* Minimal Linux 6.12 MyEmulator2 initramfs program.
+/* Minimal Linux 6.12 REM initramfs program.
  * Linux syscall ABI for the bring-up port: r1=syscall number, r2-r4 args. */
 	.section .text
 	.global _start
 	.type _start,@function
 _start:
-	lui r3, %hi(message)
-	ori r3, r3, %lo(message)
+	lui r3, message
+	ori r3, r3, message
 	li r1, 64              /* __NR_write */
 	li r2, 1               /* stdout */
 	li r4, message_end-message
@@ -17,5 +17,5 @@ _start:
 
 	.section .rodata
 message:
-	.ascii "MyEmulator2 userspace /init reached\n"
+	.ascii "REM userspace /init reached\n"
 message_end:

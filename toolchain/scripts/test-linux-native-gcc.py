@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile and execute a C program with the staged MyEmulator2 Linux GCC."""
+"""Compile and execute a C program with the staged REM Linux GCC."""
 
 import os
 import signal
@@ -111,7 +111,7 @@ int main(void)
             except subprocess.TimeoutExpired:
                 os.killpg(proc.pid, signal.SIGKILL)
                 proc.wait()
-    print("MyEmulator2 Linux native GCC: PASS")
+    print("REM Linux native GCC: PASS")
 
 
 if __name__ == "__main__":

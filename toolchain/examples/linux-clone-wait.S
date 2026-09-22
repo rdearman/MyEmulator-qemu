@@ -1,4 +1,4 @@
-/* Linux process-management regression for MyEmulator2.
+/* Linux process-management regression for REM.
  *
  * The test exercises the real clone -> child userspace -> exit -> wait4
  * path.  Linux syscall arguments use r2-r5 and the syscall number/result
@@ -10,8 +10,8 @@
 _start:
 	li r1, 64
 	li r2, 1
-	lui r3, %hi(start_msg)
-	ori r3, r3, %lo(start_msg)
+	lui r3, start_msg
+	ori r3, r3, start_msg
 	li r4, start_msg_end-start_msg
 	syscall 0
 
@@ -33,8 +33,8 @@ _start:
 
 	li r1, 64
 	li r2, 1
-	lui r3, %hi(parent_msg)
-	ori r3, r3, %lo(parent_msg)
+	lui r3, parent_msg
+	ori r3, r3, parent_msg
 	li r4, parent_msg_end-parent_msg
 	syscall 0
 	li r1, 94              /* exit_group */
@@ -44,8 +44,8 @@ _start:
 child:
 	li r1, 64
 	li r2, 1
-	lui r3, %hi(child_msg)
-	ori r3, r3, %lo(child_msg)
+	lui r3, child_msg
+	ori r3, r3, child_msg
 	li r4, child_msg_end-child_msg
 	syscall 0
 	li r1, 94              /* exit_group */

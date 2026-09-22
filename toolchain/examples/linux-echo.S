@@ -1,4 +1,4 @@
-/* Bootstrap MyEmulator2 Linux console echo test.
+/* Bootstrap REM Linux console echo test.
  * ABI: r1=syscall number, r2-r4=arguments, r1=result. */
 	.section .text
 	.global _start
@@ -6,8 +6,8 @@
 _start:
 	li r1, 64              /* write */
 	li r2, 1              /* stdout */
-	lui r3, %hi(prompt)
-	ori r3, r3, %lo(prompt)
+	lui r3, prompt
+	ori r3, r3, prompt
 	li r4, prompt_end-prompt
 	syscall 0
 
@@ -15,8 +15,8 @@ _start:
 1:
 	li r1, 63              /* read */
 	li r2, 0              /* stdin */
-	lui r3, %hi(buffer)
-	ori r3, r3, %lo(buffer)
+	lui r3, buffer
+	ori r3, r3, buffer
 	li r4, 1
 	syscall 0
 	blt r1, r0, 1b

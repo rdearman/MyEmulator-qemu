@@ -82,7 +82,7 @@ def main():
                 proc.kill()
                 proc.wait()
 
-    print("MyEmulator2 bootstrap shell: 20 consecutive commands PASS")
+    print("REM bootstrap shell: 20 consecutive commands PASS")
 
 
 if __name__ == "__main__":

@@ -74,7 +74,7 @@ def main():
             except subprocess.TimeoutExpired:
                 proc.kill()
                 proc.wait()
-    print("MyEmulator2 ext4 BusyBox interactive shell: PASS")
+    print("REM ext4 BusyBox interactive shell: PASS")
 
 
 if __name__ == "__main__":

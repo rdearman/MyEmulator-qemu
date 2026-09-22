@@ -8,23 +8,23 @@ _start:
 	 * small userspace test while the hosted C stack ABI is being completed. */
 	li r1, 64
 	li r2, 1
-	lui r3, %hi(banner)
-	ori r3, r3, %lo(banner)
+	lui r3, banner
+	ori r3, r3, banner
 	li r4, banner_end-banner
 	syscall 0
 
 main_loop:
 	li r1, 64
 	li r2, 1
-	lui r3, %hi(prompt)
-	ori r3, r3, %lo(prompt)
+	lui r3, prompt
+	ori r3, r3, prompt
 	li r4, prompt_end-prompt
 	syscall 0
 	li r5, 0
 
 read_line:
-	lui r3, %hi(line)
-	ori r3, r3, %lo(line)
+	lui r3, line
+	ori r3, r3, line
 	add r3, r3, r5
 	li r1, 63
 	li r2, 0
@@ -53,15 +53,15 @@ line_done:
 	sb r0, 0(r3)
 	li r1, 64
 	li r2, 1
-	lui r3, %hi(newline)
-	ori r3, r3, %lo(newline)
+	lui r3, newline
+	ori r3, r3, newline
 	li r4, newline_end-newline
 	syscall 0
 
 	/* Dispatch on the first two bytes; accepted commands are exact enough
 	 * for this bootstrap shell and avoid a libc dependency. */
-	lui r3, %hi(line)
-	ori r3, r3, %lo(line)
+	lui r3, line
+	ori r3, r3, line
 	lbu r6, 0(r3)
 	li r7, 'h'
 	beq r6, r7, command_help
@@ -76,8 +76,8 @@ line_done:
 command_unknown:
 	li r1, 64
 	li r2, 1
-	lui r3, %hi(unknown)
-	ori r3, r3, %lo(unknown)
+	lui r3, unknown
+	ori r3, r3, unknown
 	li r4, unknown_end-unknown
 	syscall 0
 	j main_loop
@@ -85,8 +85,8 @@ command_unknown:
 command_help:
 	li r1, 64
 	li r2, 1
-	lui r3, %hi(help_text)
-	ori r3, r3, %lo(help_text)
+	lui r3, help_text
+	ori r3, r3, help_text
 	li r4, help_text_end-help_text
 	syscall 0
 	j main_loop
@@ -94,8 +94,8 @@ command_help:
 command_uname:
 	li r1, 64
 	li r2, 1
-	lui r3, %hi(uname_text)
-	ori r3, r3, %lo(uname_text)
+	lui r3, uname_text
+	ori r3, r3, uname_text
 	li r4, uname_text_end-uname_text
 	syscall 0
 	j main_loop
@@ -103,8 +103,8 @@ command_uname:
 command_clear:
 	li r1, 64
 	li r2, 1
-	lui r3, %hi(clear_text)
-	ori r3, r3, %lo(clear_text)
+	lui r3, clear_text
+	ori r3, r3, clear_text
 	li r4, clear_text_end-clear_text
 	syscall 0
 	j main_loop
@@ -138,8 +138,8 @@ echo_length:
 	addi r6, r6, 1
 	j echo_length
 echo_write:
-	lui r3, %hi(line)
-	ori r3, r3, %lo(line)
+	lui r3, line
+	ori r3, r3, line
 	addi r3, r3, 5
 	li r1, 64
 	li r2, 1
@@ -149,8 +149,8 @@ echo_write:
 command_echo_empty:
 	li r1, 64
 	li r2, 1
-	lui r3, %hi(newline)
-	ori r3, r3, %lo(newline)
+	lui r3, newline
+	ori r3, r3, newline
 	li r4, newline_end-newline
 	syscall 0
 	j main_loop
@@ -163,7 +163,7 @@ command_exit:
 
 	.section .rodata
 banner:
-	.ascii "MyEmulator2 bootstrap shell\r\n"
+	.ascii "REM bootstrap shell\r\n"
 banner_end:
 prompt:
 	.ascii "myemu> "
@@ -172,7 +172,7 @@ help_text:
 	.ascii "help echo uname clear exit\r\n"
 help_text_end:
 uname_text:
-	.ascii "MyEmulator2 Linux 6.12.1\r\n"
+	.ascii "REM Linux 6.12.1\r\n"
 uname_text_end:
 clear_text:
 	.ascii "\033[2J\033[H"

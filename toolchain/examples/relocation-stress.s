@@ -2,8 +2,8 @@
 .global _start
 
 _start:
-        lui     r5, %hi(data_word)
-        ori     r5, r5, %lo(data_word)
+        lui     r5, data_word
+        ori     r5, r5, data_word
         lw      r1, 0(r5)
         beq     r1, r0, backwards
         jal     forward

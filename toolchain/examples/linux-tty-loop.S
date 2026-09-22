@@ -6,14 +6,14 @@ _start:
 	li r7, 20
 	li r1, 64
 	li r2, 1
-	lui r3, %hi(banner)
-	ori r3, r3, %lo(banner)
+	lui r3, banner
+	ori r3, r3, banner
 	li r4, banner_end-banner
 	syscall 0
 	li r1, 56
 	li r2, -100
-	lui r3, %hi(path)
-	ori r3, r3, %lo(path)
+	lui r3, path
+	ori r3, r3, path
 	li r4, 2
 	li r5, 0
 	syscall 0
@@ -23,16 +23,16 @@ _start:
 1:
 	li r1, 63
 	add r2, r8, r0
-	lui r3, %hi(buffer)
-	ori r3, r3, %lo(buffer)
+	lui r3, buffer
+	ori r3, r3, buffer
 	li r4, 64
 	syscall 0
 	blt r1, r0, failed
 	add r6, r1, r0
 	li r1, 64
 	li r2, 1
-	lui r3, %hi(buffer)
-	ori r3, r3, %lo(buffer)
+	lui r3, buffer
+	ori r3, r3, buffer
 	add r4, r6, r0
 	syscall 0
 	subi r7, r7, 1
@@ -46,8 +46,8 @@ _start:
 failed:
 	li r1, 64
 	li r2, 1
-	lui r3, %hi(failure)
-	ori r3, r3, %lo(failure)
+	lui r3, failure
+	ori r3, r3, failure
 	li r4, failure_end-failure
 	syscall 0
 	li r1, 94

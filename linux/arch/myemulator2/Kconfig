@@ -14,7 +14,7 @@ config MMU
 	def_bool y
 
 config MYEMU2_BLOCK
-	bool "MyEmulator2 virtual block device"
+	bool "REM virtual block device"
 	default y
 	depends on BLOCK
 

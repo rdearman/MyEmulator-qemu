@@ -75,6 +75,23 @@ def main():
         r"R5: 0x([0-9a-f]+)": 0x3d,
     })
 
+    # A 64-bit subtraction uses the low-word borrow as the high-word SBC
+    # input: 0x00000005_00000000 - 0x00000002_00000001 = 0x00000002_ffffffff.
+    run_case({
+        0x100: i(1, 0, 0, 0),
+        0x104: i(2, 0, 0, 1),
+        0x108: r(3, 1, 2, 2),            # low word: 0 - 1, borrow
+        0x10c: i(4, 0, 0, 5),
+        0x110: i(5, 0, 0, 2),
+        0x114: r(6, 4, 5, 3),            # high word: 5 - 2 - borrow
+        0x118: MFSR(7, 0),
+        0x11c: HALT,
+    }, checks={
+        r"R3: 0x([0-9a-f]+)": 0xffffffff,
+        r"R6: 0x([0-9a-f]+)": 2,
+        r"R7: 0x([0-9a-f]+)": 0x3c,
+    })
+
     # Signed and unsigned high products.
     run_case({
         0x100: lui(1, 0xfffff000),

@@ -1,4 +1,4 @@
-# MyEmulator2 Linux progress
+# REM Linux progress
 
 ## Current checkpoint
 
@@ -6,7 +6,7 @@ The GCC soft-float comparison ICE is fixed in commit `f3b76de`; signed
 immediate lowering and its four-level regression are in `e313b76`.  GCC
 soft-fp `libgcc` support is now generated and installed by `38ccfa0`.
 The backend lowers DFmode comparisons through the appropriate libgcc
-comparison helper and then uses the normal MyEmulator2 integer branch
+comparison helper and then uses the normal REM integer branch
 patterns. The focused comparison fixture and the GCC C suite pass at
 `-O0`, `-O1`, `-O2`, and `-Os`; `make spec-test cpu32-test` also passes.
 
@@ -17,7 +17,7 @@ The pinned musl 1.2.5 build is being resumed from the disposable tree
 `/tmp/myemu-musl-cache10` and prefix `/tmp/myemu-musl-install10`.
 The build has advanced through complex math and is currently exposing
 additional Linux generic syscall constants needed by musl's complete
-source set. These constants are being added to the tracked MyEmulator2
+source set. These constants are being added to the tracked REM
 musl syscall header; musl is not yet a completed or runtime-verified
 libc.  The complete static archive and development headers now build when
 the disposable configuration suppresses a target-wchar signedness warning.
@@ -47,7 +47,7 @@ strictly and installed at `/tmp/myemu-musl-install10`.  BusyBox 1.37.0
 was cross-compiled from the disposable source tree
 `/tmp/myemu-phase3/busybox-1.37.0` using a minimal applet configuration;
 the resulting file `/tmp/myemu-busybox-build11/busybox` is a valid static
-ELF32 MyEmulator2 executable with entry point `0x00500000` and no
+ELF32 REM executable with entry point `0x00500000` and no
 undefined symbols.
 
 The BusyBox runtime is not yet verified.  A kernel rebuild with an
@@ -189,7 +189,7 @@ This verifies guest-created file persistence independently of BusyBox.
 
 ## BusyBox exec/page-table follow-up
 
-Commit `60e7a82` balances the MyEmulator2 architecture's extra per-mm
+Commit `60e7a82` balances the REM architecture's extra per-mm
 user PTE page with `mm_inc_nr_ptes()`.  Before this fix, replacing the
 initial process image produced `BUG: non-zero pgtables_bytes on freeing
 mm: -4096`; the existing Linux process regression and the two-boot ext4
@@ -201,7 +201,7 @@ table accounting fix, the first genuine remaining failure is an irq-work
 list traversal with a node pointer `0x01ed0000`:
 
 ```text
-MyEmulator2 kernel fault: ... cause=6 info=01ed0000 ...
+REM kernel fault: ... cause=6 info=01ed0000 ...
 ```
 
 This is not the timeout harness's NMI.  It occurs while
@@ -214,7 +214,7 @@ fixture before attempting the interactive shell.
 
 ## BusyBox R15 corruption fix
 
-The first corruption was traced to the MyEmulator2 musl `setjmp`/`longjmp`
+The first corruption was traced to the REM musl `setjmp`/`longjmp`
 overlay, not to BusyBox or QEMU. The overlay initially used `r15` as a
 temporary while saving TP, so `setjmp()` returned with GCC's fixed frame
 pointer holding the TLS pointer. The corresponding `longjmp()` path also
@@ -289,7 +289,7 @@ creates and reads a file, and executes twenty commands.
 
 The hosted GCC build now supports the `myemulator2-linux-musl` target. The
 target-specific libgcc configuration excludes unsupported DWARF exception
-unwinding, includes the MyEmulator2 libgcc fragment, and handles all GCC
+unwinding, includes the REM libgcc fragment, and handles all GCC
 soft-float comparison predicates. A separate hosted target header supplies
 musl startup and libc link specs while preserving the freestanding compiler
 target.
@@ -310,7 +310,7 @@ by musl applications while omitting unsupported exception-unwind objects.
 The source-preparation script installs that fragment in `libgcc/config`,
 where GCC's libgcc build actually consumes it. With the staged native GCC,
 binutils and musl installation, GNU Make 4.4.1 compiles and links as a
-static MyEmulator2 ELF32 executable.
+static REM ELF32 executable.
 
 The guest Make regression is not yet verified. The corrected test harness now
 embeds its own initramfs, and the process and native-GCC fixtures pass with
@@ -405,7 +405,7 @@ The current `test-linux-native-gcc.py` fixture must not be described as
 guest-native compilation. Its `MYEMU_NATIVE_GCC` executable is an x86-64
 Linux host driver which invokes the REM cross compiler to produce a guest
 ELF, and that ELF is then executed under QEMU. `file` reports the driver as
-x86-64, not MyEmulator2/REM. A genuine self-hosted milestone still requires
+x86-64, not the REM guest. A genuine self-hosted milestone still requires
 a Canadian-cross build whose GCC, assembler and linker executables are
 themselves REM Linux ELFs, followed by compilation entirely inside the guest.
 The current native GNU Make fixture remains `TIMEOUT`, so the self-hosted

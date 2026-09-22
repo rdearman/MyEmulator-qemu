@@ -53,13 +53,13 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 	if (write)
 		flags |= FAULT_FLAG_WRITE;
 	if (unlikely(!mm)) {
-		pr_emerg("MyEmulator2 page fault without mm: pid=%d pc=%08lx "
+		pr_emerg("REM page fault without mm: pid=%d pc=%08lx "
 			 "sp=%08lx lr=%08lx sr=%08lx cause=%lu info=%08lx "
 			 "r1=%08lx r2=%08lx r3=%08lx r4=%08lx r5=%08lx r6=%08lx\n",
 			 current->pid, regs->pc, regs->r[13], regs->r[14],
 			 regs->sr, cause, address, regs->r[1], regs->r[2], regs->r[3],
 			 regs->r[4], regs->r[5], regs->r[6]);
-		panic("MyEmulator2 page fault without mm");
+		panic("REM page fault without mm");
 	}
 
 	retry_fault:
@@ -143,13 +143,13 @@ bad_area:
 	if (!user) {
 		if (myemulator2_sync_vmalloc_pgd(mm, address))
 			return;
-		pr_emerg("MyEmulator2 kernel fault: pc=%08lx sp=%08lx lr=%08lx "
+		pr_emerg("REM kernel fault: pc=%08lx sp=%08lx lr=%08lx "
 			 "sr=%08lx cause=%lu info=%08lx r1=%08lx r2=%08lx "
 			 "r3=%08lx r4=%08lx r5=%08lx r6=%08lx\\n", regs->pc,
 			 regs->r[13], regs->r[14], regs->sr, cause, address,
 			 regs->r[1], regs->r[2], regs->r[3], regs->r[4], regs->r[5],
 			 regs->r[6]);
-		panic("MyEmulator2 kernel page fault");
+		panic("REM kernel page fault");
 	}
 	force_sig_fault(SIGSEGV,
 			(cause == 4 || cause == 6 || cause == 8) ?

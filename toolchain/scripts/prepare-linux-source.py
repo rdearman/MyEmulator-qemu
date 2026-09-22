@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install the maintained MyEmulator2 Linux source overlay."""
+"""Install the maintained REM Linux source overlay."""
 from pathlib import Path
 import shutil
 import sys

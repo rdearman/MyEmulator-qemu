@@ -36,7 +36,7 @@ void arch_cpu_idle(void)
 
 void machine_restart(char *cmd)
 {
-	pr_emerg("MyEmulator2 restart requested\n");
+	pr_emerg("REM restart requested\n");
 	for (;;)
 		asm volatile("halt" ::: "memory");
 }

@@ -13,7 +13,7 @@ existing **virtio-mmio** transport:
 | Item | Assignment |
 |---|---|
 | Virtio-mmio transport | `0xf0200000-0xf02001ff` |
-| Interrupt | MyEmulator2 IRQ 5, level-sensitive |
+| Interrupt | REM IRQ 5, level-sensitive |
 | Existing console | `0xf0000000`, IRQ 4 |
 | Existing block device | `0xf0100000`, unchanged |
 | QEMU backend | `-netdev user,id=net0` |
@@ -49,7 +49,7 @@ QEMU_BUILD=/tmp/rem-net-qemu-build \
 The host QEMU build was independently compiled with `--enable-slirp` and
 contains `virtio-mmio`, `virtio-net`, and the user-mode networking backend.
 The Linux kernel has not yet been built in this checkout because the required
-MyEmulator2 cross compiler is absent. Therefore DHCP, packet transmission,
+The REM cross compiler is absent. Therefore DHCP, packet transmission,
 DNS, TCP, HTTPS, and guest interface initialization remain unverified.
 
 ## Android test configuration

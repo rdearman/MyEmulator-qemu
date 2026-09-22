@@ -249,6 +249,19 @@ def main():
                   r"R4: 0x([0-9a-f]+)": 9,
                   r"R5: 0x([0-9a-f]+)": 9})
 
+    # CAS permits the destination and address registers to overlap: both are
+    # read before the destination receives the returned old value.
+    run_case({0x100: i(4, 0, 0, 0x200),
+              0x104: i(1, 4, 0, 0),
+              0x108: i(2, 0, 0, 5),
+              0x10c: mem(2, 3, 1, 2, 0),
+              0x110: i(2, 0, 0, 7),
+              0x114: cas(1, 2, 1),
+              0x118: mem(2, 3, 4, 4, 0),
+              0x11c: HALT}, checks={
+                  r"R1: 0x([0-9a-f]+)": 5,
+                  r"R3: 0x([0-9a-f]+)": 7})
+
     # Supervisor software sets both banked stacks, enters User mode, and
     # provokes a privilege fault.  The handler observes SSP, adjusts the
     # saved PC, and RFE returns to User mode with USP visible in R13.

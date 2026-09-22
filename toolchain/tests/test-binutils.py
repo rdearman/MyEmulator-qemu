@@ -111,8 +111,8 @@ _start:
         call add_values
         lw lr, 12(sp)
         addi sp, sp, 16
-        lui r5, %hi(answer)
-        ori r5, r5, %lo(answer)
+        lui r5, answer
+        ori r5, r5, answer
         sw r3, 0(r5)
         lw r4, 0(r5)
         beq r4, r3, done
@@ -131,7 +131,7 @@ answer:
 
 .section .rodata
 message:
-        .asciz "MyEmulator2\\n"
+        .asciz "REM\\n"
 """
 
     with tempfile.TemporaryDirectory(prefix="myemu2-binutils-") as name:

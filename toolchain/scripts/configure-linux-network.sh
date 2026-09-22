@@ -8,7 +8,7 @@ build="$root/.linux-build-network/build"
 cross=${CROSS_COMPILE:-$root/.toolchain-install/bin/myemulator2-elf-}
 
 if [[ ! -x "${cross}gcc" ]]; then
-  echo "missing MyEmulator2 cross compiler: ${cross}gcc" >&2
+  echo "missing REM cross compiler: ${cross}gcc" >&2
   echo "build binutils/GCC first, or set CROSS_COMPILE to an isolated toolchain" >&2
   exit 2
 fi

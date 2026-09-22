@@ -2,7 +2,7 @@
 #include <myemu/syscall.h>
 
 static const char path[] = "/root/myemu-persist.txt";
-static const char pattern[] = "MyEmulator2 ext4 persistence\n";
+static const char pattern[] = "REM ext4 persistence\n";
 
 static void say(const char *message)
 {

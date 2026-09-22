@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the MyEmulator2 clone/exit/wait4 regression under QEMU."""
+"""Run the REM clone/exit/wait4 regression under QEMU."""
 
 import os
 import socket
@@ -91,8 +91,8 @@ def main():
                     if os.environ.get("MYEMU_PROCESS_SERIAL_LOG"):
                         Path(os.environ["MYEMU_PROCESS_SERIAL_LOG"]).write_bytes(data)
                     raise RuntimeError(f"missing process output: {text!r}")
-            if b"unhandled MyEmulator2 exception" in data:
-                raise RuntimeError("unhandled MyEmulator2 exception")
+            if b"unhandled REM exception" in data:
+                raise RuntimeError("unhandled REM exception")
         finally:
             if sock is not None:
                 sock.close()
@@ -104,7 +104,7 @@ def main():
                 proc.wait()
             if qemu_log is not None:
                 qemu_log.close()
-    print("MyEmulator2 Linux process clone/exit/wait4: PASS")
+    print("REM Linux process clone/exit/wait4: PASS")
 
 
 if __name__ == "__main__":

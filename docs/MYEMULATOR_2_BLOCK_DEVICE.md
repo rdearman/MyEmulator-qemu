@@ -1,4 +1,4 @@
-# MyEmulator2 block-device proposal
+# REM block-device proposal
 
 This is a design note, not frozen architecture and not an implementation.
 

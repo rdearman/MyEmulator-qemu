@@ -28,11 +28,11 @@ static int __init myemulator2_vmalloc_selftest(void)
 	    p[3 * PAGE_SIZE + 16] != 0x55)
 		goto fail;
 	vfree(p);
-	pr_info("MyEmulator2 vmalloc selftest: PASS\n");
+	pr_info("REM vmalloc selftest: PASS\n");
 	return 0;
 fail:
 	vfree(p);
-	pr_err("MyEmulator2 vmalloc selftest: FAIL\n");
+	pr_err("REM vmalloc selftest: FAIL\n");
 	return -EIO;
 }
 late_initcall(myemulator2_vmalloc_selftest);

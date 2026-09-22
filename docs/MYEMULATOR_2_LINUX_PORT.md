@@ -1,4 +1,4 @@
-# MyEmulator2 Linux port
+# REM Linux port
 
 Status: kernel boot, serial TTY, user ELF execution, basic process
 creation/exit/wait and a small hosted C syscall runtime are verified; a full
@@ -14,7 +14,7 @@ directory; only the maintained `linux/arch/myemulator2/` overlay is tracked.
 
 The 2.0 machine has 16 MiB default RAM, physical reset words at `0x400`
 (initial SSP) and `0x404` (initial PC), and ELF32 loading through QEMU's
-generic ELF loader. The MyEmulator2 console device is mapped at
+generic ELF loader. The REM console device is mapped at
 `0xF0000000-0xF000000F`:
 
 | Offset | Meaning |

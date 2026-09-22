@@ -26,7 +26,7 @@ static void myemulator32_debug_qmp(QDict *args, QObject **ret, Error **errp)
     bool asserted;
 
     if (!cs || !op) {
-        error_setg(errp, "missing MyEmulator32 CPU or operation");
+        error_setg(errp, "missing REM CPU or operation");
         return;
     }
     if (!strcmp(op, "irq")) {
@@ -41,7 +41,7 @@ static void myemulator32_debug_qmp(QDict *args, QObject **ret, Error **errp)
         asserted = qdict_get_bool(args, "asserted");
         myemulator32_cpu_set_nmi(cs, asserted);
     } else {
-        error_setg(errp, "unknown MyEmulator32 debug operation '%s'", op);
+        error_setg(errp, "unknown REM debug operation '%s'", op);
         return;
     }
     *ret = QOBJECT(qdict_new());

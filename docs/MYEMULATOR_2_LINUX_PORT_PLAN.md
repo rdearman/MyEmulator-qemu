@@ -1,4 +1,4 @@
-# MyEmulator2 Linux port plan
+# REM Linux port plan
 
 Status: reconnaissance / not implemented
 

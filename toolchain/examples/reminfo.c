@@ -70,9 +70,10 @@ int main(void)
 
 	puts("\nREM kernel report (live)\n");
 	if (uname(&name) == 0) {
-		printf("  sysname: %s\n  release: %s\n  version: %s\n"
-		       "  machine: %s\n",
-		       name.sysname, name.release, name.version, name.machine);
+		printf("  sysname: %s\n  hostname: %s\n  release: %s\n"
+		       "  version: %s\n  machine: %s\n",
+		       name.sysname, name.nodename, name.release, name.version,
+		       name.machine);
 	} else {
 		puts("  uname: unavailable");
 	}

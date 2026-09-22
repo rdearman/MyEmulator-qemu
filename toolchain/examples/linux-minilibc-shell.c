@@ -44,9 +44,9 @@ int main(void)
 			myemu_write(1, text, myemu_strlen(text));
 			put("\r\n");
 		} else if (is_command(line, "uname"))
-			put("MyEmulator2 Linux 6.12.1\r\n");
+			put("REM Linux 6.12.1\r\n");
 		else if (is_command(line, "mem"))
-			put("MyEmulator2 userspace memory OK\r\n");
+			put("REM userspace memory OK\r\n");
 		else if (is_command(line, "exit"))
 			myemu_exit(0);
 		else

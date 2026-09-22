@@ -78,7 +78,7 @@ static void myemulator32_machine_init(MachineState *machine)
     bool is_elf = false;
 
     if (!machine->kernel_filename) {
-        error_report("myemulator32 requires -kernel IMAGE");
+        error_report("REM requires -kernel IMAGE");
         exit(1);
     }
     memory_region_init_ram(&s->ram, NULL, "myemulator32.ram",
@@ -99,7 +99,7 @@ static void myemulator32_machine_init(MachineState *machine)
                     (uint32_t)elf_entry);
         is_elf = true;
     } else if (loaded != ELF_LOAD_NOT_ELF) {
-        error_report("could not load MyEmulator2 ELF '%s': %s",
+        error_report("could not load REM ELF '%s': %s",
                      machine->kernel_filename, load_elf_strerror(loaded));
         exit(1);
     }
@@ -151,7 +151,7 @@ static void myemulator32_machine_class_init(ObjectClass *oc, void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
 
-    mc->desc = "MyEmulator 2.0 32-bit computer";
+    mc->desc = "REM 32-bit computer";
     mc->init = myemulator32_machine_init;
     mc->default_cpu_type = MYEMULATOR32_CPU_TYPE_NAME("myemu32");
     mc->default_ram_size = MYEMU32_DEFAULT_RAM;

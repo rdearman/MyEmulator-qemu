@@ -21,7 +21,7 @@ const struct seq_operations cpuinfo_op = { };
 static void __init myemulator2_install_vectors(void)
 {
 	/* The vector table is relocated to the linked kernel table by head.S. */
-	pr_info("MyEmulator2 vectors at %px\n", (void *)__vectors_start);
+	pr_info("REM vectors at %px\n", (void *)__vectors_start);
 }
 
 void __init setup_arch(char **cmdline_p)
@@ -58,7 +58,7 @@ void __init setup_arch(char **cmdline_p)
 	setup_initial_init_mm(_stext, _etext, _edata, _end);
 	paging_init();
 	myemulator2_install_vectors();
-	pr_info("MyEmulator2 RAM: 0x%08lx-0x%08lx\n",
+	pr_info("REM RAM: 0x%08lx-0x%08lx\n",
 		memory_start, memory_end);
 }
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise MyEmulator2 block I/O through the Linux block layer."""
+"""Exercise REM block I/O through the Linux block layer."""
 
 import os
 import subprocess
@@ -93,7 +93,7 @@ def main():
             disk.seek(512)
             if disk.read(512) != payload:
                 raise RuntimeError("disk image did not retain sector data")
-    print("MyEmulator2 Linux block read/write test: PASS")
+    print("REM Linux block read/write test: PASS")
 
 
 if __name__ == "__main__":

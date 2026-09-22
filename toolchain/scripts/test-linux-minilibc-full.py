@@ -69,6 +69,6 @@ def main():
             proc.terminate()
             try: proc.wait(timeout=5)
             except subprocess.TimeoutExpired: proc.kill(); proc.wait()
-    print("MyEmulator2 reusable static C library: PASS")
+    print("REM reusable static C library: PASS")
 
 if __name__ == "__main__": main()

@@ -1,10 +1,10 @@
-# MyEmulator 2.0 Architecture Specification
+# REM Architecture Specification
 
 **Status: IMPLEMENTED (CPU/MMU/exception integration complete; Linux-readiness extensions in progress)**
 
 **Specification revision: 2.0-design-1**
 
-MyEmulator 2.0 is a new 32-bit architecture. It has no binary, ISA,
+REM is a 32-bit architecture. It has no binary, ISA,
 execution-mode, register, opcode, peripheral, firmware, or source-compatibility
 requirement with MyEmulator 1.0. The completed 1.0 implementation remains in
 this repository as a tagged reference and is not modified by this
@@ -19,7 +19,7 @@ integration remain future work.
 
 ## 1. Architectural model
 
-MyEmulator 2.0 is a little-endian, byte-addressed CPU with a 32-bit virtual
+REM is a little-endian, byte-addressed CPU with a 32-bit virtual
 address and 32-bit physical address space. Addresses and integer operations
 are modulo 2^32 unless an operation explicitly raises an exception. Integers
 are two's-complement.
@@ -517,7 +517,7 @@ it does not partially alter system state.
 
 ## 12. Memory ordering and timer
 
-MyEmulator2 v1 is strongly ordered: ordinary loads and stores become visible
+REM v1 is strongly ordered: ordinary loads and stores become visible
 in program order. There are no fence instructions. CAS is fully ordered with
 respect to surrounding memory operations.
 
@@ -574,7 +574,7 @@ aligned at calls and has no red zone. Detailed aggregate and varargs rules
 remain future ABI work.
 
 The executable direction is standard little-endian ELF32 with a private,
-development-only MyEmulator2 machine identifier until an official ELF machine
+development-only `myemulator32` machine identifier until an official ELF machine
 number exists. Static executables are the initial target; dynamic linking and
 shared libraries remain future work.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a bounded BusyBox shell regression over the MyEmulator2 TTY."""
+"""Run a bounded BusyBox shell regression over the REM TTY."""
 
 import os
 import socket
@@ -81,7 +81,7 @@ def main():
             except subprocess.TimeoutExpired:
                 proc.kill()
                 proc.wait()
-    print("MyEmulator2 BusyBox interactive shell: PASS")
+    print("REM BusyBox interactive shell: PASS")
 
 
 if __name__ == "__main__":
