@@ -1,0 +1,19 @@
+diff --git a/backends/hostmem-shm.c b/backends/hostmem-shm.c
+--- a/backends/hostmem-shm.c
++++ b/backends/hostmem-shm.c
+@@ -25,6 +25,10 @@ struct HostMemoryBackendShm {
+ static bool
+ shm_backend_memory_alloc(HostMemoryBackend *backend, Error **errp)
+ {
++#ifdef __ANDROID__
++    error_setg(errp, "memory-backend-shm is unavailable on Android");
++    return false;
++#else
+     g_autoptr(GString) shm_name = g_string_new(NULL);
+     g_autofree char *backend_name = NULL;
+     uint32_t ram_flags;
+@@ -91,6 +95,7 @@ shm_backend_memory_alloc(HostMemoryBackend *backend, Error **errp)
+                                               backend_name, backend->size,
+                                               ram_flags, fd, 0, errp);
++#endif
+ }
