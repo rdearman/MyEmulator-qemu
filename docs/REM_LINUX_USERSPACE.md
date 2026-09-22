@@ -124,3 +124,38 @@ Runtime behavior is not claimed here. The stage has not been executed under
 REM Linux/QEMU, so terminal behavior, process semantics, filesystem
 persistence, Emacs interactivity, and SQLite database operation remain
 unverified until a REM Linux runtime test is available.
+
+## Integrating into the REM root filesystem
+
+After the Linux kernel and BusyBox shell are ready, validate and install the
+ignored stage into a directory representing the future REM root filesystem:
+
+```sh
+toolchain/scripts/validate-userspace.sh --tree .userspace-stage
+toolchain/scripts/integrate-userspace.sh /path/to/rem-rootfs
+toolchain/scripts/validate-userspace.sh /path/to/rem-rootfs
+```
+
+Use `--stage DIR` with the integration script when the stage is elsewhere.
+The installer preflights every path before copying, creates missing parent
+directories, preserves staged permissions and symlinks, reuses existing
+directories without changing their contents or mode, and never overwrites an
+existing non-directory path. Any conflict is reported and the operation
+aborts before changing the destination.
+
+Libtool `*.la` metadata is intentionally omitted: it is not needed at runtime
+and can contain absolute paths from the build machine. The corresponding
+target static archives are retained and validated.
+
+The validator checks every ELF and every member of each static archive for
+ELF32 REM machine `0xf2e2`, rejects dynamic interpreters and dependencies,
+checks dangling symlinks and script interpreters, and checks Emacs's Lisp,
+`etc`, generated `DOC`, charset, LEIM, site-lisp, and terminfo data. Staged
+shell frontends include gzip helpers with a `/bin/bash` shebang, so a
+stage-only validation is expected to report that interpreter as missing until
+the root filesystem supplies a compatible shell or those optional helpers are
+removed. Validation does not execute target binaries.
+
+These commands do not modify the existing REM root filesystem image. They
+prepare files only; Emacs and the other applications must be executed under
+REM Linux/QEMU separately before runtime support is claimed.
