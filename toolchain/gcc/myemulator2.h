@@ -9,6 +9,11 @@
 #define LIB_SPEC ""
 #define LINK_SPEC "%{static:-Bstatic}"
 
+/* REM Linux does not provide Linux's host personality(2) syscall.  GCC's
+   reproducibility retry path is optional; do not emit a reference to that
+   host-only API when the compiler itself is a REM executable. */
+#undef HOST_HAS_PERSONALITY_ADDR_NO_RANDOMIZE
+
 #define INT_TYPE_SIZE 32
 #define SHORT_TYPE_SIZE 16
 #define LONG_TYPE_SIZE 32
@@ -113,6 +118,62 @@ enum reg_class { NO_REGS, GENERAL_REGS, ALL_REGS, LIM_REG_CLASSES };
    the fixed LR/frame header. */
 #define REG_PARM_STACK_SPACE(FNDECL) (4 * UNITS_PER_WORD)
 #define STACK_POINTER_OFFSET (4 * UNITS_PER_WORD)
+/* Bug #6 (alloca()/VLA corrupting a subsequent callee's own return value
+   or the caller's own saved LR/frame-pointer slot): this port's calling
+   convention is that a callee sets its own frame pointer to whatever the
+   real stack pointer was *at the moment of the call* (see the
+   "add r15,r13,r0" every function emits first), and spills its own
+   incoming register arguments to their "home slots" at
+   [that frame pointer + STACK_POINTER_OFFSET,
+    that frame pointer + STACK_POINTER_OFFSET + REG_PARM_STACK_SPACE)
+   as part of ordinary (even non-varargs) prologue code generation at
+   -Os (musl's own strcpy/memcpy do this for their first argument
+   unconditionally: "sw r1,16(r15)" immediately in the prologue, reloaded
+   near the return).  For an ordinary call site this is always safe,
+   because the real stack pointer sits constant for the whole function
+   body (ACCUMULATE_OUTGOING_ARGS) with this port's fixed per-function
+   frame -- which already reserves at least REG_PARM_STACK_SPACE bytes
+   above that constant stack pointer for exactly this purpose (folded
+   into myemulator2_compute_frame's size_for_adjusting_sp via
+   crtl->outgoing_args_size), so a callee's home-slot writes land in
+   memory the caller never uses for anything else.
+
+   alloca()/a VLA moves the real stack pointer itself, so any call made
+   afterwards uses that *lower* address as its own incoming frame
+   pointer, with no guarantee anything above it is unused.
+   get_dynamic_stack_size() never pads the requested SIZE to compensate
+   for a nonzero STACK_DYNAMIC_OFFSET (see explow.cc) -- it only changes
+   where alloca()'s *returned pointer* sits within the SAME, unchanged
+   region anti_adjust_stack() reserves -- so, depending on the offset
+   chosen. one of two things corrupts a caller: too small an offset
+   (in particular the previous 0 or STACK_POINTER_OFFSET-only values)
+   places the returned pointer at or before the callee's own home-slot
+   area, so the callee's home-slot spill overwrites the first bytes of
+   the very data the caller just asked it to read (this is what
+   corrupted musl's strcpy's own return value: it spilled its incoming
+   dest pointer to a slot that turned out to alias dest itself, so its
+   own copy loop clobbered the saved pointer before the reload); too
+   small an offset *and* no compensating padding of the actual
+   reservation (mentioned below) additionally lets the returned
+   pointer's own data extend past the end of the (unchanged) allocation,
+   into this port's saved LR/caller-FP slot directly above it,
+   corrupting the return address for a small enough request.
+
+   The fix has two cooperating pieces, both sized to clear the *entire*
+   register-argument home area (STACK_POINTER_OFFSET to
+   STACK_POINTER_OFFSET + REG_PARM_STACK_SPACE) rather than just its
+   first byte: (1) STACK_DYNAMIC_OFFSET below returns
+   STACK_POINTER_OFFSET + REG_PARM_STACK_SPACE, so alloca()'s returned
+   pointer sits entirely above every possible register-argument home
+   slot a subsequent callee might spill to, and (2) STACK_DYNAMIC_PAD
+   (see gcc/defaults.h and gcc/builtins.cc's expand_builtin_alloca)
+   grows the actual reservation by that same margin, since
+   get_dynamic_stack_size() alone will not.  Do not revert either half
+   without the other, and do not shrink either below
+   STACK_POINTER_OFFSET + REG_PARM_STACK_SPACE: anything smaller
+   reintroduces one of the two corruptions above. */
+#define STACK_DYNAMIC_OFFSET(FUNDECL) myemulator2_stack_dynamic_offset ()
+#define STACK_DYNAMIC_PAD (STACK_POINTER_OFFSET + (4 * UNITS_PER_WORD))
 /* GCC's incoming argument pointer already accounts for the register
    argument home area.  Stack-passed arguments therefore begin at offset
    zero from that pointer; adding another home-area offset here makes the
