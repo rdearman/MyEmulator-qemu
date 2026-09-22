@@ -21,7 +21,8 @@ networking="${REM_ENABLE_NETWORKING:-0}"
 command -v curl >/dev/null || { echo 'curl is required' >&2; exit 2; }
 command -v dpkg-deb >/dev/null || { echo 'dpkg-deb is required on the Linux build host' >&2; exit 2; }
 
-if [[ ! -f "$sysroot/data/data/com.termux/files/usr/lib/pkgconfig/glib-2.0.pc" ]]; then
+if [[ ! -f "$sysroot/data/data/com.termux/files/usr/lib/pkgconfig/glib-2.0.pc" ||
+      ! -f "$sysroot/data/data/com.termux/files/usr/lib/pkgconfig/slirp.pc" ]]; then
   mkdir -p "$sysroot"
   packages=(
     pool/main/g/glib/glib_2.90.0_aarch64.deb
