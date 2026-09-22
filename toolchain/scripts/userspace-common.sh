@@ -27,6 +27,15 @@ userspace_prepare_stage() {
 		"$stage_dir/usr/lib" "$stage_dir/usr/share/terminfo"
 }
 
+userspace_require_safe_stage() {
+	case "$stage_dir" in
+		""|"/"|"$root"|"$root/.emacs-build"|"$root/.emacs-build/"*|"$root/.ncurses-build"|"$root/.ncurses-build/"*|"$root/.musl-install"|"$root/.musl-install/"*|"$root/.toolchain-install"|"$root/.toolchain-install/"*)
+			echo "refusing unsafe userspace stage path: $stage_dir" >&2
+			exit 2
+			;;
+	esac
+}
+
 userspace_require_target() {
 	[[ -x "$target_gcc" ]] ||
 		{ echo "missing REM GCC: $target_gcc" >&2; exit 2; }
@@ -173,14 +182,16 @@ userspace_verify_stage_elfs() {
 
 userspace_stage_sysroot() {
 	userspace_require_target
+	[[ -f "$musl_prefix/lib/libncursesw.a" ]] ||
+		{ echo "missing REM ncursesw library: $musl_prefix/lib/libncursesw.a" >&2; exit 2; }
+	[[ -d "$root/.ncurses-build/stage/usr/share/terminfo" ]] ||
+		{ echo "missing staged ncurses terminfo: $root/.ncurses-build/stage/usr/share/terminfo" >&2; exit 2; }
 	mkdir -p "$stage_dir/usr/include" "$stage_dir/usr/lib" "$stage_dir/usr/share/terminfo"
 	cp -a "$musl_prefix/include/." "$stage_dir/usr/include/"
 	find "$musl_prefix/lib" -maxdepth 1 \( -name '*.a' -o -name 'crt*.o' \) \
 		-exec cp -a {} "$stage_dir/usr/lib/" \;
-	if [[ -d "$root/.ncurses-build/stage/usr/share/terminfo" ]]; then
-		cp -a "$root/.ncurses-build/stage/usr/share/terminfo/." \
-			"$stage_dir/usr/share/terminfo/"
-	fi
+	cp -a "$root/.ncurses-build/stage/usr/share/terminfo/." \
+		"$stage_dir/usr/share/terminfo/"
 }
 
 userspace_init

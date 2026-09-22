@@ -28,6 +28,14 @@ headers, musl static libraries/start files, ncurses libraries/headers, and
 compiled terminfo database are copied into the stage so the tree can serve as
 a standalone target development root.
 
+The userspace batch does not rebuild or clean the completed Emacs or ncurses
+outputs. It copies from `.emacs-build/target`,
+`.emacs-build/emacs-30.1`, `.musl-install`, and
+`.ncurses-build/stage/usr/share/terminfo` into a freshly recreated
+`.userspace-stage`. The orchestrator refuses unsafe stage paths that would
+overlap `.emacs-build`, `.ncurses-build`, `.musl-install`, or
+`.toolchain-install`.
+
 ## Package wrappers
 
 `toolchain/scripts/userspace-common.sh` supplies the shared fetch, SHA-256
@@ -61,6 +69,35 @@ Readline is configured with `bash_cv_func_sigsetjmp=missing` because the
 current REM musl port provides the normal `setjmp` entry points but not a
 linkable `sigsetjmp` symbol. The wrapper performs a target link smoke check
 against `libreadline.a`, ncurses, and musl before reporting success.
+
+## Emacs runtime layout
+
+`build-userspace-emacs.sh` requires the completed REM Emacs build at
+`.emacs-build/target/src/emacs`; it does not invoke the Emacs build script or
+overwrite `.emacs-build`. It stages:
+
+```text
+.userspace-stage/bin/emacs -> ../usr/bin/emacs
+.userspace-stage/usr/bin/emacs
+.userspace-stage/usr/share/emacs/30.1/lisp/
+.userspace-stage/usr/share/emacs/30.1/etc/
+.userspace-stage/usr/share/emacs/30.1/etc/DOC
+.userspace-stage/usr/share/emacs/30.1/etc/charsets/
+.userspace-stage/usr/share/emacs/30.1/leim/
+.userspace-stage/usr/share/emacs/30.1/site-lisp/
+.userspace-stage/usr/share/emacs/site-lisp/
+.userspace-stage/usr/share/terminfo/
+```
+
+The `lisp`, `etc`, `etc/charsets`, and `leim` trees are copied from the
+extracted Emacs 30.1 source tree; the generated `etc/DOC` runtime file is
+copied from `.emacs-build/target/etc/DOC`; terminfo is copied from the
+completed ncurses stage. The wrapper verifies the target executable, non-empty
+Lisp and charset trees, generated `DOC`, and terminfo, then records counts and
+the top-level runtime tree in `.userspace-build/logs/emacs-runtime-manifest.txt`.
+Emacs `lib-src` build utilities are not staged because this cross-build uses
+host-executable utilities there for the build process, not target runtime
+helpers.
 
 ## Validation status
 

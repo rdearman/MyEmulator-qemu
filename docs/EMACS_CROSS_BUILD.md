@@ -85,9 +85,12 @@ been run under REM Linux: no QEMU executable is available in this authorized
 clone, so terminal editing, saving, and persistence remain unverified.
 
 For the REM Linux userspace stage, `toolchain/scripts/build-userspace-emacs.sh`
-copies the target executable to `.userspace-stage/usr/bin/emacs`, stages the
-Emacs 30.1 Lisp/data directories under `.userspace-stage/usr/share/emacs/30.1`,
-and copies ncurses terminfo into `.userspace-stage/usr/share/terminfo`.
+copies the completed target executable to `.userspace-stage/usr/bin/emacs`,
+stages the Emacs 30.1 `lisp`, `etc`, `etc/charsets`, `leim`, and site-lisp
+runtime directories under `.userspace-stage/usr/share/emacs`, copies the
+generated `.emacs-build/target/etc/DOC` runtime file, and copies ncurses
+terminfo into `.userspace-stage/usr/share/terminfo`. The userspace wrapper
+does not rebuild or remove `.emacs-build`.
 
 The earlier `stdckdint.h` failure was a host/target configuration mix-up.
 Native configuration generates Emacs's gnulib replacement, while target

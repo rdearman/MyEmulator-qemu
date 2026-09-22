@@ -22,6 +22,7 @@ packages=(
 )
 
 mkdir -p "$log_dir"
+userspace_require_safe_stage
 rm -rf "$stage_dir"
 userspace_prepare_stage
 : >"$log_dir/summary.txt"
