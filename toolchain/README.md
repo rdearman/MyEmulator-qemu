@@ -1,4 +1,4 @@
-# MyEmulator2 GNU toolchain
+# REM GNU toolchain
 
 This directory contains the reproducible integration for GNU binutils 2.46.0.
 Upstream source, build trees, installation prefixes, archives, and generated
@@ -65,7 +65,7 @@ emitting `R_MYEMU_32` data relocations.
 
 ## Run the executable under QEMU
 
-Build the project QEMU target first. The MyEmulator2 machine accepts either
+Build the project QEMU target first. The REM machine accepts either
 the existing raw development image or an ELF32 file with the project-local
 machine ID:
 
@@ -88,7 +88,7 @@ compatibility remains available for the existing tests.
 
 This exercises assembly, ELF inspection, relocations, disassembly, and the
 GNU-toolchain/QEMU integration fixtures. The QEMU execution test is included
-when the MyEmulator2 QEMU binary is available.
+when the REM QEMU binary is available.
 
 ## Tests and future work
 
@@ -139,12 +139,12 @@ including a focused recursive/large-frame call regression.
 ## Linux bootstrap input fixture
 
 The Linux port currently has a deliberately small bootstrap syscall ABI for
-userspace bring-up: `read(0, buffer, count)` polls the MyEmulator2 UART and
+userspace bring-up: `read(0, buffer, count)` polls the REM UART and
 returns one byte or `-EAGAIN`; `write(1/2, buffer, count)` emits to the same
 UART, and `exit`/`exit_group` terminate the task. The real tty driver and
 blocking line-discipline path remain Linux-port work.
 
-Build a disposable initramfs containing the actual MyEmulator2 echo program
+Build a disposable initramfs containing the actual REM echo program
 with:
 
 ```sh
@@ -177,3 +177,21 @@ interaction regression is:
 ```sh
 python3 toolchain/scripts/test-linux-bootstrap-shell.py
 ```
+
+## `reminfo` diagnostic
+
+`toolchain/examples/reminfo.c` builds a native REM diagnostic that separates
+live kernel reports from static platform information. It reads `uname`,
+monotonic uptime, process status, `/proc/meminfo`, `/proc/cpuinfo`,
+`/proc/mounts`, and `/proc/partitions`, then reports the documented REM UART,
+block device, MMIO, and interrupt assignments.
+
+Build it after the REM toolchain is installed:
+
+```sh
+./toolchain/scripts/build-reminfo.sh /tmp/reminfo
+```
+
+The current syscall interface does not include `statfs`, so the utility labels
+exact filesystem-capacity reporting as unavailable instead of fabricating
+storage values.

@@ -1,5 +1,6 @@
 .qemu-upstream/
 .qemu-build/
+.android-build/
 __pycache__/
 build/
 .toolchain-downloads/
