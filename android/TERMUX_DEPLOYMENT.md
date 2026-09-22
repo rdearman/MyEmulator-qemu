@@ -84,6 +84,32 @@ cd "$HOME/rem"
 chmod 700 launch-rem.sh qemu-system-myemulator32
 ```
 
+Install the verified guest artifacts, then create the checksum sidecars used
+by the preflight script:
+
+```sh
+install -m 0644 /tmp/rem-verified-guest/vmlinux "$HOME/rem/vmlinux"
+install -m 0644 /tmp/rem-verified-guest/rootfs.ext4 "$HOME/rem/rootfs.ext4"
+cd "$HOME/rem"
+sha256sum vmlinux > vmlinux.sha256
+sha256sum rootfs.ext4 > rootfs.ext4.sha256
+./rem-install.sh check
+```
+
+Create a recovery copy without copying or deleting the persistent filesystem:
+
+```sh
+./rem-install.sh backup "$HOME/rem-recovery"
+```
+
+After an Android update or accidental replacement, restore the known-working
+QEMU, launcher, kernel, and checksum metadata while preserving `rootfs.ext4`:
+
+```sh
+./rem-install.sh restore "$HOME/rem-recovery"
+./rem-install.sh check
+```
+
 The launcher prepends its bundled `lib/` directory and Termux's `$PREFIX/lib`
 to `LD_LIBRARY_PATH`, then runs the ARM64 QEMU binary directly. It does not
 require root, proot, a graphical display, or an Android app wrapper.

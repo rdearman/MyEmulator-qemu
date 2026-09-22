@@ -9,7 +9,7 @@ fi
 package=$1
 [[ -d "$package" ]] || { echo "missing deployment directory: $package" >&2; exit 2; }
 
-required=(qemu-system-myemulator32 launch-rem.sh README TERMUX_DEPLOYMENT.md
+required=(qemu-system-myemulator32 launch-rem.sh rem-install.sh README TERMUX_DEPLOYMENT.md
 	placeholders/vmlinux placeholders/rootfs.ext4 SHA256SUMS)
 for name in "${required[@]}"; do
 	[[ -e "$package/$name" ]] || { echo "missing package file: $name" >&2; exit 1; }
@@ -48,7 +48,7 @@ grep -q '^PLACEHOLDER:' "$package/placeholders/rootfs.ext4" || {
 while IFS= read -r path; do
 	relative=${path#"$package/"}
 	case "$relative" in
-		qemu-system-myemulator32|launch-rem.sh|README|TERMUX_DEPLOYMENT.md|SHA256SUMS|placeholders/vmlinux|placeholders/rootfs.ext4|lib/*) ;;
+		qemu-system-myemulator32|launch-rem.sh|rem-install.sh|README|TERMUX_DEPLOYMENT.md|SHA256SUMS|placeholders/vmlinux|placeholders/rootfs.ext4|lib/*) ;;
 		*) echo "unexpected package path: $relative" >&2; exit 1 ;;
 	esac
 done < <(find "$package" -type f -print)

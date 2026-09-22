@@ -20,6 +20,7 @@ if [[ -n "$(find "$output" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
 fi
 install -m 0755 "$qemu" "$output/qemu-system-myemulator32"
 install -m 0755 "$script_dir/launch-rem.sh" "$output/launch-rem.sh"
+install -m 0755 "$script_dir/rem-install.sh" "$output/rem-install.sh"
 mkdir -p "$output/placeholders"
 printf '%s\n' 'PLACEHOLDER: install the verified REM Linux kernel here as ../vmlinux.' \
 	> "$output/placeholders/vmlinux"
@@ -51,7 +52,8 @@ root filesystem are intentionally placeholders; no experimental GCC
 integration artifact is included.
 
 Read TERMUX_DEPLOYMENT.md, then install the verified guest files as ./vmlinux
-and ./rootfs.ext4 before running ./launch-rem.sh.
+and ./rootfs.ext4, create their .sha256 sidecars, and run ./rem-install.sh
+check before launching.
 EOF
 install -m 0644 "$script_dir/TERMUX_DEPLOYMENT.md" "$output/TERMUX_DEPLOYMENT.md"
 (

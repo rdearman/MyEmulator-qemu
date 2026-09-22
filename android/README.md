@@ -70,6 +70,14 @@ REM-specific `myemulator2-disk` backend. Exit the guest using its normal halt
 command or the QEMU escape sequence shown by QEMU; do not use Android’s
 back-button force-stop while the guest is writing the filesystem.
 
+The package also includes `rem-install.sh`. Run `./rem-install.sh check` before
+launching to validate Termux, the Android linker and QEMU dependencies, guest
+image permissions, and kernel/rootfs checksum sidecars. Use
+`./rem-install.sh backup "$HOME/rem-recovery"` to save the known-working
+launcher, QEMU, kernel, and checksum metadata without copying the persistent
+root filesystem; `restore` reinstates those files without deleting that
+filesystem.
+
 ## Cross-build from Linux
 
 The same target can be cross-compiled with the Android NDK and ARM64 Termux
