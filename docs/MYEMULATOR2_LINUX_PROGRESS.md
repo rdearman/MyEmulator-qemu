@@ -463,8 +463,9 @@ cpu32-test`, `python3 toolchain/scripts/test-linux-process.py`, and
 `python3 toolchain/scripts/test-linux-ext4-persistence.py` pass. The genuine
 guest-native GCC fixture still does not reach its marker: after the native
 compiler artifacts were relinked at `0x02000000`, the guest enters an
-NMI/panic path during the fork/exec test. The exact NMI injection source
-remains open; no QEMU process is left running by the test harness.
+NMI/panic path during the fork/exec test. The NMI path was subsequently
+identified as the exception-index collision documented below; no QEMU process
+is left running by the test harness.
 
 ## QEMU exception-index collision (2026-09-22)
 
