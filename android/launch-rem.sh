@@ -14,7 +14,7 @@ rootfs="${REM_ROOTFS:-$home/rootfs.ext4}"
 # runtime copy is supplied by Termux, so make the real device library path
 # explicit before invoking the Android linker.
 termux_prefix="${PREFIX:-/data/data/com.termux/files/usr}"
-export LD_LIBRARY_PATH="$termux_prefix/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="$home/lib:$termux_prefix/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
 exec "$qemu" \
   -M myemulator32 \

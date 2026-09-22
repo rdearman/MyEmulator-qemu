@@ -21,8 +21,20 @@ install -m 0755 "$qemu" "$output/qemu-system-myemulator32"
 install -m 0644 "$kernel" "$output/vmlinux"
 install -m 0644 "$rootfs" "$output/rootfs.ext4"
 install -m 0755 "$(dirname "$0")/launch-rem.sh" "$output/launch-rem.sh"
+runtime_libs="${ANDROID_TERMUX_SYSROOT:-$(cd "$(dirname "$0")/../.android-build/termux-sysroot" 2>/dev/null && pwd)}/data/data/com.termux/files/usr/lib"
+if [[ -d "$runtime_libs" && -e "$runtime_libs/libglib-2.0.so.0" ]]; then
+	mkdir -p "$output/lib"
+	for pattern in libglib-2.0.so* libz.so* libandroid-support.so* libiconv.so* libpcre2-8.so*; do
+		for library in "$runtime_libs"/$pattern; do
+			[[ -e "$library" ]] && cp -a "$library" "$output/lib/"
+		done
+	done
+else
+	echo "warning: Android runtime libraries not bundled; install Termux glib and zlib" >&2
+fi
 cat > "$output/README" <<'EOF'
 Run in Termux with: ./launch-rem.sh
 The rootfs.ext4 file is persistent and must remain writable.
+Bundled libraries, when present, are under ./lib.
 EOF
 printf 'Deployment package: %s\n' "$output"
