@@ -428,3 +428,22 @@ The generated BFD lists are now correct; the remaining work is to make the
 binutils build system's host/target configure recursion work with the REM
 host compiler, then build and install the guest binutils before bootstrapping
 guest GCC.
+
+## Kernel/user address-space alias fix (2026-09-22)
+
+The first writer of the corrupted SLUB freelist was traced to an address-space
+alias, not CAS32.  The kernel identity map covers physical addresses 0--16
+MiB, while the old userspace image at `0x00700000` occupied the same virtual
+window.  Under a user PTBR, virtual page `0x0084f000` therefore resolved both
+to its identity physical page and to an unrelated userspace page; a supervisor
+SLUB access read `0x05ad0ffc` from the latter mapping.  The allocator fault at
+`0x05ad100c` was only the first visible consumer.
+
+The Linux userspace image base is now `0x02000000`, above the identity map.
+New per-process user PDE/PTE storage starts empty instead of copying the old
+identity PTE page, and low-linked Linux fixtures use the same non-overlapping
+base.  The temporary allocator and MMU traces were removed.  `make spec-test`,
+`make cpu32-test` and `python3 toolchain/scripts/test-linux-process.py` pass
+with the rebuilt QEMU and kernel.  Genuine guest-native GCC compilation is
+still not accepted: the existing self-hosted fixture currently stalls in a
+later boot/console or block-I/O path and needs separate diagnosis.

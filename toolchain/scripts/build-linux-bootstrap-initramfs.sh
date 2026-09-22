@@ -9,7 +9,7 @@ mkdir -p "$out/rootfs"
 "$prefix/bin/myemulator2-elf-as" \
   -o "$out/linux-echo.o" "$root/toolchain/examples/linux-echo.S"
 "$prefix/bin/myemulator2-elf-ld" \
-	-Ttext=0x00500000 \
+	-Ttext=0x02000000 \
 	-o "$out/linux-echo.elf" "$out/linux-echo.o"
 install -m 0755 "$out/linux-echo.elf" "$out/rootfs/init"
 

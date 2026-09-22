@@ -100,6 +100,20 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 	}
 
 	fault = handle_mm_fault(vma, address, flags, regs);
+	/* The generic folded-page-table path can preserve the copied kernel
+	 * identity entry's supervisor-only flags while replacing its PTE.  A
+	 * user VMA requires USER permission at both levels of the REM walk. */
+	if (user) {
+		pmd_t *pmd = pmd_off(mm, address);
+		if (!pmd_none(*pmd) && !(pmd_val(*pmd) & _PAGE_USER))
+			*pmd = __pmd(pmd_val(*pmd) | _PAGE_USER);
+	}
+	/* Generic fault handling may install a previously non-present
+	 * executable PTE without going through the architecture's set_pte()
+	 * helper.  Drop the failed instruction-fetch translation before RFE
+	 * retries the faulting instruction. */
+	if (exec && !(fault & VM_FAULT_ERROR))
+		flush_tlb_page(vma, address);
 	/* File-backed faults may drop mmap_lock while waiting for the block
 	 * layer.  VM_FAULT_RETRY asks the architecture to reacquire the lock and
 	 * retry the fault; unlocking unconditionally here corrupts the rwsem and
@@ -116,17 +130,6 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 		if (pte_present(*ptep)) {
 			struct page *page = pfn_to_page(pte_pfn(*ptep));
 			clear_user_page(page_address(page), address, page);
-		}
-	}
-	if (address >= 0x10000000UL && address < 0x10004000UL) {
-		static unsigned int report_count;
-		if (report_count++ < 8) {
-			pmd_t *debug_pmd = pmd_off(mm, address);
-			pte_t *debug_ptep = pte_offset_kernel(debug_pmd, address);
-			pr_emerg("MyEmulator2 mmap fault addr=%08lx cause=%lu result=%x pte=%08lx pfn=%lx vma=%08lx-%08lx flags=%lx\n",
-				 address, cause, fault, pte_val(*debug_ptep),
-				 pte_pfn(*debug_ptep), vma->vm_start, vma->vm_end,
-				 vma->vm_flags);
 		}
 	}
 	mmap_read_unlock(mm);

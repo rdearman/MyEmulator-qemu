@@ -30,7 +30,7 @@ def main():
                 subprocess.run([str(gcc), *cflags, "-c", str(path), "-o", str(out / obj)], check=True)
         test_obj = out / "test.o"
         subprocess.run([str(gcc), *cflags, "-c", str(ROOT / "toolchain/examples/linux-libc-regression.c"), "-o", str(test_obj)], check=True)
-        subprocess.run([str(gcc), "-nostdlib", "-Ttext=0x00500000", "-o", str(out / "init.elf"),
+        subprocess.run([str(gcc), "-nostdlib", "-Ttext=0x02000000", "-o", str(out / "init.elf"),
                         *[str(out / obj) for _, obj in sources], str(test_obj), "-lgcc"], check=True)
         list_path = Path("/tmp/myemu-initramfs/list")
         list_path.parent.mkdir(parents=True, exist_ok=True)

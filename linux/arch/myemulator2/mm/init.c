@@ -38,23 +38,13 @@ pgd_t *pgd_alloc(struct mm_struct *mm)
 		memcpy(pgd, swapper_pg_dir, sizeof(swapper_pg_dir));
 	if (!pgd)
 		return NULL;
-	/* The kernel is linked in the low identity-mapped half.  Preserve that
-	 * supervisor mapping in each mm, but give Linux a private second-level
-	 * table for the initial user image window so demand paging can replace
-	 * its entries with user permissions. */
+	/* The kernel uses a low identity map through the end of physical RAM.
+	 * Keep the user image above that range so supervisor accesses through
+	 * the kernel's physical pointers cannot alias user mappings. */
 	user_pte = (pte_t *)get_zeroed_page(GFP_KERNEL);
 	if (user_pte) {
-		memcpy(user_pte, swapper_pte[1], PAGE_SIZE);
-		/* Native Linux executables are linked at 0x00700000.  The
-		 * corresponding 7--8 MiB identity window must not remain in a
-		 * process page table: supervisor copy_to/from_user() and ELF
-		 * padzero() must resolve through the user mapping, otherwise they
-		 * write the physical identity page before demand paging installs
-		 * the executable's page.  Keep the lower 4--7 MiB identity map
-		 * available for the low-linked kernel. */
-		for (unsigned int i = 0x300; i < PTRS_PER_PTE; i++)
-			user_pte[i] = __pte(0);
-		pgd[1] = __pgd((unsigned long)user_pte | flags);
+		pgd[MYEMU_USER_IMAGE_BASE >> PGDIR_SHIFT] =
+			__pgd((unsigned long)user_pte | flags);
 		/* This private second-level table is traversed and released by
 		 * Linux's generic mm teardown just like a demand-allocated PTE
 		 * page.  Keep pgtables_bytes balanced across exec/exit. */

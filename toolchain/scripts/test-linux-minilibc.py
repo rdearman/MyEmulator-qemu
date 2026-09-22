@@ -38,7 +38,7 @@ def main():
             subprocess.run([str(as_), "-o", str(out / name),
                             str(ROOT / "toolchain/userspace/minilibc" / source)],
                            check=True)
-        subprocess.run([str(ld), "-Ttext=0x00500000", "-o",
+        subprocess.run([str(ld), "-Ttext=0x02000000", "-o",
                         str(out / "init.elf"), str(out / "crt0.o"),
                         str(out / "syscall.o"), str(out / "string.o"),
                         str(out / "main.o")], check=True)

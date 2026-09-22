@@ -37,7 +37,7 @@ def main():
             str(PREFIX / "bin/myemulator2-elf-as"), "-o", str(obj),
             str(ROOT / "toolchain/examples/linux-clone-wait.S")], check=True)
         subprocess.run([
-            str(PREFIX / "bin/myemulator2-elf-ld"), "-Ttext=0x00500000",
+            str(PREFIX / "bin/myemulator2-elf-ld"), "-Ttext=0x02000000",
             "-o", str(elf), str(obj)], check=True)
 
         INIT_LIST.parent.mkdir(parents=True, exist_ok=True)
@@ -49,17 +49,24 @@ def main():
         subprocess.run([str(LINUX / "scripts/config"), "--file",
                         str(BUILD / ".config"), "--set-str",
                         "INITRAMFS_SOURCE", str(INIT_LIST)], check=True)
+        subprocess.run([str(LINUX / "scripts/config"), "--file",
+                        str(BUILD / ".config"), "--set-str",
+                        "CMDLINE", "console=ttyMY0"], check=True)
         subprocess.run([str(ROOT / "toolchain/scripts/build-linux.sh")],
                        check=True, stdout=subprocess.DEVNULL)
 
         sock_path = out / "console.sock"
+        qemu_log = open(os.environ["MYEMU_PROCESS_QEMU_LOG"], "wb") \
+            if os.environ.get("MYEMU_PROCESS_QEMU_LOG") else None
         proc = subprocess.Popen([
             str(QEMU), "-M", "myemulator32", "-m", "16M",
-            "-kernel", str(KERNEL), "-nographic", "-monitor", "none",
+            "-kernel", str(KERNEL), "-append", "console=ttyMY0",
+            "-nographic", "-monitor", "none",
             "-serial", "chardev:console", "-chardev",
             f"socket,id=console,path={sock_path},server=on,wait=on",
             "-icount", "shift=0,sleep=off"],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            stdout=qemu_log or subprocess.DEVNULL,
+            stderr=qemu_log or subprocess.DEVNULL)
         sock = None
         try:
             for _ in range(300):
@@ -81,6 +88,8 @@ def main():
             for text in (b"process test start", b"process child",
                          b"process parent waited"):
                 if text not in data:
+                    if os.environ.get("MYEMU_PROCESS_SERIAL_LOG"):
+                        Path(os.environ["MYEMU_PROCESS_SERIAL_LOG"]).write_bytes(data)
                     raise RuntimeError(f"missing process output: {text!r}")
             if b"unhandled MyEmulator2 exception" in data:
                 raise RuntimeError("unhandled MyEmulator2 exception")
@@ -93,6 +102,8 @@ def main():
             except subprocess.TimeoutExpired:
                 proc.kill()
                 proc.wait()
+            if qemu_log is not None:
+                qemu_log.close()
     print("MyEmulator2 Linux process clone/exit/wait4: PASS")
 
 

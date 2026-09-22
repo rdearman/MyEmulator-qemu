@@ -9,7 +9,7 @@ mkdir -p "$out/rootfs/dev"
 "$prefix/bin/myemulator2-elf-as" \
   -o "$out/linux-tty-probe.o" "$root/toolchain/examples/linux-tty-probe.S"
 "$prefix/bin/myemulator2-elf-ld" \
-  -Ttext=0x00500000 -o "$out/linux-tty-probe.elf" \
+  -Ttext=0x02000000 -o "$out/linux-tty-probe.elf" \
   "$out/linux-tty-probe.o"
 install -m 0755 "$out/linux-tty-probe.elf" "$out/rootfs/init"
 (
