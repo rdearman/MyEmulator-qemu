@@ -1,6 +1,7 @@
 #include "qemu/osdep.h"
 #include "qemu/log.h"
 #include "cpu.h"
+
 #include "exec/exec-all.h"
 #include "exec/cputlb.h"
 #include "exec/helper-proto.h"
@@ -215,6 +216,8 @@ void helper_nmi(CPUMyEmulator32State *env)
     myemu32_enter_exception(env, MYEMU32_VECTOR_NMI, env->pc, 0, 0, true);
 }
 
+
+
 void helper_halt(CPUMyEmulator32State *env)
 {
     CPUState *cs = env_cpu(env);
@@ -225,9 +228,6 @@ void helper_halt(CPUMyEmulator32State *env)
     env->halted = true;
     cs->halted = 1;
     cs->exception_index = EXCP_HLT;
-    if (runstate_is_running()) {
-        vm_stop(RUN_STATE_DEBUG);
-    }
     cpu_loop_exit(cs);
 }
 
@@ -236,6 +236,7 @@ void helper_rfe(CPUMyEmulator32State *env, uint32_t pc)
     CPUState *cs = env_cpu(env);
     uint32_t frame, saved_pc, saved_sr, cause;
     uint32_t values[4];
+
 
     if (!myemu32_supervisor(env)) {
         helper_exception(env, MYEMU32_VECTOR_PRIVILEGE, pc, 0);

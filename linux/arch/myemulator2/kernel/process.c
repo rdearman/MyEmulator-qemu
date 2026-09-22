@@ -7,6 +7,7 @@
 #include <linux/uaccess.h>
 #include <linux/sched/task_stack.h>
 #include <asm/processor.h>
+#include <asm/irqflags.h>
 
 unsigned long init_stack[THREAD_SIZE / sizeof(unsigned long)]
 	__aligned(THREAD_SIZE);
@@ -27,11 +28,20 @@ myemulator2_init_user_regs(struct pt_regs *regs, unsigned long pc,
 	regs->info = 0;
 }
 
+/*
+ * arch_cpu_idle() is called by the generic idle loop with IRQs
+ * disabled (see kernel/sched/idle.c:default_idle_call()). It must
+ * enable interrupts before halting, otherwise the CPU's IPL stays at
+ * its maximum value (7) and no interrupt -- timer tick or UART RX --
+ * can ever satisfy myemulator32_has_work()'s "level > ipl" wake
+ * condition, leaving the vCPU permanently parked in HALT. The
+ * previous for(;;) loop compounded this by never returning to let the
+ * generic loop recheck need_resched() or re-enable IRQs itself.
+ */
 void arch_cpu_idle(void)
 {
-	for (;;) {
-		asm volatile("halt" ::: "memory");
-	}
+	arch_local_irq_enable();
+	asm volatile("halt" ::: "memory");
 }
 
 void machine_restart(char *cmd)
@@ -154,9 +164,13 @@ int copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
 	childregs->r[1] = 0;
 	if (args->stack)
 		childregs->r[13] = args->stack;
-	if (args->flags & CLONE_SETTLS)
+	if (args->flags & CLONE_SETTLS) {
 		p->thread.tp = args->tls;
-	else
-		p->thread.tp = current->thread.tp;
+	} else {
+		/* A forked user task inherits the live architectural TP. */
+		unsigned long tp;
+		asm volatile("mfsr %0, tp" : "=r"(tp));
+		p->thread.tp = tp;
+	}
 	return 0;
 }

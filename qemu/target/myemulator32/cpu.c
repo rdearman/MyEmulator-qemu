@@ -192,6 +192,7 @@ bool myemulator32_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
     bool fetch = access_type == MMU_INST_FETCH;
     unsigned fault_page, fault_prot;
 
+
     if (!env->mmcr) {
         tlb_set_page(cs, page, page, PAGE_READ | PAGE_WRITE | PAGE_EXEC,
                      mmu_idx, TARGET_PAGE_SIZE);
@@ -223,6 +224,7 @@ bool myemulator32_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
     pte_addr = (pde & 0xfffff000u) + pte_index * sizeof(uint32_t);
     pte = address_space_ldl_le(&address_space_memory, pte_addr,
                                MEMTXATTRS_UNSPECIFIED, &result);
+
     if (result != MEMTX_OK || !(pte & 1)) {
         if (!probe) {
             myemulator32_mmu_fault(cs, env, retaddr, fault_page, address);

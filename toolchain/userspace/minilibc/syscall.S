@@ -60,6 +60,16 @@ myemu_fsync:
 	syscall 0
 	ret
 
+	.global myemu_execve
+	.type myemu_execve,@function
+myemu_execve:
+	add r4, r3, r0
+	add r3, r2, r0
+	add r2, r1, r0
+	li r1, 221
+	syscall 0
+	ret
+
 	.global myemu_lseek
 	.type myemu_lseek,@function
 myemu_lseek:

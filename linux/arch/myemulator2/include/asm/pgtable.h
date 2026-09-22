@@ -64,7 +64,27 @@ static inline void myemulator2_tlbflush(void)
 {
 	asm volatile("tlbflush" ::: "memory");
 }
-#define set_pte(ptep, pte) do { *(ptep) = (pte); myemulator2_tlbflush(); } while (0)
+/* TEMPORARY diagnostic (Bug #4 investigation): warn + dump_stack() the first
+ * few times a PTE is installed with a physically-impossible pfn (this
+ * platform only has 16MB of RAM == 4096 pages).  Remove once Bug #4 is
+ * root-caused and fixed. */
+extern void dump_stack(void);
+#define MYEMU2_MAX_VALID_PFN 0x1000u
+#define set_pte(ptep, pte) do { \
+	pte_t __mset_pte = (pte); \
+	if ((pte_val(__mset_pte) & 1) && \
+	    (pte_val(__mset_pte) >> 12) >= MYEMU2_MAX_VALID_PFN) { \
+		static int __mset_warned; \
+		if (__mset_warned < 5) { \
+			__mset_warned++; \
+			printk(KERN_ERR "MYEMU_BAD_PTE ptep=%px pte=%08x pfn=%08x\n", \
+				(ptep), pte_val(__mset_pte), \
+				pte_val(__mset_pte) >> 12); \
+			dump_stack(); \
+		} \
+	} \
+	*(ptep) = __mset_pte; myemulator2_tlbflush(); \
+} while (0)
 #define pte_read(pte) (pte_val(pte) & _PAGE_READ)
 #define pte_write(pte) (pte_val(pte) & _PAGE_WRITE)
 #define pte_user(pte) (pte_val(pte) & _PAGE_USER)

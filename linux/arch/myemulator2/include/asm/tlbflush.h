@@ -15,7 +15,14 @@ static inline void flush_tlb_range(struct vm_area_struct *vma,
 { (void)vma; (void)start; (void)end; }
 static inline void flush_tlb_page(struct vm_area_struct *vma,
 				  unsigned long address)
-{ (void)vma; (void)address; }
+{
+	(void)vma;
+	(void)address;
+	/* The current REM MMU exposes a single architectural TLB flush
+	 * operation.  A page-table update must invalidate a failed lookup
+	 * before the faulting instruction is retried. */
+	flush_tlb_all();
+}
 static inline void flush_tlb_kernel_range(unsigned long start,
 					  unsigned long end)
 {

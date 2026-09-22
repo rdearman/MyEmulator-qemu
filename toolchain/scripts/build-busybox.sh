@@ -39,7 +39,7 @@ if [[ ! -f "$build_dir/.config" ]]; then
 		fi
 	}
 	for option in LFS STATIC STATIC_LIBGCC INSTALL_APPLET_SYMLINKS \
-		SHELL_ASH ASH LS CAT ECHO PWD UNAME MKDIR TOUCH CP MV RM \
+		SHELL_ASH ASH TRUE LS CAT ECHO PWD UNAME MKDIR TOUCH CP MV RM \
 		HEAD TAIL GREP FIND PS MOUNT UMOUNT DMESG VI; do
 		set_config "$option" y
 	done
@@ -53,7 +53,7 @@ make -C "$source_dir" O="$build_dir" \
 	CC="$cc" CROSS_COMPILE="$cross" \
 	MYEMU_TARGET_GCC="$gcc" MYEMU_MUSL_PREFIX="$prefix" \
 	CFLAGS="-isystem$prefix/include" \
-	CONFIG_EXTRA_LDFLAGS="-L$prefix/lib -Wl,-Ttext=0x00500000" \
+	CONFIG_EXTRA_LDFLAGS="-L$prefix/lib" \
 	CONFIG_EXTRA_LDLIBS="-lc -lgcc" -j"${JOBS:-1}"
 mkdir -p "$build_dir/_install/bin"
 install -m 0755 "$build_dir/busybox" "$build_dir/_install/bin/busybox"

@@ -155,12 +155,9 @@ static void gen_checked_data(DisasContext *ctx, TCGv_i32 address,
     gen_set_label(aligned);
 }
 
-/* QEMU must be able to reconstruct the architectural register state at a
- * faulting load/store.  R13 is a TCG global, but its banked architectural
- * backing value must be materialized before a memory operation can exit the
- * TB; otherwise restart after a page fault may observe a later stack restore
- * from the same TB. */
-static void gen_materialize_sp(void)
+/* The banked stack pointer must be visible in CPUState before a memory
+ * operation can leave the translation block through an MMU fault. */
+static void gen_materialize_fault_state(void)
 {
     tcg_gen_st_i32(cpu_r[13], tcg_env,
                    offsetof(CPUMyEmulator32State, r[13]));
@@ -341,7 +338,7 @@ static void decode_and_translate(DisasContext *ctx)
         unsigned load_size = extract32(insn, 13, 3);
         address = tcg_temp_new_i32();
         tcg_gen_addi_i32(address, gen_reg(ra), sx(extract32(insn, 0, 13), 13));
-        gen_materialize_sp();
+        gen_materialize_fault_state();
         gen_checked_data(ctx, address, load_size == 4 ? 4 :
                         (load_size >= 2 ? 2 : 1));
         tmp = tcg_temp_new_i32();
@@ -361,7 +358,7 @@ static void decode_and_translate(DisasContext *ctx)
         if (store_size > 2) { gen_invalid(ctx, insn); return; }
         address = tcg_temp_new_i32();
         tcg_gen_addi_i32(address, gen_reg(ra), sx(extract32(insn, 0, 13), 13));
-        gen_materialize_sp();
+        gen_materialize_fault_state();
         gen_checked_data(ctx, address, store_size == 0 ? 1 :
                         (store_size == 1 ? 2 : 4));
         switch (store_size) {
@@ -436,6 +433,14 @@ static void decode_and_translate(DisasContext *ctx)
             }
             if (sysreg != 0 || reg != 0) { gen_invalid(ctx, insn); return; }
             if (sysop == 2) {
+                /* The exception entry assembly restores the visible R13/R15
+                 * immediately before RFE.  Materialize both globals before
+                 * the helper changes the address-space/privilege state, so
+                 * the next TB cannot inherit stale CPUState values. */
+                tcg_gen_st_i32(cpu_r[13], tcg_env,
+                               offsetof(CPUMyEmulator32State, r[13]));
+                tcg_gen_st_i32(cpu_r[15], tcg_env,
+                               offsetof(CPUMyEmulator32State, r[15]));
                 gen_helper_rfe(tcg_env, tcg_constant_i32(pc));
                 ctx->base.is_jmp = DISAS_EXIT; return;
             }
@@ -481,6 +486,10 @@ static void decode_and_translate(DisasContext *ctx)
             gen_invalid(ctx, insn); return;
         }
         address = gen_reg(rb);
+        /* CAS is a faulting memory operation just like loads and stores.
+         * Materialize the visible stack pointer before a first-touch page
+         * fault so exception entry saves the current user stack state. */
+        gen_materialize_fault_state();
         gen_checked_data(ctx, address, 4);
         tmp = tcg_temp_new_i32();
         tcg_gen_atomic_cmpxchg_i32(tmp, address, gen_reg(rd), gen_reg(ra),

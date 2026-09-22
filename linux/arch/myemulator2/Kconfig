@@ -9,6 +9,7 @@ config MYEMULATOR2
 	select HAVE_ARCH_TRACEHOOK
 	select MODULES_USE_ELF_RELA
 	select SERIAL_CORE
+	select SERIAL_CORE_CONSOLE
 
 config MMU
 	def_bool y
@@ -33,7 +34,7 @@ config CMDLINE_BOOL
 
 config CMDLINE
 	string "Default kernel command string"
-	default "console=myemu0,115200 earlycon=myemu32,0xf0000000 rdinit=/init"
+	default "console=ttyMY0,115200 earlycon=myemulator2,0xf0000000 rdinit=/init"
 	depends on CMDLINE_BOOL
 
 config CMDLINE_FORCE

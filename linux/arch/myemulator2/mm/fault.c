@@ -100,6 +100,24 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 	}
 
 	fault = handle_mm_fault(vma, address, flags, regs);
+	/* TEMPORARY DIAGNOSTIC (Bug #4 investigation): dump the actual PMD/PTE
+	 * values Linux believes are now installed at the faulting address,
+	 * immediately after handle_mm_fault() reports success, to compare
+	 * against what QEMU's tlb_fill() walk sees at the same physical
+	 * addresses. Rate-limited; remove once Bug #4 is resolved. */
+	if (!(fault & VM_FAULT_ERROR)) {
+		pmd_t *dpmd = pmd_off(mm, address);
+		if (!pmd_none(*dpmd)) {
+			pte_t *dptep = pte_offset_kernel(dpmd, address);
+			pr_warn_ratelimited(
+				"MYEMU_FAULT_DIAG pid=%d addr=%08lx write=%d exec=%d "
+				"fault=%08x pmd=%08lx pte=%08lx vma_flags=%08lx\n",
+				current->pid, address, write, exec, fault,
+				(unsigned long)pmd_val(*dpmd),
+				(unsigned long)pte_val(*dptep),
+				(unsigned long)vma->vm_flags);
+		}
+	}
 	/* The generic folded-page-table path can preserve the copied kernel
 	 * identity entry's supervisor-only flags while replacing its PTE.  A
 	 * user VMA requires USER permission at both levels of the REM walk. */
@@ -112,7 +130,11 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 	 * executable PTE without going through the architecture's set_pte()
 	 * helper.  Drop the failed instruction-fetch translation before RFE
 	 * retries the faulting instruction. */
-	if (exec && !(fault & VM_FAULT_ERROR))
+	/* A protection fault can be caused by a stale read-only TLB entry when
+	 * the generic handler has just installed or upgraded a writable PTE.  The
+	 * retry must observe the new write permission, just as instruction faults
+	 * must observe a newly installed executable mapping. */
+	if ((exec || write) && !(fault & VM_FAULT_ERROR))
 		flush_tlb_page(vma, address);
 	/* File-backed faults may drop mmap_lock while waiting for the block
 	 * layer.  VM_FAULT_RETRY asks the architecture to reacquire the lock and
@@ -151,6 +173,11 @@ bad_area:
 			 regs->r[6]);
 		panic("MyEmulator2 kernel page fault");
 	}
+	pr_warn("MYEMU_BAD_USER_FAULT pid=%d addr=%08lx cause=%lu vma=%px "
+		"start=%08lx end=%08lx flags=%08lx brk=%08lx start_brk=%08lx\\n",
+		current->pid, address, cause, vma,
+		vma ? vma->vm_start : 0, vma ? vma->vm_end : 0,
+		vma ? vma->vm_flags : 0, mm->brk, mm->start_brk);
 	force_sig_fault(SIGSEGV,
 			(cause == 4 || cause == 6 || cause == 8) ?
 			SEGV_MAPERR : SEGV_ACCERR,

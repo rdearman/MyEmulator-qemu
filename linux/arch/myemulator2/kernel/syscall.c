@@ -47,6 +47,7 @@
 #define MYEMU2_NR_UNAME      160
 #define MYEMU2_NR_SCHED_YIELD 124
 #define MYEMU2_NR_FUTEX       422
+#define MYEMU2_NR_STATX      291
 #define MYEMU2_NR_SET_TID_ADDRESS 96
 #define MYEMU2_NR_GETTID      178
 #define MYEMU2_NR_SET_ROBUST_LIST 99
@@ -103,6 +104,8 @@ extern long sys_newfstatat(int dfd, const char __user *filename,
 extern long sys_newfstat(unsigned int fd, struct stat __user *statbuf);
 extern long sys_newuname(struct new_utsname __user *name);
 extern long sys_sched_yield(void);
+extern long sys_statx(int dfd, const char __user *path, unsigned flags,
+			 unsigned mask, struct statx __user *buffer);
 
 asmlinkage long myemulator2_syscall(unsigned long nr,
 		unsigned long a0, unsigned long a1, unsigned long a2,
@@ -229,7 +232,7 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 			(struct old_timespec32 __user *)a1);
 	case MYEMU2_NR_CLONE:
 		return sys_clone(a0, a1, (int __user *)a2,
-				 (int __user *)a3, 0);
+			(int __user *)a3, 0);
 	case MYEMU2_NR_WAIT4:
 		return sys_wait4((pid_t)a0, (int __user *)a1, (int)a2,
 				 (struct rusage __user *)a3);
@@ -256,6 +259,10 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 		return sys_newuname((struct new_utsname __user *)a0);
 	case MYEMU2_NR_SCHED_YIELD:
 		return sys_sched_yield();
+	case MYEMU2_NR_STATX:
+		return sys_statx((int)a0, (const char __user *)a1,
+				 (unsigned)a2, (unsigned)a3,
+				 (struct statx __user *)a4);
 	case MYEMU2_NR_FUTEX:
 		return sys_futex((u32 __user *)a0, (int)a1, (u32)a2,
 			(const struct __kernel_timespec __user *)a3,

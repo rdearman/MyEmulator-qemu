@@ -22,6 +22,35 @@ static struct uart_driver myemu_uart_driver;
 static struct uart_port myemu_uart_port;
 static struct platform_device *myemu_uart_pdev;
 
+static void myemu_console_putchar(struct uart_port *port, unsigned char ch)
+{
+	writeb(ch, port->membase + MYEMU_UART_DATA);
+}
+
+static void myemu_console_write(struct console *co, const char *s,
+				unsigned int count)
+{
+	(void)co;
+	uart_console_write(&myemu_uart_port, s, count, myemu_console_putchar);
+}
+
+static int myemu_console_setup(struct console *co, char *options)
+{
+	if (co->index < 0)
+		co->index = 0;
+	return co->index == 0 ? 0 : -ENODEV;
+}
+
+static struct console myemu_uart_console = {
+	.name = "ttyMY",
+	.write = myemu_console_write,
+	.device = uart_console_device,
+	.setup = myemu_console_setup,
+	.flags = CON_PRINTBUFFER | CON_ENABLED,
+	.index = -1,
+	.data = &myemu_uart_driver,
+};
+
 static unsigned int myemu_tx_empty(struct uart_port *port)
 {
 	return readb(port->membase + MYEMU_UART_STATUS) &
@@ -130,7 +159,15 @@ static struct uart_driver myemu_uart_driver = {
 	.major = 240,
 	.minor = 0,
 	.nr = 1,
+	.cons = &myemu_uart_console,
 };
+
+static int __init myemu_uart_console_init(void)
+{
+	register_console(&myemu_uart_console);
+	return 0;
+}
+console_initcall(myemu_uart_console_init);
 
 static int __init myemu_uart_init(void)
 {
