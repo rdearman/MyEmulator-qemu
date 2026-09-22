@@ -14,6 +14,8 @@ toolchain/install/
 .emacs-build/
 .musl-build/
 .musl-install/
+.ncurses-downloads/
+.ncurses-build/
 toolchain/examples/*.o
 toolchain/examples/*.elf
 toolchain/examples/*.bin

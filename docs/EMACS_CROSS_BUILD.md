@@ -42,19 +42,49 @@ libc, math, pthread, Linux syscall, and terminal capability probes. Emacs's
 `tputs` check is forced to the built-in termcap implementation because the
 REM sysroot does not yet provide ncurses/terminfo.
 
-## Current blocker
+## Building ncursesw
 
-The full build has not completed. Emacs invokes `lib-src` host utilities such
-as `etags` while the top-level cross build is using the target compiler.
-Building those utilities directly with the host compiler is insufficient
-because they include the target-generated `src/config.h`, and the host
-compiler on this development machine does not provide `stdckdint.h`.
+Build ncurses 6.5 after musl. The script configures ncurses with native
+x86-64 build tools (`BUILD_CC` and the host `tic`) while `CC`, `AR`, and
+`RANLIB` target REM. It enables the wide-character static libraries and
+installs only headers and libraries into `.musl-install`; it never installs
+into the Linux Mint host:
 
-A complete build therefore needs a separate host-configured Emacs utility
-tree (or an upstream-supported `CC_FOR_BUILD` arrangement), followed by
-passing those host tools into the target build. No REM executable is claimed
-working until it is booted under REM QEMU and edits and saves a file.
+```sh
+JOBS=2 ./toolchain/scripts/build-ncurses-rem.sh
+```
 
-The independently verified milestone is a static hosted REM ELF probe linked
-against the locally built musl sysroot; it reports ELF32, machine
-`MyEmulator2`, and no dynamic section.
+The target sysroot contains `libncursesw.a`, `libtinfo.a`, and the generated
+headers. The script also compiles the standard `terminfo.src` with the native
+host `tic` into `.ncurses-build/stage/usr/share/terminfo`. Copy that
+`usr/share/terminfo` directory into the REM root filesystem at
+`/usr/share/terminfo` (or set `TERMINFO` to an alternate directory). At
+runtime the terminal's `$TERM` entry must exist there; `xterm`, `xterm-256color`,
+`vt100`, and `ansi` are included.
+
+## Building Emacs against ncursesw
+
+The reproducible two-tree build is:
+
+```sh
+JOBS=2 ./toolchain/scripts/build-emacs-rem.sh
+```
+
+The script configures and builds native host utilities in
+`.emacs-build/host`, then configures the REM target independently in
+`.emacs-build/target`. It copies only host-executable build utilities
+(`etags`, `ctags`, `make-docfile`, `make-fingerprint`, and `ebrowse`) into
+the target build. The target link uses the REM musl startup objects followed
+by `libncursesw.a`, `libtinfo.a`, libc, libm, and libgcc in static-link order.
+The resulting executable is `.emacs-build/target/src/emacs`.
+
+The final target is verified as a static ELF32 executable with the REM
+machine identifier (`readelf` reports machine value `0xf2e2`). It has not
+been run under REM Linux: no QEMU executable is available in this authorized
+clone, so terminal editing, saving, and persistence remain unverified.
+
+The earlier `stdckdint.h` failure was a host/target configuration mix-up.
+Native configuration generates Emacs's gnulib replacement, while target
+configuration uses only the REM headers. The REM linker also reports the
+known `.eh_frame_hdr` and RWX-segment warnings; these do not prevent
+creation of the target ELF but require runtime validation.
