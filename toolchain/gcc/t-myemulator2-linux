@@ -1,6 +1,6 @@
 # Hosted MyEmulator2 Linux needs the software floating-point helpers used by
 # musl's printf/scanning and math code.  The freestanding target deliberately
 # excludes these helpers; this hosted fragment does not.
-LIB2ADDEH =
-LIB2ADDEHSTATIC =
-LIB2ADDEHSHARED =
+# Hosted MyEmulator2 Linux uses GCC's generic DWARF2 unwinder. The target
+# compiler must therefore provide the normal libgcc exception runtime instead
+# of inheriting the freestanding target's empty LIB2ADDEH overrides.

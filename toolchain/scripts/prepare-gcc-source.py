@@ -488,11 +488,9 @@ LIB2FUNCS_EXCLUDE += _divhc3 _divsc3 _divdc3 _divxc3 _divtc3
 LIB2FUNCS_EXCLUDE += _fixsfsi _fixunssfsi _fixdfsi _fixunsdfsi
 LIB2FUNCS_EXCLUDE += _fixsfdi _fixunssfdi _fixdfdi _fixunsdfdi
 LIB2FUNCS_EXCLUDE += _floatsisf _floatunsisf _floatsidf _floatunsidf
- # Freestanding MyEmulator2 has no exception/unwind ABI yet.  GCC C tests
- # use -fno-exceptions; omit inherited EH objects until that ABI exists.
-LIB2ADDEH =
-LIB2ADDEHSTATIC =
-LIB2ADDEHSHARED =
+# Hosted MyEmulator2 Linux uses GCC's generic DWARF2 unwinder.  The
+# freestanding target has no exception ABI, but this Linux fragment must not
+# suppress libgcc's EH objects: native GCC and libstdc++ are C++ programs.
 """)
 
     # GCC 15.2.0's generated libcpp configure script probes a dependency

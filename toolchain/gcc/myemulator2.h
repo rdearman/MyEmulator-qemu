@@ -144,6 +144,12 @@ enum reg_class { NO_REGS, GENERAL_REGS, ALL_REGS, LIM_REG_CLASSES };
 #define DEFAULT_SIGNED_CHAR 0
 #define LOAD_EXTEND_OP(MEM) ZERO_EXTEND
 #define TARGET_DEFAULT 0
+#define DWARF2_UNWIND_INFO 1
+#define TARGET_UNWIND_TABLES_DEFAULT 1
+#define EH_RETURN_DATA_REGNO(N) ((N) < 4 ? (MYEMU2_R1 + (N)) : INVALID_REGNUM)
+#define EH_RETURN_STACKADJ_RTX gen_rtx_REG (Pmode, MYEMU2_R11)
+#define EH_RETURN_HANDLER_RTX \
+  gen_frame_mem (Pmode, plus_constant (Pmode, frame_pointer_rtx, 0))
 #define FUNCTION_PROFILER(FILE, LABEL) do { } while (0)
 
 #define INCOMING_RETURN_ADDR_RTX gen_rtx_REG (Pmode, MYEMU2_LR)

@@ -283,3 +283,11 @@
 
 (define_expand "prologue" [(clobber (const_int 0))] "" "{ myemulator2_expand_prologue (); DONE; }")
 (define_expand "epilogue" [(return)] "" "{ myemulator2_expand_epilogue (); DONE; }")
+
+;; The generic DWARF unwinder communicates the landing-pad stack adjustment
+;; and handler address through the target macros above. REM's normal return
+;; sequence consumes those values, so no additional ISA instruction is needed.
+(define_expand "eh_return"
+  [(use (match_operand 0 "register_operand" ""))]
+  ""
+  "{ DONE; }")
