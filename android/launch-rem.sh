@@ -7,8 +7,14 @@ kernel="${REM_KERNEL:-$home/vmlinux}"
 rootfs="${REM_ROOTFS:-$home/rootfs.ext4}"
 
 [[ -x "$qemu" ]] || { echo "missing executable: $qemu" >&2; exit 2; }
-[[ -r "$kernel" ]] || { echo "missing kernel: $kernel" >&2; exit 2; }
-[[ -w "$rootfs" ]] || { echo "root filesystem is not writable: $rootfs" >&2; exit 2; }
+[[ -r "$kernel" ]] || {
+	echo "missing kernel: $kernel (see TERMUX_DEPLOYMENT.md)" >&2
+	exit 2
+}
+[[ -w "$rootfs" ]] || {
+	echo "root filesystem is not writable: $rootfs (install a verified ext4 image)" >&2
+	exit 2
+}
 
 # The NDK cross-build records its disposable sysroot in an ELF RUNPATH.  The
 # runtime copy is supplied by Termux, so make the real device library path

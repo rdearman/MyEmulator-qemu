@@ -6,8 +6,8 @@ verified until the phone test below is completed.
 
 ## Desktop: obtain the guest artifacts
 
-The Android clone currently contains the QEMU executable, but not the guest
-kernel or ext4 image. The original checkout has the current kernel at:
+The Android clone currently contains the QEMU executable, but not the final
+guest kernel or ext4 image. The original checkout has a development kernel at:
 
 ```text
 /home/rick/Development/Active/MyEmulator-qemu/.linux-build/build/vmlinux
@@ -16,25 +16,21 @@ kernel or ext4 image. The original checkout has the current kernel at:
 The original checkout's `myemulator.img` files are legacy MyFS images and are
 not suitable as the Linux root filesystem. Do not use them with this launcher.
 
-After obtaining a tested ext4 image from the Linux build work, copy only the
-artifacts into this clone's disposable staging directory. These commands are
-to be run by the user; they do not modify the original checkout:
+After obtaining tested guest artifacts from the Linux build work, keep them
+outside this package until the phone installation step. The package builder
+intentionally does not consume `.android-build/deployment-input/*`.
 
 ```sh
-cd /home/rick/Development/Active/REM-android
-mkdir -p .android-build/deployment-input
-install -m 0644 \
-  /home/rick/Development/Active/MyEmulator-qemu/.linux-build/build/vmlinux \
-  .android-build/deployment-input/vmlinux
-install -m 0644 /path/to/verified/rem-rootfs.ext4 \
-  .android-build/deployment-input/rootfs.ext4
+mkdir -p /tmp/rem-verified-guest
+install -m 0644 /path/to/verified/vmlinux /tmp/rem-verified-guest/vmlinux
+install -m 0644 /path/to/verified/rem-rootfs.ext4 /tmp/rem-verified-guest/rootfs.ext4
 ```
 
 Confirm the image is ext4 before packaging:
 
 ```sh
-file .android-build/deployment-input/rootfs.ext4
-dumpe2fs -h .android-build/deployment-input/rootfs.ext4 | sed -n '1,12p'
+file /tmp/rem-verified-guest/rootfs.ext4
+dumpe2fs -h /tmp/rem-verified-guest/rootfs.ext4 | sed -n '1,12p'
 ```
 
 ## Desktop: build and validate the deployment archive
@@ -48,8 +44,6 @@ cd /home/rick/Development/Active/REM-android
 rm -rf .android-build/rem-deployment REM-android-arm64.zip
 ./android/package-rem.sh \
   .android-build/ndk-test/qemu-system-myemulator32 \
-  .android-build/deployment-input/vmlinux \
-  .android-build/deployment-input/rootfs.ext4 \
   .android-build/rem-deployment
 ./android/validate-package.sh .android-build/rem-deployment
 (

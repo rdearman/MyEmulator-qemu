@@ -39,9 +39,19 @@ directory via `REM_HOME`):
 ```text
 rem/
   qemu-system-myemulator32
+  launch-rem.sh
+  # install these verified guest artifacts before launching:
   vmlinux
   rootfs.ext4
-  launch-rem.sh
+```
+
+The deployment package contains text placeholders under `placeholders/`; these
+are not bootable guest artifacts. Obtain the final kernel and root filesystem
+from the Linux build handoff, then install them explicitly:
+
+```sh
+install -m 0644 /path/to/verified/vmlinux "$HOME/rem/vmlinux"
+install -m 0644 /path/to/verified/rootfs.ext4 "$HOME/rem/rootfs.ext4"
 ```
 
 `vmlinux` must be the current REM Linux `myemulator2` kernel, and

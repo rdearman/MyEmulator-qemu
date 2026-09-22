@@ -1,17 +1,16 @@
 # REM Android deployment checklist
 
 This checklist deliberately separates build artifacts from verified release
-artifacts. The current staged root filesystem must not be packaged as a
-working release until the GCC/Linux agent's corrected image passes the host
-shell and persistence tests.
+artifacts. The deployment package contains QEMU and guest-image placeholders;
+the current staged root filesystem is never copied into it.
 
 ## Available in this clone
 
 - [x] Android ARM64 `qemu-system-myemulator32`
 - [x] Android interpreter identified as `/system/bin/linker64`
 - [x] QEMU dependencies identified: `libz.so.1`, `libm.so`, `libglib-2.0.so.0`, `libc.so`
-- [x] REM Linux kernel at `.android-build/deployment-input/vmlinux`
-- [x] Termux launcher with serial stdio and persistent `rootfs.ext4`
+- [x] Kernel and rootfs placeholders with installation instructions
+- [x] Termux launcher with serial stdio and persistent guest image
 - [x] Packaging script and package validator
 - [x] Termux installation and restart instructions
 - [ ] Galaxy Fold execution and persistence test
@@ -26,19 +25,15 @@ shell and persistence tests.
       and read it back
 - [ ] Image path, byte size, and SHA-256 checksum
 
-## Release steps after the image arrives
+## Package steps
 
 ```sh
 cd /home/rick/Development/Active/REM-android
-install -m 0644 /tmp/rem-verified-rootfs.ext4 \
-  .android-build/deployment-input/rootfs.ext4
 rm -rf .android-build/rem-deployment
 ANDROID_TERMUX_SYSROOT=/tmp/rem-termux-sysroot \
   ./android/package-rem.sh \
-  .android-build/ndk-test/qemu-system-myemulator32 \
-  .android-build/deployment-input/vmlinux \
-  .android-build/deployment-input/rootfs.ext4 \
-  .android-build/rem-deployment
+    .android-build/ndk-test/qemu-system-myemulator32 \
+    .android-build/rem-deployment
 ./android/validate-package.sh .android-build/rem-deployment
 (
   cd .android-build
@@ -47,6 +42,9 @@ ANDROID_TERMUX_SYSROOT=/tmp/rem-termux-sysroot \
 sha256sum REM-android-arm64.zip
 unzip -l REM-android-arm64.zip
 ```
+
+Install the verified kernel and root filesystem on the phone only after
+extracting the package, as described in `TERMUX_DEPLOYMENT.md`.
 
 Do not mark the release complete until the host tests and the physical Fold
 test both pass. Android boot remains unverified until the user runs it.
