@@ -28,6 +28,15 @@ mkdir -p "$output"/{kernel,rootfs,qemu/lib,scripts,config,docs}
 install -m 0644 "$kernel" "$output/kernel/vmlinux"
 install -m 0755 "$qemu" "$output/qemu/qemu-system-myemulator32"
 cp -a "$libs"/. "$output/qemu/lib/"
+# Make the shared-library bundle robust to MTP/file-manager transfers, which
+# often flatten or drop Unix symlinks. Preserve the SONAME filenames as regular
+# files so Android's linker can resolve each DT_NEEDED entry after copying.
+while IFS= read -r -d '' link; do
+  target=$(readlink -f "$link")
+  temporary="${link}.regular-copy"
+  cp -p "$target" "$temporary"
+  mv -f "$temporary" "$link"
+done < <(find "$output/qemu/lib" -type l -print0)
 cp --sparse=always --reflink=auto --preserve=mode,timestamps "$rootfs" "$output/rootfs/rem-rootfs.ext4"
 install -m 0755 "$(dirname "$0")/launch-rem-flight.sh" "$output/scripts/launch-rem.sh"
 cat > "$output/config/rem.conf" <<'EOF'
@@ -48,17 +57,32 @@ BusyBox, the imported GNU userspace, native REM tools, files, permissions,
 symlinks, and guest documentation remain in it.
 
 Install Termux from a trusted source and install its `bash` and `coreutils`
-packages. Transfer this directory into Termux private storage. QEMU's GLib,
-zlib and their non-platform shared-library dependencies are bundled here;
-Android provides the system C library, math library and dynamic linker. Then
-run:
+packages. Copy the package to shared storage (for example `Download`), then
+copy it into Termux's private home before launching; shared Android storage is
+commonly mounted `noexec`. In Termux:
 
 ```sh
-cd /path/to/REM-FLIGHT-ANDROID-MVP
+termux-setup-storage
+mkdir -p "$HOME/rem"
+cp -a "$HOME/storage/downloads/REM-FLIGHT-ANDROID-MVP" "$HOME/rem/"
+cd "$HOME/rem/REM-FLIGHT-ANDROID-MVP"
 sha256sum -c SHA256SUMS
-chmod 700 scripts/launch-rem.sh
+chmod 700 scripts/launch-rem.sh qemu/qemu-system-myemulator32
+chmod 755 qemu/lib/*
 ./scripts/launch-rem.sh
 ```
+
+The launcher checks its files, bundled linker dependencies, writable rootfs,
+and execution location. Linker errors are printed by Android's dynamic
+linker; startup errors and QEMU's exit status remain visible on the terminal.
+If Android reports `Permission denied`, move the package under Termux `$HOME`
+and check host `adb logcat -d | grep -iE 'avc: denied|qemu'` for SELinux
+denials. Do not launch the executable directly from `/sdcard` or `Download`.
+
+This QEMU build also records a build-time `DT_RUNPATH`. The launcher puts the
+package's library directory first in `LD_LIBRARY_PATH`; Android's linker
+searches that path before `DT_RUNPATH`. `docs/ARTIFACTS.txt` records both the
+embedded path and the needed libraries.
 
 The launcher reads `config/rem.conf` and starts machine `myemulator32` with
 128 MiB guest RAM, the packaged kernel, a writable 10 GiB ext4 root disk, and
@@ -73,15 +97,15 @@ Android QEMU binary and package are architecture-checked but have not been
 boot-tested on a physical Galaxy Fold. The 10 GiB disk requires adequate free
 device storage. Keep backups of the writable image.
 EOF
-{
-  printf 'Kernel: '; sha256sum "$output/kernel/vmlinux"
-  printf 'Android QEMU: '; sha256sum "$output/qemu/qemu-system-myemulator32"
-  printf 'Rootfs: '; sha256sum "$output/rootfs/rem-rootfs.ext4"
-  printf '\nQEMU ELF dependencies:\n'
-  readelf -d "$output/qemu/qemu-system-myemulator32" | grep NEEDED || true
-} > "$output/docs/ARTIFACTS.txt"
 (
   cd "$output"
+  {
+    printf 'Kernel: '; sha256sum kernel/vmlinux
+    printf 'Android QEMU: '; sha256sum qemu/qemu-system-myemulator32
+    printf 'Rootfs: '; sha256sum rootfs/rem-rootfs.ext4
+    printf '\nQEMU ELF dependencies and embedded runtime path:\n'
+    readelf -d qemu/qemu-system-myemulator32 | grep -E 'NEEDED|RUNPATH|RPATH' || true
+  } > docs/ARTIFACTS.txt
   find kernel rootfs qemu scripts config docs \( -type f -o -type l \) -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
 )
 printf 'Created Android ARM64 package candidate: %s\n' "$output"
