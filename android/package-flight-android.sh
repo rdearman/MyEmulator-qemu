@@ -47,9 +47,11 @@ filesystem is copied intact from the verified flight userspace and expanded;
 BusyBox, the imported GNU userspace, native REM tools, files, permissions,
 symlinks, and guest documentation remain in it.
 
-Install Termux from a trusted source and install its `bash`, `coreutils`,
-`binutils`, `glib`, and `zlib` packages. Transfer/extract this directory into
-Termux private storage. Then run:
+Install Termux from a trusted source and install its `bash` and `coreutils`
+packages. Transfer this directory into Termux private storage. QEMU's GLib,
+zlib and their non-platform shared-library dependencies are bundled here;
+Android provides the system C library, math library and dynamic linker. Then
+run:
 
 ```sh
 cd /path/to/REM-FLIGHT-ANDROID-MVP
