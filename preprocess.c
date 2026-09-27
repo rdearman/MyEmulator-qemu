@@ -1108,8 +1108,15 @@ void init_macros(void) {
 
   time_t now = time(NULL);
   struct tm *tm = localtime(&now);
-  define_macro("__DATE__", format_date(tm));
-  define_macro("__TIME__", format_time(tm));
+  /* Some minimal REM libc environments do not provide a usable timezone
+     conversion yet.  Predefined macros must not make the compiler crash. */
+  if (tm) {
+    define_macro("__DATE__", format_date(tm));
+    define_macro("__TIME__", format_time(tm));
+  } else {
+    define_macro("__DATE__", "\"Jan  1 1970\"");
+    define_macro("__TIME__", "\"00:00:00\"");
+  }
 }
 
 typedef enum {

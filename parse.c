@@ -459,6 +459,16 @@ static Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 
     // Handle user-defined types.
     Type *ty2 = find_typedef(tok);
+    // musl exposes va_list through this compiler builtin.  The REM ABI uses
+    // a pointer to the next argument slot as its variadic representation.
+    if (equal(tok, "__builtin_va_list")) {
+      if (counter)
+        break;
+      ty = pointer_to(ty_char);
+      tok = tok->next;
+      counter += OTHER;
+      continue;
+    }
     if (equal(tok, "struct") || equal(tok, "union") || equal(tok, "enum") ||
         equal(tok, "typeof") || ty2) {
       if (counter)
@@ -540,19 +550,23 @@ static Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
       break;
     case LONG:
     case LONG + INT:
-    case LONG + LONG:
-    case LONG + LONG + INT:
     case SIGNED + LONG:
     case SIGNED + LONG + INT:
+      ty = ty_long;
+      break;
+    case LONG + LONG:
+    case LONG + LONG + INT:
     case SIGNED + LONG + LONG:
     case SIGNED + LONG + LONG + INT:
-      ty = ty_long;
+      ty = ty_llong;
       break;
     case UNSIGNED + LONG:
     case UNSIGNED + LONG + INT:
+      ty = ty_ulong;
+      break;
     case UNSIGNED + LONG + LONG:
     case UNSIGNED + LONG + LONG + INT:
-      ty = ty_ulong;
+      ty = ty_ullong;
       break;
     case FLOAT:
       ty = ty_float;
@@ -603,7 +617,29 @@ static Type *func_params(Token **rest, Token *tok, Type *ty) {
     }
 
     Type *ty2 = declspec(&tok, tok, NULL);
-    ty2 = declarator(&tok, tok, ty2);
+    /* Accept the common function-type parameter spelling used by Samurai:
+         void callback(void(struct node *));
+       The regular declarator path handles named function pointers, while
+       this form starts an abstract function declarator immediately after
+       the base type. */
+    if (equal(tok, "(") && !equal(tok->next, "*")) {
+      Type *fty = func_type(ty2);
+      tok = tok->next;
+      Type head2 = {};
+      Type *cur2 = &head2;
+      while (!equal(tok, ")")) {
+        if (cur2 != &head2)
+          tok = skip(tok, ",");
+        Type *pt = declspec(&tok, tok, NULL);
+        pt = declarator(&tok, tok, pt);
+        cur2 = cur2->next = copy_type(pt);
+      }
+      fty->params = head2.next;
+      ty2 = fty;
+      tok = tok->next;
+    } else {
+      ty2 = declarator(&tok, tok, ty2);
+    }
 
     Token *name = ty2->name;
 
@@ -1503,7 +1539,7 @@ static bool is_typename(Token *tok) {
       "typedef", "enum", "static", "extern", "_Alignas", "signed", "unsigned",
       "const", "volatile", "auto", "register", "restrict", "__restrict",
       "__restrict__", "_Noreturn", "float", "double", "typeof", "inline",
-      "_Thread_local", "__thread", "_Atomic",
+      "_Thread_local", "__thread", "_Atomic", "__builtin_va_list",
     };
 
     for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)
@@ -1640,6 +1676,7 @@ static Node *stmt(Token **rest, Token *tok) {
 
     char *brk = brk_label;
     char *cont = cont_label;
+    node->begin_label = new_unique_name();
     brk_label = node->brk_label = new_unique_name();
     cont_label = node->cont_label = new_unique_name();
 
@@ -1674,6 +1711,7 @@ static Node *stmt(Token **rest, Token *tok) {
 
     char *brk = brk_label;
     char *cont = cont_label;
+    node->begin_label = new_unique_name();
     brk_label = node->brk_label = new_unique_name();
     cont_label = node->cont_label = new_unique_name();
 
@@ -1689,6 +1727,7 @@ static Node *stmt(Token **rest, Token *tok) {
 
     char *brk = brk_label;
     char *cont = cont_label;
+    node->begin_label = new_unique_name();
     brk_label = node->brk_label = new_unique_name();
     cont_label = node->cont_label = new_unique_name();
 
@@ -2095,6 +2134,7 @@ static Node *to_assign(Node *binary) {
                 tok);
 
     Node *loop = new_node(ND_DO, tok);
+    loop->begin_label = new_unique_name();
     loop->brk_label = new_unique_name();
     loop->cont_label = new_unique_name();
 
@@ -2746,7 +2786,7 @@ static Member *get_struct_member(Type *ty, Token *tok) {
     }
 
     // Regular struct member
-    if (mem->name->len == tok->len &&
+    if (mem->name && mem->name->len == tok->len &&
         !strncmp(mem->name->loc, tok->loc, tok->len))
       return mem;
   }
@@ -3079,6 +3119,45 @@ static Node *primary(Token **rest, Token *tok) {
     return node;
   }
 
+  if (equal(tok, "__builtin_va_start")) {
+    Node *node = new_node(ND_VA_START, tok);
+    tok = skip(tok->next, "(");
+    node->lhs = assign(&tok, tok);
+    tok = skip(tok, ",");
+    node->rhs = assign(&tok, tok);
+    *rest = skip(tok, ")");
+    return node;
+  }
+
+  if (equal(tok, "__builtin_va_arg")) {
+    Node *node = new_node(ND_VA_ARG, tok);
+    tok = skip(tok->next, "(");
+    node->lhs = assign(&tok, tok);
+    tok = skip(tok, ",");
+    node->va_arg_ty = typename(&tok, tok);
+    *rest = skip(tok, ")");
+    node->ty = node->va_arg_ty;
+    return node;
+  }
+
+  if (equal(tok, "__builtin_va_end")) {
+    Node *node = new_node(ND_VA_END, tok);
+    tok = skip(tok->next, "(");
+    node->lhs = assign(&tok, tok);
+    *rest = skip(tok, ")");
+    return node;
+  }
+
+  if (equal(tok, "__builtin_va_copy")) {
+    Node *node = new_node(ND_VA_COPY, tok);
+    tok = skip(tok->next, "(");
+    node->lhs = assign(&tok, tok);
+    tok = skip(tok, ",");
+    node->rhs = assign(&tok, tok);
+    *rest = skip(tok, ")");
+    return node;
+  }
+
   if (tok->kind == TK_IDENT) {
     // Variable or enum constant
     VarScope *sc = find_var(tok);
@@ -3239,7 +3318,7 @@ static Token *function(Token *tok, Type *basety, VarAttr *attr) {
   fn->params = locals;
 
   if (ty->is_variadic)
-    fn->va_area = new_lvar("__va_area__", array_of(ty_char, 136));
+    fn->va_area = new_lvar("__va_area__", pointer_to(ty_char));
   fn->alloca_bottom = new_lvar("__alloca_size__", pointer_to(ty_char));
 
   tok = skip(tok, "{");

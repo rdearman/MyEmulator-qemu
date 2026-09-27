@@ -75,7 +75,11 @@ struct Token {
   TokenKind kind;   // Token kind
   Token *next;      // Next token
   int64_t val;      // If kind is TK_NUM, its value
+#ifdef CHIBICC_REM
+  double fval;      // REM native compiler uses the supported double runtime
+#else
   long double fval; // If kind is TK_NUM, its value
+#endif
   char *loc;        // Token location
   int len;          // Token length
   Type *ty;         // Used if TK_NUM or TK_STR
@@ -220,6 +224,10 @@ typedef enum {
   ND_CAST,      // Type cast
   ND_MEMZERO,   // Zero-clear a stack variable
   ND_ASM,       // "asm"
+  ND_VA_START,  // __builtin_va_start
+  ND_VA_ARG,    // __builtin_va_arg
+  ND_VA_END,    // __builtin_va_end
+  ND_VA_COPY,   // __builtin_va_copy
   ND_CAS,       // Atomic compare-and-swap
   ND_EXCH,      // Atomic exchange
 } NodeKind;
@@ -242,6 +250,10 @@ struct Node {
   Node *inc;
 
   // "break" and "continue" labels
+  // The loop header label is kept on the node as well.  This is distinct
+  // from cont_label: for a `for` loop continue must run the increment
+  // expression before testing the condition again.
+  char *begin_label;
   char *brk_label;
   char *cont_label;
 
@@ -278,6 +290,9 @@ struct Node {
   Node *cas_old;
   Node *cas_new;
 
+  // Variadic builtin type argument
+  Type *va_arg_ty;
+
   // Atomic op= operators
   Obj *atomic_addr;
   Node *atomic_expr;
@@ -287,7 +302,11 @@ struct Node {
 
   // Numeric literal
   int64_t val;
+#ifdef CHIBICC_REM
+  double fval;
+#else
   long double fval;
+#endif
 };
 
 Node *new_cast(Node *expr, Type *ty);
@@ -305,6 +324,7 @@ typedef enum {
   TY_SHORT,
   TY_INT,
   TY_LONG,
+  TY_LLONG,
   TY_FLOAT,
   TY_DOUBLE,
   TY_LDOUBLE,
@@ -381,11 +401,13 @@ extern Type *ty_char;
 extern Type *ty_short;
 extern Type *ty_int;
 extern Type *ty_long;
+extern Type *ty_llong;
 
 extern Type *ty_uchar;
 extern Type *ty_ushort;
 extern Type *ty_uint;
 extern Type *ty_ulong;
+extern Type *ty_ullong;
 
 extern Type *ty_float;
 extern Type *ty_double;

@@ -18,6 +18,11 @@ static bool opt_MP;
 static bool opt_S;
 static bool opt_c;
 static bool opt_cc1;
+#ifdef CHIBICC_REM
+static bool opt_rem = true;
+#else
+static bool opt_rem;
+#endif
 static bool opt_hash_hash_hash;
 static bool opt_static;
 static bool opt_shared;
@@ -55,10 +60,18 @@ static void add_default_include_paths(char *argv0) {
   // to ./include relative to argv[0].
   strarray_push(&include_paths, format("%s/include", dirname(strdup(argv0))));
 
-  // Add standard include paths.
-  strarray_push(&include_paths, "/usr/local/include");
-  strarray_push(&include_paths, "/usr/include/x86_64-linux-gnu");
-  strarray_push(&include_paths, "/usr/include");
+  // Add standard include paths.  A REM build uses the staged hosted
+  // headers; the path is overridable so the same binary can be tested in a
+  // disposable sysroot.
+  if (opt_rem) {
+    char *root = getenv("CHIBICC_REM_SYSROOT");
+    if (root) strarray_push(&include_paths, format("%s/include", root));
+    else strarray_push(&include_paths, "/usr/include");
+  } else {
+    strarray_push(&include_paths, "/usr/local/include");
+    strarray_push(&include_paths, "/usr/include/x86_64-linux-gnu");
+    strarray_push(&include_paths, "/usr/include");
+  }
 
   // Keep a copy of the standard include paths for -MMD option.
   for (int i = 0; i < include_paths.len; i++)
@@ -129,6 +142,11 @@ static void parse_args(int argc, char **argv) {
 
     if (!strcmp(argv[i], "-cc1")) {
       opt_cc1 = true;
+      continue;
+    }
+
+    if (!strcmp(argv[i], "-mrem")) {
+      opt_rem = true;
       continue;
     }
 
@@ -568,7 +586,8 @@ static void cc1(void) {
 }
 
 static void assemble(char *input, char *output) {
-  char *cmd[] = {"as", "-c", input, "-o", output, NULL};
+  char *as = (opt_rem && getenv("CHIBICC_REM_AS")) ? getenv("CHIBICC_REM_AS") : "as";
+  char *cmd[] = {as, "-c", input, "-o", output, NULL};
   run_subprocess(cmd);
 }
 
@@ -614,6 +633,39 @@ static char *find_gcc_libpath(void) {
 
 static void run_linker(StringArray *inputs, char *output) {
   StringArray arr = {};
+
+  if (opt_rem) {
+    char *ld = getenv("CHIBICC_REM_LD");
+    char *script = getenv("CHIBICC_REM_LINKER_SCRIPT");
+    char *crt = getenv("CHIBICC_REM_CRTDIR");
+    char *gcclib = getenv("CHIBICC_REM_GCCLIB");
+    strarray_push(&arr, ld ? ld : "ld");
+    strarray_push(&arr, "-T");
+    strarray_push(&arr, script ? script : "/lib/myemulator2-user.ld");
+    strarray_push(&arr, "-o");
+    strarray_push(&arr, output);
+    if (crt) {
+      strarray_push(&arr, format("-L%s", crt));
+      strarray_push(&arr, format("%s/crt1.o", crt));
+      strarray_push(&arr, format("%s/crti.o", crt));
+    }
+    if (gcclib) strarray_push(&arr, format("-L%s", gcclib));
+    for (int i = 0; i < inputs->len; i++) strarray_push(&arr, inputs->data[i]);
+    // The REM native linker resolves this archive combination reliably when
+    // libc is presented before the compiler-runtime helpers.  libc references
+    // helpers such as __muldi3; putting libgcc first inside the group leaves
+    // that reference unresolved on the native linker even though the archive
+    // exports it.  Keep both archives in a group so later libc references can
+    // still pull additional runtime members.
+    strarray_push(&arr, "--start-group");
+    strarray_push(&arr, "-lc");
+    if (gcclib) strarray_push(&arr, format("%s/libgcc.a", gcclib));
+    strarray_push(&arr, "--end-group");
+    if (crt) strarray_push(&arr, format("%s/crtn.o", crt));
+    strarray_push(&arr, NULL);
+    run_subprocess(arr.data);
+    return;
+  }
 
   strarray_push(&arr, "ld");
   strarray_push(&arr, "-o");

@@ -77,7 +77,13 @@ void warn_tok(Token *tok, char *fmt, ...) {
 
 // Consumes the current token if it matches `op`.
 bool equal(Token *tok, char *op) {
-  return memcmp(tok->loc, op, tok->len) == 0 && op[tok->len] == '\0';
+  if (tok->len < 0)
+    return false;
+  for (int i = 0; i < tok->len; i++) {
+    if (!op[i] || tok->loc[i] != op[i])
+      return false;
+  }
+  return op[tok->len] == '\0';
 }
 
 // Ensure that the current token is `op`.
@@ -358,6 +364,7 @@ static bool convert_pp_int(Token *tok) {
 
   // Read U, L or LL suffixes.
   bool l = false;
+  bool ll = false;
   bool u = false;
 
   if (startswith(p, "LLU") || startswith(p, "LLu") ||
@@ -365,13 +372,13 @@ static bool convert_pp_int(Token *tok) {
       startswith(p, "ULL") || startswith(p, "Ull") ||
       startswith(p, "uLL") || startswith(p, "ull")) {
     p += 3;
-    l = u = true;
+    l = ll = u = true;
   } else if (!strncasecmp(p, "lu", 2) || !strncasecmp(p, "ul", 2)) {
     p += 2;
     l = u = true;
   } else if (startswith(p, "LL") || startswith(p, "ll")) {
     p += 2;
-    l = true;
+    l = ll = true;
   } else if (*p == 'L' || *p == 'l') {
     p++;
     l = true;
@@ -386,7 +393,11 @@ static bool convert_pp_int(Token *tok) {
   // Infer a type.
   Type *ty;
   if (base == 10) {
-    if (l && u)
+    if (ll && u)
+      ty = ty_ullong;
+    else if (ll)
+      ty = ty_llong;
+    else if (l && u)
       ty = ty_ulong;
     else if (l)
       ty = ty_long;
@@ -395,7 +406,11 @@ static bool convert_pp_int(Token *tok) {
     else
       ty = (val >> 31) ? ty_long : ty_int;
   } else {
-    if (l && u)
+    if (ll && u)
+      ty = ty_ullong;
+    else if (ll)
+      ty = ty_llong;
+    else if (l && u)
       ty = ty_ulong;
     else if (l)
       ty = (val >> 63) ? ty_ulong : ty_long;
@@ -431,7 +446,34 @@ static void convert_pp_number(Token *tok) {
 
   // If it's not an integer, it must be a floating point constant.
   char *end;
+  /* The REM hosted libc/toolchain currently has no reliable long-double
+     runtime for a native compiler.  The C front end only needs the value as
+     an intermediate constant; use the target's supported double conversion
+     while retaining the upstream long-double path elsewhere. */
+#ifdef CHIBICC_REM
+  /* Avoid the target musl strtod path while bootstrapping a native compiler:
+     its floating scanner is not yet reliable for compiler-host workloads.
+     Parse the decimal forms used by the C sources directly. */
+  const char *p = tok->loc;
+  bool neg = false;
+  if (*p == '+' || *p == '-') { neg = *p++ == '-'; }
+  double val = 0;
+  while (isdigit(*p)) val = val * 10 + (*p++ - '0');
+  if (*p == '.') {
+    double scale = 0.1; p++;
+    while (isdigit(*p)) { val += (*p++ - '0') * scale; scale *= 0.1; }
+  }
+  if (*p == 'e' || *p == 'E') {
+    bool eneg = false; int exp = 0; p++;
+    if (*p == '+' || *p == '-') { eneg = *p++ == '-'; }
+    while (isdigit(*p)) exp = exp * 10 + (*p++ - '0');
+    while (exp-- > 0) val *= eneg ? 0.1 : 10.0;
+  }
+  if (neg) val = -val;
+  end = (char *)p;
+#else
   long double val = strtold(tok->loc, &end);
+#endif
 
   Type *ty;
   if (*end == 'f' || *end == 'F') {

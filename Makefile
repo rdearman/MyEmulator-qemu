@@ -1,3 +1,4 @@
+CPPFLAGS ?= -DCHIBICC_REM
 CFLAGS=-std=c11 -g -fno-common -Wall -Wno-switch
 
 SRCS=$(wildcard *.c)
