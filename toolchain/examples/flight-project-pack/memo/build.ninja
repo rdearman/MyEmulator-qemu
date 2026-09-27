@@ -1,0 +1,15 @@
+rule cc
+  command = chibicc -c -o $out $in
+  description = CC $out
+rule archive
+  command = ar rcs $out $in
+  description = AR $out
+rule link
+  command = chibicc -o $out $in
+  description = LINK $out
+
+build main.o: cc main.c | note_store.h
+build note_store.o: cc note_store.c | note_store.h
+build libnote.a: archive note_store.o
+build memo: link main.o libnote.a
+default memo

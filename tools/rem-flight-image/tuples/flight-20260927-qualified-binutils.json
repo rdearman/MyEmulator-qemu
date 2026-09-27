@@ -1,0 +1,118 @@
+{
+  "name": "REM-flight-20260927-qualified-binutils",
+  "description": "Pinned desktop QEMU/kernel and hash-identical validated seed rootfs, plus native archive and ELF inspection tools; excludes stale alternate binutils copies.",
+  "machine": "myemulator32",
+  "memory": "128M",
+  "icount": "shift=0,sleep=off",
+  "root_device": "/dev/myemu0",
+  "image_size_bytes": 10737418240,
+  "shell": {
+    "preferred": "/usr/bin/bash (interactive startup falls back to ash)",
+    "recovery": "/bin/busybox ash"
+  },
+  "editor": "BusyBox vi applet",
+  "compiler": "none selected; no GCC or chibicc in seed rootfs",
+  "toolchain_runtime": [
+    "/root/native/bin/as",
+    "/root/native/bin/ld",
+    "/root/native/bin/ar",
+    "/root/native/bin/ranlib",
+    "/root/native/bin/objdump",
+    "/root/native/bin/readelf",
+    "/root/native/bin/nm",
+    "/root/native/bin/size",
+    "/root/native/bin/strings",
+    "/root/native/bin/strip",
+    "/usr/lib/libc.a"
+  ],
+  "build_executor": "/usr/bin/make",
+  "compiler_runtime": "libgcc.a is not included; hosted C linking is not part of this tuple",
+  "inputs": {
+    "qemu": {
+      "path": ".rem-phone-deploy-20260925/REM-FLIGHT/qemu/qemu-system-myemulator32",
+      "sha256": "0154db549ad01d0bcdfd79c0dde9544266fc14c75fe7825d14942ff47a75641a"
+    },
+    "kernel": {
+      "path": ".rem-phone-deploy-20260925/REM-FLIGHT/boot/vmlinux",
+      "sha256": "c77547060463da37cf9730e41e799c94998ad9f6e24e2c1a3282ee3299215a63"
+    },
+    "rootfs": {
+      "path": "REM-FLIGHT-ANDROID-MVP/rootfs/rem-rootfs.ext4",
+      "sha256": "46604d9530953065df0dc74fea7eacf5ac21dfbebeb7194ba355f178cb91f4cd"
+    }
+  },
+  "required_guest_files": [
+    "/sbin/init",
+    "/bin/busybox",
+    "/usr/bin/bash",
+    "/usr/bin/make",
+    "/usr/lib/libc.a",
+    "/root/native/bin/as",
+    "/root/native/bin/ld",
+    "/root/native/bin/rem-sync",
+    "/root/native/bin/ar",
+    "/root/native/bin/ranlib",
+    "/root/native/bin/objdump",
+    "/root/native/bin/readelf",
+    "/root/native/bin/nm",
+    "/root/native/bin/size",
+    "/root/native/bin/strings",
+    "/root/native/bin/strip"
+  ],
+  "required_executables": [
+    "/sbin/init",
+    "/bin/busybox",
+    "/usr/bin/bash",
+    "/usr/bin/make",
+    "/root/native/bin/as",
+    "/root/native/bin/ld",
+    "/root/native/bin/rem-sync",
+    "/root/native/bin/ar",
+    "/root/native/bin/ranlib",
+    "/root/native/bin/objdump",
+    "/root/native/bin/readelf",
+    "/root/native/bin/nm",
+    "/root/native/bin/size",
+    "/root/native/bin/strings",
+    "/root/native/bin/strip"
+  ],
+  "expected_elf_machines": {
+    "qemu": "Advanced Micro Devices X86-64",
+    "kernel": "<unknown>: 0xf2e2"
+  },
+  "required_guest_elf_machines": {
+    "/bin/busybox": "<unknown>: 0xf2e2",
+    "/usr/bin/bash": "<unknown>: 0xf2e2",
+    "/root/native/bin/as": "<unknown>: 0xf2e2",
+    "/root/native/bin/ld": "<unknown>: 0xf2e2",
+    "/root/native/bin/ar": "<unknown>: 0xf2e2",
+    "/root/native/bin/ranlib": "<unknown>: 0xf2e2",
+    "/root/native/bin/objdump": "<unknown>: 0xf2e2",
+    "/root/native/bin/readelf": "<unknown>: 0xf2e2",
+    "/root/native/bin/nm": "<unknown>: 0xf2e2",
+    "/root/native/bin/size": "<unknown>: 0xf2e2",
+    "/root/native/bin/strings": "<unknown>: 0xf2e2",
+    "/root/native/bin/strip": "<unknown>: 0xf2e2"
+  },
+  "required_guest_devices": {
+    "/dev/console": {
+      "type": "character special",
+      "mode": "0600",
+      "major": 5,
+      "minor": 1
+    },
+    "/dev/null": {
+      "type": "character special",
+      "mode": "0666",
+      "major": 1,
+      "minor": 3
+    }
+  },
+  "tool_search_path": [
+    "/root/native/bin",
+    "/bin",
+    "/usr/bin",
+    "/sbin",
+    "/usr/sbin"
+  ]
+}

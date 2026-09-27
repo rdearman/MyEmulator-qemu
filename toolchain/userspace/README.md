@@ -31,3 +31,24 @@ The initial suite is intentionally conservative. Tests that require network
 access are startup-only or omitted until networking is enabled. Add a test by
 adding a `run_test` invocation to the guest script and documenting whether it
 is functional, startup-only, or not tested.
+
+Vim is test 27. It is kept separate from the 26 shell-driven tests because
+the acceptance case requires serial-terminal input:
+
+The existing `test-userspace.py` runner contains the original 26
+non-interactive application tests.  Vim is kept as test 27 because it
+requires serial-terminal input rather than a shell command:
+
+```sh
+python3 toolchain/scripts/test-vim.py \
+  --rootfs /tmp/rem-vim-rootfs.ext4 \
+  --qemu .qemu-build/qemu-system-myemulator32 \
+  --kernel .linux-build/build/vmlinux \
+  --output /tmp/rem-vim-regression
+```
+
+The Vim test starts `/usr/bin/vim` in the guest, inserts text into an
+assembly file, writes it, exits, and verifies the saved marker.  Its JSON
+result and serial transcript are written beneath the selected output
+directory.  A nonzero result is a genuine failure, timeout, or guest crash;
+it must not be converted to a pass by replacing Vim with a BusyBox applet.

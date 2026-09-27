@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "tests": [
+    {
+      "id": "boot-console-shell",
+      "phase": "BOOT / CONSOLE INPUT / SHELL",
+      "command": "guest init shell: nonce assignment, export, test, echo",
+      "expected_result": "init prompt plus host-command and exported-environment nonce markers",
+      "failure_layer": "QEMU/kernel/init/console/shell",
+      "artifact_roles": ["qemu", "kernel", "rootfs"]
+    },
+    {
+      "id": "filesystem-lifecycle",
+      "phase": "FILESYSTEM / PERSISTENCE",
+      "command": "create, overwrite, read, delete a nonce file; sync; reboot; compare SHA-256",
+      "expected_result": "exact modified contents before delete; deleted file stays absent; retained marker hashes match across reboot",
+      "failure_layer": "filesystem/syscall/block-device/persistence",
+      "artifact_roles": ["qemu", "kernel", "rootfs"]
+    },
+    {
+      "id": "yash-shell",
+      "phase": "YASH",
+      "command": "interactive Yash: command, exported environment, pipeline, redirection, child, exit",
+      "expected_result": "nonce markers and return to parent shell",
+      "failure_layer": "Yash/TTY/PTY/syscall/process",
+      "artifact_roles": ["qemu", "kernel", "rootfs", "yash"]
+    },
+    {
+      "id": "kilo-edit-save",
+      "phase": "KILO",
+      "command": "open new file, type nonce, Ctrl-S, Ctrl-Q, read file",
+      "expected_result": "saved file contains exactly the typed nonce",
+      "failure_layer": "Kilo/terminal/input/filesystem",
+      "artifact_roles": ["qemu", "kernel", "rootfs", "kilo"]
+    },
+    {
+      "id": "vim-edit-save",
+      "phase": "VIM",
+      "command": "vim --version; vim -u NONE -i NONE -n -es -c setline -c wq; cat file",
+      "expected_result": "Vim starts and saves one exact nonce line",
+      "failure_layer": "Vim/terminal/filesystem",
+      "artifact_roles": ["qemu", "kernel", "rootfs", "vim"]
+    },
+    {
+      "id": "native-c-edit-build-run",
+      "phase": "CHIBICC",
+      "command": "create C source; edit output string; chibicc -S; as; ld with pinned CRT/libc/libgcc; run both versions",
+      "expected_result": "both unique program output markers appear after their respective builds",
+      "failure_layer": "compiler/assembler/linker/CRT/libc/libgcc/ELF/exec",
+      "artifact_roles": ["qemu", "kernel", "rootfs", "chibicc", "as", "ld", "linker_script", "crt1", "crti", "crtn", "libc", "libgcc"]
+    },
+    {
+      "id": "runtime-argv",
+      "phase": "RUNTIME ABI",
+      "command": "/root/rem-runtime-contract-N alpha beta",
+      "expected_result": "RUNTIME_PASS_ARGV",
+      "failure_layer": "execve/argc/argv ABI",
+      "artifact_roles": ["qemu", "kernel", "rootfs", "chibicc", "as", "ld", "libc", "libgcc"]
+    },
+    {
+      "id": "runtime-variadic",
+      "phase": "RUNTIME ABI",
+      "command": "/root/rem-runtime-contract-N alpha beta",
+      "expected_result": "RUNTIME_PASS_VARIADIC",
+      "failure_layer": "compiler variadic ABI/stdarg/runtime",
+      "artifact_roles": ["qemu", "kernel", "rootfs", "chibicc", "as", "ld", "libc", "libgcc"]
+    },
+    {
+      "id": "runtime-pointer-table",
+      "phase": "RUNTIME ABI",
+      "command": "/root/rem-runtime-contract-N alpha beta",
+      "expected_result": "RUNTIME_PASS_POINTERS",
+      "failure_layer": "compiler data layout/relocation/pointer load",
+      "artifact_roles": ["qemu", "kernel", "rootfs", "chibicc", "as", "ld", "libc", "libgcc"]
+    },
+    {
+      "id": "runtime-int64",
+      "phase": "RUNTIME ABI",
+      "command": "/root/rem-runtime-contract-N alpha beta",
+      "expected_result": "RUNTIME_PASS_INT64",
+      "failure_layer": "compiler 64-bit arithmetic/code generation/runtime helpers",
+      "artifact_roles": ["qemu", "kernel", "rootfs", "chibicc", "as", "ld", "libc", "libgcc"]
+    },
+    {
+      "id": "native-make",
+      "phase": "MAKE",
+      "command": "/usr/bin/make -f Makefile; edit source; make -n; make; run program",
+      "expected_result": "first and edited program markers; dry-run schedules chibicc rebuild",
+      "failure_layer": "make/dependency timestamps/compiler/linker/runtime",
+      "artifact_roles": ["qemu", "kernel", "rootfs", "make", "chibicc", "as", "ld"]
+    },
+    {
+      "id": "native-ar-ranlib",
+      "phase": "BINUTILS ARCHIVE",
+      "command": "as objects; ar rcs; ranlib; ar t; ld archive; execute",
+      "expected_result": "member.o listed and executable prints nonce marker",
+      "failure_layer": "assembler/archive index/linker/ELF/runtime",
+      "artifact_roles": ["qemu", "kernel", "rootfs", "ar", "ranlib", "as", "ld", "libc", "libgcc"]
+    },
+    {
+      "id": "native-samurai",
+      "phase": "SAMURAI",
+      "command": "samu -h; samu -n; samu; edit source; samu -n; samu; run output",
+      "expected_result": "help is printed, build edge appears, and changed source yields changed output",
+      "failure_layer": "Samurai/parser/filesystem/compiler/assembler/linker/incremental dependency scan",
+      "artifact_roles": ["qemu", "kernel", "rootfs", "samu", "chibicc", "as", "ld"]
+    }
+  ]
+}

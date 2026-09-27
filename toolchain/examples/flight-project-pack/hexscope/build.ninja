@@ -1,0 +1,12 @@
+rule cc
+  command = chibicc -c -o $out $in
+  description = CC $out
+rule link
+  command = chibicc -o $out $in
+  description = LINK $out
+
+build main.o: cc main.c | hexscope.h
+build hexscope.o: cc hexscope.c | hexscope.h
+build elf32.o: cc elf32.c | hexscope.h
+build hexscope: link main.o hexscope.o elf32.o
+default hexscope

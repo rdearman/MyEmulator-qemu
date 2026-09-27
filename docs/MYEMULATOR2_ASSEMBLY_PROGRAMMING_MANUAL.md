@@ -66,7 +66,7 @@ register. `r13` selects `USP` in user mode and `SSP` in supervisor mode.
 
 | Bits | Name | Meaning |
 |---:|---|---|
-| 0 | `CF` | Carry for addition; no-borrow result for subtraction |
+| 0 | `CF` | Carry for addition; set when an unsigned subtraction borrows |
 | 1 | `OF` | Signed two's-complement overflow |
 | 2–4 | `IPL` | Interrupt priority level, 0–7 |
 | 5 | `S` | Supervisor mode when set |
@@ -207,8 +207,11 @@ Immediate suboperations are `addi`, `subi`, `andi`, `ori`, `xori`, `slli`,
 immediates are zero-extended. Immediate shift counts use `imm[4:0]` and
 require the upper immediate bits to be zero.
 
-Arithmetic operations update the defined carry/overflow state. Logical and
-comparison operations do not provide a conventional N/Z flag register;
+Only `add`, `adc`, `sub`, `sbc`, `addi`, and `subi` update the defined
+carry/overflow state. Multiplication, division, remainder, logical,
+comparison, load/store, and control-transfer operations leave `CF`/`OF`
+unchanged. Logical and comparison operations do not provide a conventional
+N/Z flag register;
 comparison results are written to a register and the Linux/GCC code must not
 assume flags exist beyond the documented `SR` bits.
 
@@ -265,10 +268,12 @@ address to `r14` before transferring. `JR` transfers without linking;
 Linux syscall exception; the immediate is currently reserved for kernel
 diagnostics and does not replace the syscall number in `r1`.
 
-`tlbflush all` invalidates the complete translation cache. The page form
-invalidates the translation associated with the supplied page/register
-according to the QEMU target implementation. `cas rd, rs, ra` performs the
-implemented atomic compare-and-swap operation; programs requiring a portable
+`tlbflush` with no operand invalidates the complete translation cache.
+`tlbflush rN` invalidates the translation for the address in register `rN`.
+`cas rd, rs, 0(ra)` performs the implemented atomic compare-and-swap
+operation: it compares the word at the address in `ra` with the old value in
+`rd`, conditionally stores the replacement value from `rs`, and returns the
+previous memory value in `rd`. Programs requiring a portable
 Linux atomic API should use the libc/kernel interface rather than assuming
 more memory-ordering guarantees than the target documents.
 

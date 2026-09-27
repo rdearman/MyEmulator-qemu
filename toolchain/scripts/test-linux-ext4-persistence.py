@@ -81,7 +81,7 @@ def main():
                         "--enable", "EXT4_FS"], check=True)
         subprocess.run([str(config), "--file", str(BUILD / ".config"),
                         "--set-str", "CMDLINE",
-                        "console=myemu0,115200 earlycon=myemu32,0xf0000000 root=/dev/myemu0 rw init=/sbin/init"], check=True)
+                        "console=ttyMY0,115200 earlycon=myemulator2,0xf0000000 root=/dev/myemu0 rw init=/sbin/init"], check=True)
         subprocess.run([str(ROOT / "toolchain/scripts/build-linux.sh")], check=True,
                        stdout=subprocess.DEVNULL)
         first = out / "first.log"

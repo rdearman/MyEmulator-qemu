@@ -1,0 +1,157 @@
+{
+  "name": "REM-flight-Yash-unified-pending-Samurai-gates-20260927",
+  "description": "Pinned Yash interactive tuple plus selected pending chibicc/Samurai/Kilo and qualified native binutils. PREPARED ONLY: build prohibited until samu -n and incremental rebuild pass and acceptance gate is updated.",
+  "machine": "myemulator32",
+  "memory": "128M",
+  "icount": "shift=0,sleep=off",
+  "root_device": "/dev/myemu0",
+  "image_size_bytes": 10737418240,
+  "shell": {
+    "preferred": "/usr/bin/yash",
+    "recovery": "/bin/busybox ash"
+  },
+  "editor": "/usr/bin/kilo",
+  "compiler": "/root/native/bin/chibicc",
+  "build_executor": "/root/native/bin/samu",
+  "tool_search_path": [
+    "/root/native/bin",
+    "/bin",
+    "/usr/bin",
+    "/sbin",
+    "/usr/sbin"
+  ],
+  "inputs": {
+    "qemu": {
+      "path": "/home/rick/Development/Active/MyEmulator-qemu/REM-FLIGHT-TTY/qemu/desktop/qemu-system-myemulator32",
+      "sha256": "0154db549ad01d0bcdfd79c0dde9544266fc14c75fe7825d14942ff47a75641a"
+    },
+    "kernel": {
+      "path": "/tmp/rem-yash-unified-build/vmlinux",
+      "sha256": "5bd96e5d7e9163d95e8470eb550504357d84e78d38cd269781dfb096a511638a"
+    },
+    "rootfs": {
+      "path": "/tmp/rem-yash-qual/flight-yash.ext4",
+      "sha256": "8649389a39aefa45d9a1ed0b2b8438cde5396cbb1fe1991ee26d4633cff48d59"
+    }
+  },
+  "expected_elf_machines": {
+    "qemu": "Advanced Micro Devices X86-64",
+    "kernel": "<unknown>: 0xf2e2"
+  },
+  "required_guest_files": [
+    "/sbin/init",
+    "/bin/busybox",
+    "/usr/bin/yash",
+    "/usr/bin/kilo",
+    "/root/native/bin/chibicc",
+    "/root/native/bin/as",
+    "/root/native/bin/ld",
+    "/root/native/bin/ar",
+    "/root/native/bin/ranlib",
+    "/root/native/bin/samu",
+    "/usr/share/src/kilo/kilo.c",
+    "/usr/share/doc/rem-flight/KILO_GUIDE.md",
+    "/usr/share/doc/rem-flight/KILO_SOURCE_GUIDE.md",
+    "/root/native/lib/libgcc.a",
+    "/root/native/lib/myemulator2-user.ld",
+    "/usr/bin/make"
+  ],
+  "required_executables": [
+    "/sbin/init",
+    "/bin/busybox",
+    "/usr/bin/yash",
+    "/usr/bin/kilo",
+    "/root/native/bin/chibicc",
+    "/root/native/bin/as",
+    "/root/native/bin/ld",
+    "/root/native/bin/ar",
+    "/root/native/bin/ranlib",
+    "/root/native/bin/samu",
+    "/usr/bin/make"
+  ],
+  "required_guest_elf_machines": {
+    "/bin/busybox": "<unknown>: 0xf2e2",
+    "/usr/bin/yash": "<unknown>: 0xf2e2",
+    "/usr/bin/kilo": "<unknown>: 0xf2e2",
+    "/root/native/bin/chibicc": "<unknown>: 0xf2e2",
+    "/root/native/bin/as": "<unknown>: 0xf2e2",
+    "/root/native/bin/ld": "<unknown>: 0xf2e2",
+    "/root/native/bin/ar": "<unknown>: 0xf2e2",
+    "/root/native/bin/ranlib": "<unknown>: 0xf2e2",
+    "/root/native/bin/samu": "<unknown>: 0xf2e2"
+  },
+  "required_guest_devices": {
+    "/dev/console": {
+      "type": "character special",
+      "mode": "0600",
+      "major": 5,
+      "minor": 1
+    },
+    "/dev/null": {
+      "type": "character special",
+      "mode": "0666",
+      "major": 1,
+      "minor": 3
+    }
+  },
+  "acceptance_gate": {
+    "unified": false,
+    "validated": false,
+    "blocked_until": [
+      "samu -n PASS",
+      "incremental rebuild PASS",
+      "Codex #5 unified acceptance PASS"
+    ],
+    "components": {
+      "Qualified native ar": {
+        "accepted": true,
+        "sha256": "31585d2cfa5dcdf702e4655b2ac386b7580641aaa378d2b39bde106bb4543ba7"
+      },
+      "Qualified native ranlib": {
+        "accepted": true,
+        "sha256": "b2f8ac9eba8000c34c1f609d1955bc8e3495532b3bf0739ad714554e36d00bd3"
+      },
+      "Corrected native chibicc e01b58f": {
+        "accepted": false,
+        "sha256": "e01b58f7768b9b7e9f3ac5e6ff5cb8598de13ca6d8c056a4ecfede91d2978084"
+      },
+      "Native Samurai samu": {
+        "accepted": false,
+        "sha256": "d933c9e3cd6034acd70e2c518bea46e71c115e649952bd052747a337621b7ea9"
+      },
+      "Yash 2.61": {
+        "accepted": false,
+        "sha256": "ca2d37be818cb54ac67888f3fec0afb02f0c8d367ccc5cc38d12c89eb07a2a8e"
+      },
+      "Kilo editor": {
+        "accepted": false,
+        "sha256": "a8495a80effb8168116ff123eb0fd470ddfa357642b6320cd7eb07d95474b30f"
+      },
+      "Kilo source snapshot": {
+        "accepted": false,
+        "sha256": "1335fa65bc121d0b4b25ec9ad4c128aa63563adb7d133dd72191ffd52c0943f6"
+      },
+      "Kilo usage guide": {
+        "accepted": false,
+        "sha256": "6c086c7e5ac8a8c21d153fe62d27b8c17f8d64d9ba79f7c65cbf4b3bc2964507"
+      },
+      "Kilo source guide": {
+        "accepted": false,
+        "sha256": "e310df4b6900fcda71413b40366313dfe6e3e5611ec05552683e14784a746a6b"
+      },
+      "Qualified REM-native GNU Make 4.4.1": {
+        "accepted": true,
+        "sha256": "f474110061701a845f11bee32fe09a167b8334fb088940ad33f64452a4630527",
+        "path": "/usr/bin/make",
+        "validated": true
+      }
+    }
+  },
+  "optional_guest_files": {
+    "/usr/bin/gcc": {
+      "status": "not selected",
+      "purpose": "No validated native GCC driver is staged; native chibicc is the selected C compiler."
+    }
+  },
+  "compiler_runtime": "Pinned REM libgcc.a will be added by overlay; hash 759fb011a7d4dfba4da8a96d17cc978485f2daf62c2ba4545180d4de40773044."
+}

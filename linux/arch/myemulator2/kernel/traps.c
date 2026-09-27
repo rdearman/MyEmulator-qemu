@@ -7,6 +7,7 @@
 #include <linux/sched.h>
 #include <linux/errno.h>
 #include <linux/signal.h>
+#include <linux/string.h>
 #include <asm/ptrace.h>
 #include <asm/unistd.h>
 #include <asm/irqflags.h>
@@ -19,6 +20,7 @@ void myemulator2_timer_interrupt(void);
 asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 				      unsigned long address);
 void arch_do_signal_or_restart(struct pt_regs *regs);
+void myemulator2_debug_trap(struct pt_regs *regs, int *code);
 
 struct pt_regs *myemulator2_current_pt_regs(void)
 {
@@ -33,8 +35,19 @@ void myemulator2_exception_dispatch(struct pt_regs *regs)
 	 * kernel C code; replacing this pointer with that nested frame would
 	 * make a child inherit a kernel PC instead of its user continuation.
 	 * Explicit exception handlers still use their regs argument directly. */
-	if (!current_thread_info()->regs || user_mode(regs))
+	if (regs->cause == 12) {
+		if (regs->r[1] == 220) {
+			pr_emerg("MYEMU_TTYTRACE syscall-frame pid=%d pc=%08lx sr=%08lx\n",
+				 current->pid, regs->pc, regs->sr);
+			pr_emerg("MYEMU_TTYTRACE syscall-frame user=%d regs=%px\n",
+				 user_mode(regs), regs);
+		}
+		/* A syscall frame is the authoritative saved userspace continuation
+		 * for fork/clone, including the first syscall after kernel_execve(). */
 		current_thread_info()->regs = regs;
+	} else if (!current_thread_info()->regs || user_mode(regs)) {
+		current_thread_info()->regs = regs;
+	}
 	if (regs->cause != 12)
 		regs->orig_r1 = -1;
 	if (regs->cause == 12) {
@@ -47,8 +60,14 @@ void myemulator2_exception_dispatch(struct pt_regs *regs)
 			myemulator2_finish_user_exception(regs);
 			return;
 		}
+		if (!strcmp(current->comm, "bash"))
+			pr_emerg("MYEMU_TTYTRACE bash-sys-enter nr=%lu a0=%08lx a1=%08lx\n",
+				 regs->orig_r1, regs->r[2], regs->r[3]);
 		regs->r[1] = myemulator2_syscall(regs->r[1], regs->r[2],
 			regs->r[3], regs->r[4], regs->r[5], regs->r[6], regs->r[7]);
+		if (!strcmp(current->comm, "bash"))
+			pr_emerg("MYEMU_TTYTRACE bash-sys-exit nr=%ld ret=%08lx\n",
+				 regs->orig_r1, regs->r[1]);
 		myemulator2_finish_user_exception(regs);
 		return;
 	}
@@ -86,6 +105,15 @@ void myemulator2_exception_dispatch(struct pt_regs *regs)
 		myemulator2_finish_user_exception(regs);
 		return;
 	}
+	/* REM's BREAK instruction raises exception vector 13. Deliver it as a
+	 * normal user SIGTRAP so Linux ptrace can report debugger stops. */
+	if (regs->cause == 13 && user_mode(regs)) {
+		int code;
+		myemulator2_debug_trap(regs, &code);
+		force_sig_fault(SIGTRAP, code, (void __user *)regs->pc);
+		myemulator2_finish_user_exception(regs);
+		return;
+	}
 	/* Vectors 2/3 are INSN_ALIGN/DATA_ALIGN. A misaligned access from a
 	 * user-mode process is the process's own bug (e.g. a corrupted or
 	 * bogus branch target/pointer), not a kernel error: it must be
@@ -95,6 +123,9 @@ void myemulator2_exception_dispatch(struct pt_regs *regs)
 	 * genuine kernel bug and continues to panic below.
 	 */
 	if ((regs->cause == 2 || regs->cause == 3) && user_mode(regs)) {
+		pr_warn("MYEMU_USER_ALIGN pid=%d pc=%08lx info=%08lx sp=%08lx fp=%08lx r1=%08lx r2=%08lx r3=%08lx r4=%08lx\n",
+			current->pid, regs->pc, regs->info, regs->r[13], regs->r[15],
+			regs->r[1], regs->r[2], regs->r[3], regs->r[4]);
 		force_sig_fault(SIGBUS, BUS_ADRALN, (void __user *)regs->info);
 		myemulator2_finish_user_exception(regs);
 		return;
@@ -133,6 +164,15 @@ void myemulator2_finish_user_exception(struct pt_regs *regs)
 {
 	if (!user_mode(regs))
 		return;
+	/* The exception return path is implemented in assembly and does not use
+	 * Linux's generic exit-to-user wrapper.  Drain reschedule requests here
+	 * so freshly forked tasks and preempted userspace are not stranded until
+	 * another unrelated kernel scheduling point. */
+	while (need_resched()) {
+		local_irq_enable();
+		schedule();
+		local_irq_disable();
+	}
 	arch_do_signal_or_restart(regs);
 }
 

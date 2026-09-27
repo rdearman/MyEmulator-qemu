@@ -1,0 +1,11 @@
+rule cc
+  command = chibicc -c -o $out $in
+  description = CC $out
+rule link
+  command = chibicc -o $out $in
+  description = LINK $out
+
+build main.o: cc main.c
+build report.o: cc report.c
+build report: link main.o report.o
+default report

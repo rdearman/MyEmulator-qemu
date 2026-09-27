@@ -14,6 +14,7 @@ ENTRY(_start)
 PHDRS
 {
   text PT_LOAD FILEHDR PHDRS FLAGS(7);
+  tls PT_TLS FLAGS(6);
   stack PT_GNU_STACK FLAGS(7);
 }
 
@@ -30,6 +31,8 @@ SECTIONS
   .fini : { *(.fini) } :text
   .rodata : { *(.rodata .rodata.*) } :text
   .eh_frame : { *(.eh_frame) } :text
+  .tdata : { *(.tdata .tdata.*) } :text :tls
+  .tbss : { *(.tbss .tbss.*) } :text :tls
   .preinit_array : { KEEP(*(.preinit_array)) } :text
   .init_array : { KEEP(*(.init_array)) } :text
   .fini_array : { KEEP(*(.fini_array)) } :text

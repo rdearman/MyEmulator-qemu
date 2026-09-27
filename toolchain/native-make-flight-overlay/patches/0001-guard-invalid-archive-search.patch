@@ -1,0 +1,13 @@
+--- a/src/implicit.c
++++ b/src/implicit.c
+@@ -214,6 +214,10 @@
+   /* Filename we are searching for a rule for.  */
+   const char *filename = archive ? strchr (file->name, '(') : file->name;
+ 
++  /* An archive search is only valid for a LIB(MEMBER) name.  */
++  if (!filename)
++    return 0;
++
+   /* Length of FILENAME.  */
+   size_t namelen = strlen (filename);
+ 

@@ -2,8 +2,10 @@
 #define _ASM_MYEMULATOR2_PTRACE_H
 #include <uapi/asm/ptrace.h>
 #ifndef __ASSEMBLY__
+struct task_struct;
 struct pt_regs;
 struct pt_regs *myemulator2_current_pt_regs(void);
+void myemulator2_debug_trap(struct pt_regs *regs, int *code);
 #define current_pt_regs() myemulator2_current_pt_regs()
 struct pt_regs {
 	unsigned long r[16];
@@ -18,5 +20,8 @@ struct pt_regs {
 #define instruction_pointer(regs) ((regs)->pc)
 #define user_stack_pointer(regs) ((regs)->r[13])
 #define profile_pc(regs) instruction_pointer(regs)
+#define arch_has_single_step() 1
+void user_enable_single_step(struct task_struct *task);
+void user_disable_single_step(struct task_struct *task);
 #endif
 #endif

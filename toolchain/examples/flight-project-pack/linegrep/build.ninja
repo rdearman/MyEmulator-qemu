@@ -1,0 +1,6 @@
+rule link
+  command = chibicc -o $out $in
+  description = LINK $out
+
+build linegrep: link linegrep.c
+default linegrep

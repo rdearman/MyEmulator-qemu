@@ -365,6 +365,10 @@ opens and duplicates `/dev/console` before printing.
 
 Verified:
 
+The following command is a historical snapshot from the native-GCC bring-up
+environment; it is not the current supported compiler interface. For current
+static musl builds use the wrapper documented in `REM_PROGRAMMERS_GUIDE.md`.
+
 ```sh
 make spec-test
 make cpu32-test

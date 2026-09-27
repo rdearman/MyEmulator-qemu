@@ -230,11 +230,13 @@ int main(void)
 }
 ```
 
-Use the project compiler driver, target sysroot, and user linker script. The
-exact prefix depends on the build directory:
+Use the repository wrapper with the target compiler and musl prefix selected
+explicitly. This is the supported static-musl invocation:
 
 ```sh
-myemulator2-linux-musl-gcc -O2 -static hello.c -o hello
+MYEMU_TARGET_GCC=.toolchain-install/bin/myemulator2-elf-gcc \
+MYEMU_MUSL_PREFIX=.musl-install \
+toolchain/scripts/myemulator2-musl-gcc -O2 -static hello.c -o hello
 ```
 
 If only the freestanding compiler is installed, use the repository's startup
@@ -324,7 +326,11 @@ cd /root/src/hello
 When `make` is available in the guest:
 
 ```make
-CC = myemulator2-linux-musl-gcc
+MYEMU_TARGET_GCC ?= .toolchain-install/bin/myemulator2-elf-gcc
+MYEMU_MUSL_PREFIX ?= .musl-install
+CC = MYEMU_TARGET_GCC=$(MYEMU_TARGET_GCC) \
+	MYEMU_MUSL_PREFIX=$(MYEMU_MUSL_PREFIX) \
+	toolchain/scripts/myemulator2-musl-gcc
 CFLAGS = -O2
 
 hello: hello.c

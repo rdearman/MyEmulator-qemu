@@ -33,9 +33,23 @@ static vaddr myemulator32_get_pc(CPUState *cs)
 }
 
 static void myemulator32_sync_from_tb(CPUState *cs,
-                                      const TranslationBlock *tb)
+                                       const TranslationBlock *tb)
 {
-    cpu_env(cs)->pc = tb->pc;
+    CPUMyEmulator32State *env = cpu_env(cs);
+    static int trace_enabled = -1;
+    static uint64_t trace_count;
+
+    env->pc = tb->pc;
+    if (trace_enabled < 0) {
+        trace_enabled = getenv("MYEMU_TRACE_USER_PC") != NULL;
+    }
+    if (trace_enabled && !(env->sr & MYEMU32_SR_S) &&
+        (++trace_count % 1000) == 0) {
+        fprintf(stderr, "MYEMU_USER_PC pc=%08" PRIx32 " sp=%08" PRIx32
+                " fp=%08" PRIx32 " count=%" PRIu64 "\n",
+                env->pc, env->r[13], env->r[15], trace_count);
+        fflush(stderr);
+    }
 }
 
 static void myemulator32_restore_state(CPUState *cs,

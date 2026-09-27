@@ -3,13 +3,22 @@
 #include <asm-generic/io.h>
 #define __io(p) ((void __iomem *)(unsigned long)(p))
 
-/* MyEmulator2 currently uses a flat physical kernel mapping.  Keep the
- * Linux I/O mapping API explicit so generic kernel code can build while the
- * eventual platform MMIO mapping is supplied by the architecture VM setup. */
+#define MYEMU2_UART_VIRT  0x7fc00000UL
+#define MYEMU2_BLOCK_VIRT 0x7fd00000UL
+#define MYEMU2_VIRTIO_NET_VIRT 0x7fe00000UL
+
+/* The machine's MMIO bus is physical. These fixed virtual aliases are
+ * installed alongside the RAM direct map during paging_init(). */
 static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
 {
 	(void)size;
-	return __io(offset);
+	if (offset == 0xf0000000UL)
+		return __io(MYEMU2_UART_VIRT);
+	if (offset == 0xf0100000UL)
+		return __io(MYEMU2_BLOCK_VIRT);
+	if (offset == 0xf0200000UL)
+		return __io(MYEMU2_VIRTIO_NET_VIRT);
+	return NULL;
 }
 
 static inline void iounmap(volatile void __iomem *addr)

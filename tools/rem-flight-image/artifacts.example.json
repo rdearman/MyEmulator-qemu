@@ -1,0 +1,40 @@
+{
+  "artifacts": [
+    {
+      "name": "yash",
+      "owner": "yash",
+      "source": "tools/rem-flight-image/staging/yash/yash",
+      "destination": "/usr/local/bin/yash",
+      "size": 0,
+      "mode": "0755",
+      "sha256": "REPLACE_WITH_REVIEWED_SHA256",
+      "executable": true,
+      "elf_machine": "<unknown>: 0xf2e2",
+      "accepted": false
+    },
+    {
+      "name": "samu",
+      "owner": "chibicc-samurai",
+      "source": "tools/rem-flight-image/staging/chibicc-samurai/samu",
+      "destination": "/usr/local/bin/samu",
+      "size": 0,
+      "mode": "0755",
+      "sha256": "REPLACE_WITH_REVIEWED_SHA256",
+      "executable": true,
+      "elf_machine": "<unknown>: 0xf2e2",
+      "accepted": false
+    },
+    {
+      "name": "chibicc",
+      "owner": "chibicc-samurai",
+      "source": "tools/rem-flight-image/staging/chibicc-samurai/chibicc",
+      "destination": "/usr/local/bin/chibicc",
+      "size": 0,
+      "mode": "0755",
+      "sha256": "REPLACE_WITH_REVIEWED_SHA256",
+      "executable": true,
+      "elf_machine": "<unknown>: 0xf2e2",
+      "accepted": false
+    }
+  ]
+}

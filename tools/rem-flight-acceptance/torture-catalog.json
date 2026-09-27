@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "tests": [
+    {
+      "id": "busybox-basics",
+      "tier": 1,
+      "subsystem": "BusyBox applet dispatch and process exit",
+      "binary_candidates": ["/bin/busybox"],
+      "command": "{bin} echo REM_BUSYBOX_{n}",
+      "expected": "REM_BUSYBOX_{n}",
+      "minimal_reproducer": "{bin} echo REM_BUSYBOX_{n}"
+    },
+    {
+      "id": "coreutils-sort-uniq-wc",
+      "tier": 1,
+      "subsystem": "coreutils process execution, pipes, text processing",
+      "binary_candidates": ["/usr/bin/sort", "/usr/bin/uniq", "/usr/bin/wc"],
+      "command": "echo z > /tmp/rem-core-{n}; echo a >> /tmp/rem-core-{n}; echo a >> /tmp/rem-core-{n}; test \"$(/usr/bin/sort /tmp/rem-core-{n} | /usr/bin/uniq | /usr/bin/wc -l)\" = 2 && echo REM_COREUTILS_{n}",
+      "expected": "REM_COREUTILS_{n}",
+      "minimal_reproducer": "echo z > /tmp/rem-core-{n}; echo a >> /tmp/rem-core-{n}; echo a >> /tmp/rem-core-{n}; test \"$(/usr/bin/sort /tmp/rem-core-{n} | /usr/bin/uniq | /usr/bin/wc -l)\" = 2"
+    },
+    {
+      "id": "grep-fixed-match",
+      "tier": 1,
+      "subsystem": "grep file I/O, matching, and exit status",
+      "binary_candidates": ["/usr/bin/grep", "/bin/grep"],
+      "command": "echo before > /tmp/rem-grep-{n}; echo REM_GREP_{n} >> /tmp/rem-grep-{n}; {bin} -F REM_GREP_{n} /tmp/rem-grep-{n}",
+      "expected": "REM_GREP_{n}",
+      "minimal_reproducer": "{bin} -F REM_GREP_{n} /tmp/rem-grep-{n}"
+    },
+    {
+      "id": "sed-substitute",
+      "tier": 1,
+      "subsystem": "sed stream editing and output",
+      "binary_candidates": ["/usr/bin/sed", "/bin/sed"],
+      "command": "echo OLD_{n} > /tmp/rem-sed-{n}; test \"$({bin} 's/OLD/NEW/' /tmp/rem-sed-{n})\" = NEW_{n} && echo REM_SED_{n}",
+      "expected": "REM_SED_{n}",
+      "minimal_reproducer": "echo OLD_{n} > /tmp/rem-sed-{n}; test \"$({bin} 's/OLD/NEW/' /tmp/rem-sed-{n})\" = NEW_{n}"
+    },
+    {
+      "id": "tar-create-list-extract",
+      "tier": 1,
+      "subsystem": "tar archive creation, directory traversal, extraction, file contents",
+      "binary_candidates": ["/usr/bin/tar", "/bin/tar"],
+      "command": "mkdir -p /tmp/rem-tar-{n}/in /tmp/rem-tar-{n}/out; echo REM_TAR_{n} > /tmp/rem-tar-{n}/in/member; cd /tmp/rem-tar-{n}/in && {bin} -cf ../test.tar member && test \"$({bin} -tf ../test.tar)\" = member && cd ../out && {bin} -xf ../test.tar && test \"$(cat member)\" = REM_TAR_{n} && echo REM_TAR_PASS_{n}",
+      "expected": "REM_TAR_PASS_{n}",
+      "minimal_reproducer": "mkdir -p /tmp/rem-tar-{n}/in /tmp/rem-tar-{n}/out; echo REM_TAR_{n} > /tmp/rem-tar-{n}/in/member; cd /tmp/rem-tar-{n}/in && {bin} -cf ../test.tar member && test \"$({bin} -tf ../test.tar)\" = member && cd ../out && {bin} -xf ../test.tar && test \"$(cat member)\" = REM_TAR_{n}"
+    },
+    {
+      "id": "less-start-page-quit",
+      "tier": 2,
+      "subsystem": "less terminal initialization, terminfo, screen output, keyboard quit",
+      "binary_candidates": ["/usr/bin/less", "/bin/less"],
+      "interaction": "less",
+      "command": "TERM=xterm {bin} -X /tmp/rem-less-{n}",
+      "expected": "REM_LESS_{n}",
+      "expected_result": "REM_LESS_{n} rendered and clean return to shell",
+      "minimal_reproducer": "echo REM_LESS_{n} > /tmp/rem-less-{n}; TERM=xterm {bin} -X /tmp/rem-less-{n}; press q"
+    },
+    {
+      "id": "dialog-ncurses-msgbox",
+      "tier": 2,
+      "subsystem": "ncurses/terminfo initialization, terminal geometry, keyboard input",
+      "binary_candidates": ["/usr/bin/dialog", "/bin/dialog"],
+      "interaction": "dialog",
+      "command": "TERM=xterm {bin} --clear --msgbox REM_DIALOG_{n} 8 40",
+      "expected": "REM_DIALOG_{n}",
+      "expected_result": "REM_DIALOG_{n} rendered and Enter exits with status zero",
+      "minimal_reproducer": "TERM=xterm {bin} --clear --msgbox REM_DIALOG_{n} 8 40; press Enter"
+    },
+    {
+      "id": "git-init-commit-status",
+      "tier": 2,
+      "subsystem": "git process startup, filesystem, index, object store, environment",
+      "binary_candidates": ["/usr/bin/git", "/bin/git"],
+      "command": "mkdir -p /tmp/rem-git-{n}; cd /tmp/rem-git-{n} && {bin} init -q && {bin} config user.name REM && {bin} config user.email rem@example.invalid && echo REM_GIT_{n} > note && {bin} add note && {bin} commit -qm REM_GIT_COMMIT_{n} && test -z \"$({bin} status --porcelain)\" && test \"$({bin} log -1 --format=%s)\" = REM_GIT_COMMIT_{n} && echo REM_GIT_PASS_{n}",
+      "expected": "clean status, expected commit subject, and REM_GIT_PASS_{n}",
+      "minimal_reproducer": "mkdir -p /tmp/rem-git-{n}; cd /tmp/rem-git-{n} && {bin} init -q && {bin} config user.name REM && {bin} config user.email rem@example.invalid && echo REM_GIT_{n} > note && {bin} add note && {bin} commit -qm REM_GIT_COMMIT_{n} && test -z \"$({bin} status --porcelain)\" && test \"$({bin} log -1 --format=%s)\" = REM_GIT_COMMIT_{n}"
+    }
+  ]
+}

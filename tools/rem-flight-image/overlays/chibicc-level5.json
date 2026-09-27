@@ -1,0 +1,52 @@
+{
+  "artifacts": [
+    {
+      "name": "REM native chibicc Level 5",
+      "owner": "Codex #2 (chibicc)",
+      "source": "toolchain/flight-kit-runtime/bin/chibicc",
+      "destination": "/root/native/bin/chibicc",
+      "size": 472700,
+      "mode": "0755",
+      "sha256": "7b9134caaf776953d82d34c3f54dec0eb5b3f343d8ec92ff350df6ee82023a75",
+      "executable": true,
+      "elf_machine": "<unknown>: 0xf2e2",
+      "accepted": false,
+      "provenance": "docs/REM_C_COMPILER_STATUS.md Level 5 PASS; docs/REM_VALIDATED_RUNTIME_TUPLES.md exact compiler hash",
+      "dependencies": [
+        "/root/native/bin/as",
+        "/root/native/bin/ld",
+        "/root/native/lib/myemulator2-user.ld",
+        "/usr/lib/crt1.o",
+        "/usr/lib/crti.o",
+        "/usr/lib/crtn.o",
+        "/usr/lib/libc.a",
+        "/root/native/lib/libgcc.a"
+      ],
+      "dependency_hashes": {
+        "/root/native/bin/as": "c56f6b236f15200426c9fe5a81caa8251df71b401c0bddd93827c1a4f68e7d93",
+        "/root/native/bin/ld": "edd83609045df123c8a261cf615f70de1bd3e249082a9fe39f392ef0f6ee3b65",
+        "/root/native/lib/myemulator2-user.ld": "6ec14dea3bda5ded2ef8b23ac1995d6b40857e2273ead8e095d57f25e8a54621",
+        "/usr/lib/crt1.o": "9951b664ec350b8ae34c30be9824a42b3a76253978515d674bf1d33b346a4697",
+        "/usr/lib/crti.o": "7fb830f63e7ba115f433b6f28253e8510bbc7b0ab0708c62a2a0ac94aeba5f37",
+        "/usr/lib/crtn.o": "5594cc2bd0fa13d22e159c78c1f3065b7f36ae217badcdeaf8e71b5c3ad64937",
+        "/usr/lib/libc.a": "30cff68855d3793dedd63020928e65dfc084a5aa6667ef0114b25d6d92bd0924",
+        "/root/native/lib/libgcc.a": "759fb011a7d4dfba4da8a96d17cc978485f2daf62c2ba4545180d4de40773044"
+      },
+      "hold_reason": "Held from flight integration: candidate acceptance failed in the native compile probe with MYEMU llist bad add; the artifact-level Level 5 result does not clear this candidate gate."
+    },
+    {
+      "name": "REM matching libgcc Level 5 runtime",
+      "owner": "Codex #2 (chibicc)",
+      "source": "toolchain/flight-kit-runtime/lib/libgcc.a",
+      "destination": "/root/native/lib/libgcc.a",
+      "size": 998454,
+      "mode": "0644",
+      "sha256": "759fb011a7d4dfba4da8a96d17cc978485f2daf62c2ba4545180d4de40773044",
+      "executable": false,
+      "accepted": false,
+      "provenance": "docs/REM_VALIDATED_RUNTIME_TUPLES.md exact Level 5 runtime tuple",
+      "dependencies": [],
+      "hold_reason": "Held from flight integration: candidate acceptance failed in the native compile probe with MYEMU llist bad add; the artifact-level Level 5 result does not clear this candidate gate."
+    }
+  ]
+}

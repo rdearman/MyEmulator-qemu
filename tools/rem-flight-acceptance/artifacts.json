@@ -1,0 +1,18 @@
+{
+  "artifacts": [
+    {
+      "name": "REM native chibicc",
+      "source": "toolchain/flight-kit-runtime/bin/chibicc",
+      "sha256": "7b9134caaf776953d82d34c3f54dec0eb5b3f343d8ec92ff350df6ee82023a75",
+      "guest_path": "/root/native/bin/chibicc",
+      "accepted": false
+    },
+    {
+      "name": "REM matching libgcc runtime",
+      "source": "toolchain/flight-kit-runtime/lib/libgcc.a",
+      "sha256": "759fb011a7d4dfba4da8a96d17cc978485f2daf62c2ba4545180d4de40773044",
+      "guest_path": "/root/native/lib/libgcc.a",
+      "accepted": false
+    }
+  ]
+}

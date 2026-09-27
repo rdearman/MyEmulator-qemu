@@ -1,0 +1,4 @@
+Sep 27 08:00 INFO boot begin
+Sep 27 08:01 WARN disk queue at 78%
+Sep 27 08:02 ERROR open failed: /dev/ttyMY0
+Sep 27 08:03 INFO retry scheduled

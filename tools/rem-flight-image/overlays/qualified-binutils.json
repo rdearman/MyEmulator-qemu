@@ -1,0 +1,186 @@
+{
+  "artifacts": [
+    {
+      "name": "Qualified native ar",
+      "owner": "Codex #6 (binutils)",
+      "source": "tools/rem-flight-image/staging/binutils/ar",
+      "destination": "/root/native/bin/ar",
+      "size": 1748948,
+      "mode": "0755",
+      "sha256": "31585d2cfa5dcdf702e4655b2ac386b7580641aaa378d2b39bde106bb4543ba7",
+      "executable": true,
+      "elf_machine": "<unknown>: 0xf2e2",
+      "accepted": true,
+      "provenance": "docs/REM_NATIVE_BINUTILS_QUALIFICATION.md, 2026-09-27; owner update confirms current native binutils qualification.",
+      "dependencies": [
+        "/root/native/bin/as",
+        "/root/native/bin/ld",
+        "/root/.profile (ensures /root/native/bin is first in PATH)"
+      ],
+      "dependency_hashes": {
+        "/root/native/bin/as": "c56f6b236f15200426c9fe5a81caa8251df71b401c0bddd93827c1a4f68e7d93",
+        "/root/native/bin/ld": "edd83609045df123c8a261cf615f70de1bd3e249082a9fe39f392ef0f6ee3b65",
+        "/root/.profile": "0e4b7dac9b4d1a3b4b2796b3365c2cae2cfa356627002950882c8972a36b7350"
+      }
+    },
+    {
+      "name": "Qualified native ranlib",
+      "owner": "Codex #6 (binutils)",
+      "source": "tools/rem-flight-image/staging/binutils/ranlib",
+      "destination": "/root/native/bin/ranlib",
+      "size": 1748960,
+      "mode": "0755",
+      "sha256": "b2f8ac9eba8000c34c1f609d1955bc8e3495532b3bf0739ad714554e36d00bd3",
+      "executable": true,
+      "elf_machine": "<unknown>: 0xf2e2",
+      "accepted": true,
+      "provenance": "docs/REM_NATIVE_BINUTILS_QUALIFICATION.md, 2026-09-27; owner update confirms current native binutils qualification.",
+      "dependencies": [
+        "/root/native/bin/as",
+        "/root/native/bin/ld",
+        "/root/.profile (ensures /root/native/bin is first in PATH)"
+      ],
+      "dependency_hashes": {
+        "/root/native/bin/as": "c56f6b236f15200426c9fe5a81caa8251df71b401c0bddd93827c1a4f68e7d93",
+        "/root/native/bin/ld": "edd83609045df123c8a261cf615f70de1bd3e249082a9fe39f392ef0f6ee3b65",
+        "/root/.profile": "0e4b7dac9b4d1a3b4b2796b3365c2cae2cfa356627002950882c8972a36b7350"
+      }
+    },
+    {
+      "name": "Guest-tested native objdump",
+      "owner": "Codex #6 native Binutils build; Codex #4 guest qualification",
+      "source": "tools/rem-flight-image/staging/binutils/objdump",
+      "destination": "/root/native/bin/objdump",
+      "size": 9125056,
+      "mode": "0755",
+      "sha256": "57f7062b4f14ea3edd6aa2f74f7d6ffab21dcce8cadcdc0d7730c9b05140fa67",
+      "executable": true,
+      "elf_machine": "<unknown>: 0xf2e2",
+      "accepted": true,
+      "provenance": "Existing REM-native Binutils build output; objdump -d passed on a newly assembled REM executable in the disposable candidate.",
+      "dependencies": ["/root/native/bin/as", "/root/native/bin/ld", "/root/.profile"],
+      "dependency_hashes": {
+        "/root/native/bin/as": "c56f6b236f15200426c9fe5a81caa8251df71b401c0bddd93827c1a4f68e7d93",
+        "/root/native/bin/ld": "edd83609045df123c8a261cf615f70de1bd3e249082a9fe39f392ef0f6ee3b65",
+        "/root/.profile": "0e4b7dac9b4d1a3b4b2796b3365c2cae2cfa356627002950882c8972a36b7350"
+      }
+    },
+    {
+      "name": "Guest-tested native readelf",
+      "owner": "Codex #6 native Binutils build; Codex #4 guest qualification",
+      "source": "toolchain/native-binutils-flight-overlay/root/native/bin/readelf",
+      "destination": "/root/native/bin/readelf",
+      "size": 1616096,
+      "mode": "0755",
+      "sha256": "778d9e788068b2d8b78e85bfa2cf99c1c51f78873c20939a2a8bd91eb01b2eaa",
+      "executable": true,
+      "elf_machine": "<unknown>: 0xf2e2",
+      "accepted": true,
+      "provenance": "Existing native overlay; readelf -h passed on a REM executable in the disposable candidate.",
+      "dependencies": ["/root/native/bin/as", "/root/native/bin/ld", "/root/.profile"],
+      "dependency_hashes": {
+        "/root/native/bin/as": "c56f6b236f15200426c9fe5a81caa8251df71b401c0bddd93827c1a4f68e7d93",
+        "/root/native/bin/ld": "edd83609045df123c8a261cf615f70de1bd3e249082a9fe39f392ef0f6ee3b65",
+        "/root/.profile": "0e4b7dac9b4d1a3b4b2796b3365c2cae2cfa356627002950882c8972a36b7350"
+      }
+    },
+    {
+      "name": "Guest-tested native nm",
+      "owner": "Codex #6 native Binutils build; Codex #4 guest qualification",
+      "source": "tools/rem-flight-image/staging/binutils/nm",
+      "destination": "/root/native/bin/nm",
+      "size": 5526136,
+      "mode": "0755",
+      "sha256": "da0c0a6ecc28f79aaf6086778f1fe4083b780762fa134b99e5f72d04858d7d71",
+      "executable": true,
+      "elf_machine": "<unknown>: 0xf2e2",
+      "accepted": true,
+      "provenance": "Existing REM-native Binutils build output; nm passed on a newly assembled REM executable and /usr/bin/true in the disposable candidate.",
+      "dependencies": ["/root/native/bin/as", "/root/native/bin/ld", "/root/.profile"],
+      "dependency_hashes": {
+        "/root/native/bin/as": "c56f6b236f15200426c9fe5a81caa8251df71b401c0bddd93827c1a4f68e7d93",
+        "/root/native/bin/ld": "edd83609045df123c8a261cf615f70de1bd3e249082a9fe39f392ef0f6ee3b65",
+        "/root/.profile": "0e4b7dac9b4d1a3b4b2796b3365c2cae2cfa356627002950882c8972a36b7350"
+      }
+    },
+    {
+      "name": "Guest-tested native size",
+      "owner": "Codex #6 native Binutils build; Codex #4 guest qualification",
+      "source": "tools/rem-flight-image/staging/binutils/size",
+      "destination": "/root/native/bin/size",
+      "size": 5474196,
+      "mode": "0755",
+      "sha256": "8f39adfc4aa7762e0a14eb6c63a7530cebcfdb47580f36d4bf6783f534b62690",
+      "executable": true,
+      "elf_machine": "<unknown>: 0xf2e2",
+      "accepted": true,
+      "provenance": "Existing REM-native Binutils build output; size passed on the newly assembled REM executable and /usr/bin/true.",
+      "dependencies": ["/root/native/bin/as", "/root/native/bin/ld", "/root/.profile"],
+      "dependency_hashes": {
+        "/root/native/bin/as": "c56f6b236f15200426c9fe5a81caa8251df71b401c0bddd93827c1a4f68e7d93",
+        "/root/native/bin/ld": "edd83609045df123c8a261cf615f70de1bd3e249082a9fe39f392ef0f6ee3b65",
+        "/root/.profile": "0e4b7dac9b4d1a3b4b2796b3365c2cae2cfa356627002950882c8972a36b7350"
+      }
+    },
+    {
+      "name": "Guest-tested native strings",
+      "owner": "Codex #6 native Binutils build; Codex #4 guest qualification",
+      "source": "tools/rem-flight-image/staging/binutils/strings",
+      "destination": "/root/native/bin/strings",
+      "size": 5462176,
+      "mode": "0755",
+      "sha256": "c0de7c8e36a7f4e0db77f5047371d80bab4a76f4b376a0e866a69e2f150358da",
+      "executable": true,
+      "elf_machine": "<unknown>: 0xf2e2",
+      "accepted": true,
+      "provenance": "Existing REM-native Binutils build output; strings passed on the newly assembled REM executable and /usr/bin/true.",
+      "dependencies": ["/root/native/bin/as", "/root/native/bin/ld", "/root/.profile"],
+      "dependency_hashes": {
+        "/root/native/bin/as": "c56f6b236f15200426c9fe5a81caa8251df71b401c0bddd93827c1a4f68e7d93",
+        "/root/native/bin/ld": "edd83609045df123c8a261cf615f70de1bd3e249082a9fe39f392ef0f6ee3b65",
+        "/root/.profile": "0e4b7dac9b4d1a3b4b2796b3365c2cae2cfa356627002950882c8972a36b7350"
+      }
+    },
+    {
+      "name": "Qualified native strip",
+      "owner": "Codex #6 (binutils)",
+      "source": "tools/rem-flight-image/staging/binutils/strip",
+      "destination": "/root/native/bin/strip",
+      "size": 6227488,
+      "mode": "0755",
+      "sha256": "7f7648eb96acd09584d336f3c751a8a9dc17a33f26db37edd8ac1e024d8fced9",
+      "executable": true,
+      "elf_machine": "<unknown>: 0xf2e2",
+      "accepted": true,
+      "provenance": "Existing REM-native Binutils build output; strip passed on a newly linked REM executable and the result remained readable by readelf -h.",
+      "dependencies": ["/root/native/bin/as", "/root/native/bin/ld", "/root/.profile"],
+      "dependency_hashes": {
+        "/root/native/bin/as": "c56f6b236f15200426c9fe5a81caa8251df71b401c0bddd93827c1a4f68e7d93",
+        "/root/native/bin/ld": "edd83609045df123c8a261cf615f70de1bd3e249082a9fe39f392ef0f6ee3b65",
+        "/root/.profile": "0e4b7dac9b4d1a3b4b2796b3365c2cae2cfa356627002950882c8972a36b7350"
+      }
+    }
+  ],
+  "remove_guest_files": [
+    {
+      "path": "/usr/myemulator2-linux-musl/bin/as",
+      "sha256": "920f3f144e3ec1d1c42b08b096f0ed4ff2c7cec8bbc90b4cb3a7a3f343255b7a",
+      "reason": "Remove alternate unqualified assembler; use accepted /root/native/bin/as."
+    },
+    {
+      "path": "/usr/myemulator2-linux-musl/bin/ld",
+      "sha256": "c93c1c868944f173341cf7166109c4c47a24559f33abbff788e9c00ff3379f3b",
+      "reason": "Remove explicitly stale/failing alternate linker; use accepted /root/native/bin/ld."
+    },
+    {
+      "path": "/usr/myemulator2-linux-musl/bin/ar",
+      "sha256": "d74a2a6130b92a92b0a457157789b67d519651668fdf8f6a117d5a492b641a8b",
+      "reason": "Remove obsolete failing archive tool; use qualified /root/native/bin/ar."
+    },
+    {
+      "path": "/usr/myemulator2-linux-musl/bin/ranlib",
+      "sha256": "a33987c3051b485126bf9185c1e6c0db66cd7e526baf7412b01da38c81a280b0",
+      "reason": "Remove obsolete failing archive index tool; use qualified /root/native/bin/ranlib."
+    }
+  ]
+}

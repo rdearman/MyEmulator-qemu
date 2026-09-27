@@ -9,10 +9,22 @@ static inline void flush_tlb_all(void)
 {
 	asm volatile("tlbflush" ::: "memory");
 }
-static inline void flush_tlb_mm(struct mm_struct *mm) { (void)mm; }
+/* REM currently exposes only a full architectural TLB flush.  Leaving the
+ * Linux mm/range hooks empty lets stale translations survive PTE removal and
+ * address reuse (for example, munmap followed by MAP_FIXED mmap). */
+static inline void flush_tlb_mm(struct mm_struct *mm)
+{
+	(void)mm;
+	flush_tlb_all();
+}
 static inline void flush_tlb_range(struct vm_area_struct *vma,
 				   unsigned long start, unsigned long end)
-{ (void)vma; (void)start; (void)end; }
+{
+	(void)vma;
+	(void)start;
+	(void)end;
+	flush_tlb_all();
+}
 static inline void flush_tlb_page(struct vm_area_struct *vma,
 				  unsigned long address)
 {

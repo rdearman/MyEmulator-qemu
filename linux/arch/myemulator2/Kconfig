@@ -34,7 +34,7 @@ config CMDLINE_BOOL
 
 config CMDLINE
 	string "Default kernel command string"
-	default "console=ttyMY0,115200 earlycon=myemulator2,0xf0000000 rdinit=/init"
+	default "console=ttyMY0,115200 earlycon=myemulator2,0xf0000000 root=/dev/myemu0 rw init=/sbin/init"
 	depends on CMDLINE_BOOL
 
 config CMDLINE_FORCE

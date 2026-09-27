@@ -48,6 +48,18 @@ def main() -> None:
         raise SystemExit("usage: prepare-binutils-source.py BINUTILS_SOURCE")
     root = Path(sys.argv[1]).resolve()
 
+    # musl declares psignal's message argument const-qualified.  The
+    # libiberty fallback predates that prototype and otherwise fails when
+    # building target binutils against the REM sysroot.
+    strsignal = root / "libiberty/strsignal.c"
+    replace(strsignal, "psignal (int signo, char *message)",
+            "psignal (int signo, const char *message)")
+
+    # musl exposes strsignal with a mutable return type; GAS's historical
+    # forward declaration is const-qualified and conflicts with that header.
+    replace(root / "gas/messages.c", "extern const char *strsignal (int);",
+            "extern char *strsignal (int);")
+
     copy_target(root, "bfd", ["cpu-myemulator2.c", "elf32-myemulator2.c"])
     copy_target(root, "include/elf", ["myemulator2.h"])
     copy_target(root, "include/opcode", ["myemulator2.h"])

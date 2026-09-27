@@ -41,30 +41,16 @@ static void gen_write_reg(unsigned n, TCGv_i32 value)
         return;
     }
     tcg_gen_mov_i32(cpu_r[n], value);
-
-    /* R13 is the visible view of the active banked stack pointer.  Keep
-     * the backing bank synchronized for ordinary instruction writes too;
-     * otherwise a task switch or an interrupt can leave env->ssp/env->usp
-     * referring to a different stack than the visible R13. */
-    if (n == 13) {
-        TCGv_i32 sr_mode = tcg_temp_new_i32();
-        TCGv_i32 old_ssp = tcg_temp_new_i32();
-        TCGv_i32 old_usp = tcg_temp_new_i32();
-
-        tcg_gen_andi_i32(sr_mode, cpu_sr, MYEMU32_SR_S);
-        tcg_gen_ld_i32(old_ssp, tcg_env,
-                       offsetof(CPUMyEmulator32State, ssp));
-        tcg_gen_ld_i32(old_usp, tcg_env,
-                       offsetof(CPUMyEmulator32State, usp));
-        tcg_gen_movcond_i32(TCG_COND_NE, old_ssp, sr_mode,
-                            tcg_constant_i32(0), value, old_ssp);
-        tcg_gen_movcond_i32(TCG_COND_EQ, old_usp, sr_mode,
-                            tcg_constant_i32(0), value, old_usp);
-        tcg_gen_st_i32(old_ssp, tcg_env,
-                       offsetof(CPUMyEmulator32State, ssp));
-        tcg_gen_st_i32(old_usp, tcg_env,
-                       offsetof(CPUMyEmulator32State, usp));
+    if (n == 15) {
+        gen_helper_trace_state(tcg_env, cpu_pc, cpu_r[13], cpu_r[15]);
     }
+    if (n == 5) {
+        gen_helper_trace_reg5(tcg_env, cpu_pc, cpu_r[13], cpu_r[15], cpu_r[5]);
+    }
+    /* Diagnostic only: r15 is a caller-saved temporary in the public ABI,
+     * although GCC uses it as a frame register in functions with frames.
+     * Record only low results so the first bad architectural write can be
+     * distinguished from a later exception-frame observation. */
 }
 
 static void gen_next_pc(DisasContext *ctx)
@@ -148,6 +134,7 @@ static void gen_checked_data(DisasContext *ctx, TCGv_i32 address,
     TCGLabel *aligned = gen_new_label();
     TCGv_i32 bit = tcg_temp_new_i32();
 
+
     tcg_gen_andi_i32(bit, address, alignment - 1);
     tcg_gen_brcondi_i32(TCG_COND_EQ, bit, 0, aligned);
     gen_helper_exception(tcg_env, tcg_constant_i32(MYEMU32_VECTOR_DATA_ALIGN),
@@ -155,12 +142,16 @@ static void gen_checked_data(DisasContext *ctx, TCGv_i32 address,
     gen_set_label(aligned);
 }
 
-/* The banked stack pointer must be visible in CPUState before a memory
- * operation can leave the translation block through an MMU fault. */
+/* The banked stack pointer and frame pointer must be visible in CPUState
+ * before a memory operation can leave the translation block through an MMU
+ * fault.  Exception entry/RFE reconstructs the architectural frame from
+ * CPUState; leaving either register only in a TCG global lets a demand fault
+ * restore stale state when the instruction is retried. */
 static void gen_materialize_fault_state(void)
 {
-    tcg_gen_st_i32(cpu_r[13], tcg_env,
-                   offsetof(CPUMyEmulator32State, r[13]));
+    tcg_gen_st_i32(cpu_pc, tcg_env,
+                   offsetof(CPUMyEmulator32State, pc));
+    gen_helper_sync_stack_frame(tcg_env, cpu_r[13], cpu_r[15]);
 }
 
 static void gen_branch(DisasContext *ctx, TCGCond cond, unsigned ra,
@@ -361,6 +352,8 @@ static void decode_and_translate(DisasContext *ctx)
         gen_materialize_fault_state();
         gen_checked_data(ctx, address, store_size == 0 ? 1 :
                         (store_size == 1 ? 2 : 4));
+        gen_helper_watch_store(tcg_env, address, gen_reg(rd),
+                               tcg_constant_i32(ctx->base.pc_next - 4));
         switch (store_size) {
         case 0: tcg_gen_qemu_st_i32(gen_reg(rd), address, myemu32_mmu_idx(ctx), MO_8); break;
         case 1: tcg_gen_qemu_st_i32(gen_reg(rd), address, myemu32_mmu_idx(ctx), MO_LEUW); break;
@@ -390,10 +383,13 @@ static void decode_and_translate(DisasContext *ctx)
         ctx->base.is_jmp = DISAS_EXIT;
         return;
     case 6: /* JAL */
-        tcg_gen_movi_i32(cpu_r[14], ctx->base.pc_next);
-        tcg_gen_movi_i32(cpu_pc, ctx->base.pc_next +
-                         (uint32_t)(sx(extract32(insn, 0, 26), 26) * 4));
-        ctx->base.is_jmp = DISAS_EXIT;
+        {
+            uint32_t jal_target = ctx->base.pc_next +
+                (uint32_t)(sx(extract32(insn, 0, 26), 26) * 4);
+            tcg_gen_movi_i32(cpu_r[14], ctx->base.pc_next);
+            tcg_gen_movi_i32(cpu_pc, jal_target);
+            ctx->base.is_jmp = DISAS_EXIT;
+        }
         return;
     case 7: /* JR/JALR */
         if ((insn & 0xfffffu) != 0 || extract32(insn, 25, 1) > 1 ||
@@ -441,7 +437,26 @@ static void decode_and_translate(DisasContext *ctx)
                                offsetof(CPUMyEmulator32State, r[13]));
                 tcg_gen_st_i32(cpu_r[15], tcg_env,
                                offsetof(CPUMyEmulator32State, r[15]));
+                /* Faulting memory operations keep the banked SP in
+                 * CPUState synchronized with the temporary exception-entry
+                 * stack.  The entry epilogue has now restored the native
+                 * frame pointer in the translated R13, so publish that
+                 * value before RFE reads env->ssp. */
+                gen_helper_sync_stack_frame(tcg_env, cpu_r[13], cpu_r[15]);
                 gen_helper_rfe(tcg_env, tcg_constant_i32(pc));
+                /* RFE restores PC, SR and the visible banked SP in the
+                 * helper.  Refresh the translated globals before the
+                 * generic TB-exit epilogue commits them; otherwise the
+                 * stale cpu_pc (normally zero for this instruction) would
+                 * overwrite the restored exception PC. */
+                tcg_gen_ld_i32(cpu_pc, tcg_env,
+                               offsetof(CPUMyEmulator32State, pc));
+                tcg_gen_ld_i32(cpu_sr, tcg_env,
+                               offsetof(CPUMyEmulator32State, sr));
+                tcg_gen_ld_i32(cpu_r[13], tcg_env,
+                               offsetof(CPUMyEmulator32State, r[13]));
+                tcg_gen_ld_i32(cpu_r[15], tcg_env,
+                               offsetof(CPUMyEmulator32State, r[15]));
                 ctx->base.is_jmp = DISAS_EXIT; return;
             }
             if (sysop == 3) {
@@ -456,9 +471,16 @@ static void decode_and_translate(DisasContext *ctx)
         }
     case 10: /* SYSCALL */
         /* The exception entry path reads the complete interrupted register
-         * image from CPUArchState.  Materialize the translated R15 before
-         * entering the non-returning helper; unlike ordinary helper calls,
-         * syscall does not return to this TB for TCG to flush the global. */
+         * image from CPUArchState.  Materialize the translated architectural
+         * state before entering the non-returning helper; unlike ordinary
+         * helper calls, syscall does not return to this TB for TCG to flush
+         * the globals.  In particular, R15 is the ABI frame pointer and a
+         * stale cached value here becomes the caller's saved frame pointer
+         * after exception entry/RFE. */
+        tcg_gen_st_i32(cpu_sr, tcg_env,
+                       offsetof(CPUMyEmulator32State, sr));
+        tcg_gen_st_i32(cpu_r[13], tcg_env,
+                       offsetof(CPUMyEmulator32State, r[13]));
         tcg_gen_st_i32(cpu_r[15], tcg_env,
                        offsetof(CPUMyEmulator32State, r[15]));
         gen_helper_syscall(tcg_env, tcg_constant_i32(extract32(insn, 0, 26)),
@@ -525,6 +547,21 @@ static void myemulator32_init_disas(DisasContextBase *dcbase, CPUState *cs)
 
 static void myemulator32_tb_start(DisasContextBase *dcbase, CPUState *cs)
 {
+    static int trace_enabled = -1;
+    static uint64_t trace_count;
+
+    if (trace_enabled < 0) {
+        trace_enabled = getenv("MYEMU_TRACE_USER_PC") != NULL;
+    }
+    if (trace_enabled && !(dcbase->tb->flags & MYEMU32_SR_S) &&
+        (++trace_count % 1000) == 0) {
+        fprintf(stderr, "MYEMU_USER_TB pc=%08" PRIx32
+                " flags=%08" PRIx32 " count=%" PRIu64 "\n",
+                (uint32_t)dcbase->tb->pc, (uint32_t)dcbase->tb->flags,
+                trace_count);
+        fflush(stderr);
+    }
+
     /* System-register writes, RFE, and exception entry update architectural
      * state from C helpers.  Refresh the TCG globals at every TB boundary so
      * banked SP and SR changes are observed by the next instruction. */
@@ -554,7 +591,25 @@ static void myemulator32_tb_stop(DisasContextBase *dcbase, CPUState *cs)
     DisasContext *ctx = container_of(dcbase, DisasContext, base);
 
     switch (ctx->base.is_jmp) {
-    case DISAS_EXIT: tcg_gen_exit_tb(NULL, 0); break;
+    case DISAS_EXIT:
+        /* TCG globals may remain host-register cached when a TB exits.
+         * The next TB reloads architectural state from CPUState, so commit
+         * the PC, frame pointer and active banked SP before every transition.
+         * Otherwise ordinary multi-TB prologues lose R15 and later address
+         * stack slots through a small stale value. */
+        /* Observe the architectural PC at the exact TB boundary.  This is
+         * deliberately routed through the existing filtered trace helper:
+         * it is quiet for normal exits, but records a zero/interesting PC
+         * before the state is committed to CPUState. */
+        tcg_gen_st_i32(cpu_pc, tcg_env,
+                       offsetof(CPUMyEmulator32State, pc));
+        tcg_gen_st_i32(cpu_r[13], tcg_env,
+                       offsetof(CPUMyEmulator32State, r[13]));
+        tcg_gen_st_i32(cpu_r[15], tcg_env,
+                       offsetof(CPUMyEmulator32State, r[15]));
+        gen_helper_trace_state(tcg_env, cpu_pc, cpu_r[13], cpu_r[15]);
+        tcg_gen_exit_tb(NULL, 0);
+        break;
     case DISAS_NORETURN: break;
     default: g_assert_not_reached();
     }

@@ -1,0 +1,24 @@
+{
+  "artifacts": [
+    {
+      "name": "Kilo REM staged binary (candidate test only)",
+      "owner": "Kilo validation owner; evidence documented alongside Codex #3 staging",
+      "source": "tools/rem-flight-image/staging/applications/kilo",
+      "destination": "/usr/bin/kilo",
+      "size": 316244,
+      "mode": "0755",
+      "sha256": "a8495a80effb8168116ff123eb0fd470ddfa357642b6320cd7eb07d95474b30f",
+      "executable": true,
+      "elf_machine": "<unknown>: 0xf2e2",
+      "provenance": "docs/REM_YASH_STATUS.md Combined Yash/Kilo staging: antirez KILO_VERSION 0.0.1; independent edit/save/reopen and reboot persistence PASS; local source snapshot has no revision metadata.",
+      "dependencies": [
+        "/dev/tty",
+        "REM Linux terminal and filesystem syscalls"
+      ],
+      "dependency_hashes": {},
+      "accepted": false,
+      "candidate_test_only": true,
+      "integration_status": "candidate test only; not flight accepted"
+    }
+  ]
+}

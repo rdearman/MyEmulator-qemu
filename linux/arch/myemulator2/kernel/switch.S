@@ -10,6 +10,10 @@
 	.globl myemulator2_switch_to
 	.type myemulator2_switch_to,@function
 myemulator2_switch_to:
+	/* Preserve the task pointer separately from the thread_struct pointers.
+	 * A newly-created task enters ret_from_fork, whose first argument to
+	 * schedule_tail() must be the previous task_struct, not prev->thread. */
+	add r4, r3, r0
 	/* struct thread_struct offsets: sp=0, pc=4, tp=8,
 	 * callee_saved[0..7]=12..40, frame=44. */
 	sw r13, 0(r1)
@@ -39,6 +43,7 @@ myemulator2_switch_to:
 	lw r3, 8(r2)
 	mtsr tp, r3
 	lw r14, 4(r2)
+	add r1, r4, r0
 	jr r14
 	.size myemulator2_switch_to, .-myemulator2_switch_to
 

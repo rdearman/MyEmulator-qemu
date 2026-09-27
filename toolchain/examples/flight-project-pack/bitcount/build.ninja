@@ -1,0 +1,18 @@
+rule cc
+  command = chibicc -c -o $out $in
+  description = CC $out
+rule as
+  command = as -o $out $in
+  description = AS $out
+rule rem_link
+  command = chibicc -o $out $in
+  description = LINK $out
+rule host_link
+  command = cc -o $out $in
+  description = HOST LINK $out
+
+build main.o: cc main.c
+build bitcount_rem.o: as bitcount_rem.S
+build bitcount-rem: rem_link main.o bitcount_rem.o
+build bitcount-portable: host_link main.c bitcount_portable.c
+default bitcount-rem

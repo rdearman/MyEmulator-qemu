@@ -17,17 +17,19 @@ done
 make_nodes() {
 	mknod -m 600 "$out/rootfs/dev/console" c 5 1 2>/dev/null || true
 	mknod -m 666 "$out/rootfs/dev/null" c 1 3 2>/dev/null || true
-	mknod -m 600 "$out/rootfs/dev/ttyMY0" c 240 0 2>/dev/null || true
+	mknod -m 666 "$out/rootfs/dev/ttyMY0" c 240 0 2>/dev/null || true
 }
 cat > "$out/init" <<'EOF'
 #!/bin/sh
 mount -t proc proc /proc 2>/dev/null || true
 mount -t sysfs sysfs /sys 2>/dev/null || true
-# PID 1 is created without inherited file descriptors on this minimal
-# architecture port.  Attach the shell explicitly to the kernel console;
-# this is the stable tty endpoint even when serial-core chooses the tty line
-# major/minor dynamically.
-exec /bin/busybox sh -i </dev/console >/dev/console 2>&1
+TTY=/dev/ttyMY0
+if [ ! -c "$TTY" ]; then
+	echo "ERROR: REM console device missing: $TTY" >/dev/console
+	ls -l /dev >/dev/console 2>&1
+	exec /bin/busybox sh -i </dev/console >/dev/console 2>&1
+fi
+exec /bin/busybox sh -i <"$TTY" >"$TTY" 2>&1
 EOF
 chmod 0755 "$out/init"
 install -m 0755 "$out/init" "$out/rootfs/init"

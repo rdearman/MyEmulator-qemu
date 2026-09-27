@@ -4,7 +4,6 @@
 #include <linux/sched.h>
 #include <linux/signal.h>
 #include <linux/syscalls.h>
-#include <linux/uaccess.h>
 #include <linux/resume_user_mode.h>
 
 #include <asm/ptrace.h>

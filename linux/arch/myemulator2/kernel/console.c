@@ -5,8 +5,8 @@
 #include <linux/uaccess.h>
 #include <asm/io.h>
 
-#define MYEMU2_CONSOLE_DATA ((void __iomem *)0xf0000000UL)
-#define MYEMU2_CONSOLE_STATUS ((void __iomem *)0xf0000001UL)
+#define MYEMU2_CONSOLE_DATA ((void __iomem *)MYEMU2_UART_VIRT)
+#define MYEMU2_CONSOLE_STATUS ((void __iomem *)(MYEMU2_UART_VIRT + 1))
 #define MYEMU2_STATUS_RX_READY 0x01
 
 static struct console myemulator2_console;

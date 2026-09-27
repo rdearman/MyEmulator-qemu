@@ -179,7 +179,7 @@ static int __init myemu_uart_init(void)
 		return PTR_ERR(myemu_uart_pdev);
 
 	myemu_uart_port.mapbase = MYEMU_UART_BASE;
-	myemu_uart_port.membase = (void __iomem *)MYEMU_UART_BASE;
+	myemu_uart_port.membase = (void __iomem *)MYEMU2_UART_VIRT;
 	myemu_uart_port.dev = &myemu_uart_pdev->dev;
 	myemu_uart_port.iotype = UPIO_MEM;
 	myemu_uart_port.irq = MYEMU_UART_IRQ;

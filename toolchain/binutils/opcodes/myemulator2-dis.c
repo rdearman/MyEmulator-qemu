@@ -28,8 +28,16 @@ int print_insn_myemulator2(bfd_vma addr, struct disassemble_info *info)
   uint32_t w = bfd_getl32(b), op=w>>26, rd=(w>>21)&31, ra=(w>>16)&31, rb=(w>>11)&31;
   fprintf_ftype f=info->fprintf_func; void *s=info->stream;
   if (op==0 && (w&0x3f)==0 && (w>>6&31)<26) f(s,"%s %s,%s,%s",rnames[w>>6&31],rname(rd),rname(ra),rname(rb));
-  else if (op==1 && (w>>12&15)<8) f(s,"%s %s,%s,%d",imnames[w>>12&15],rname(rd),rname(ra),(int)(w&0xfff));
-  else if (op==2 || op==3) f(s,"%s %s,%d(%s)",op==2?(const char*[]){"lb","lbu","lh","lhu","lw"}[(w>>13)&7]:(const char*[]){"sb","sh","sw"}[(w>>13)&7],rname(rd),(int)(w&0x1fff),rname(ra));
+  else if (op==1 && (w>>12&15)<8) {
+    unsigned sub = (w >> 12) & 15;
+    int32_t imm = (sub <= 1) ? sx(w & 0xfff, 12) : (int32_t)(w & 0xfff);
+    f(s,"%s %s,%s,%d",imnames[sub],rname(rd),rname(ra),imm);
+  }
+  else if (op==2 || op==3) {
+    unsigned size = (w >> 13) & 7;
+    int32_t disp = sx(w & 0x1fff, 13);
+    f(s,"%s %s,%d(%s)",op==2?(const char*[]){"lb","lbu","lh","lhu","lw"}[size]:(const char*[]){"sb","sh","sw"}[size],rname(rd),disp,rname(ra));
+  }
   else if (op==4 && ((w>>23)&7)<6) f(s,"%s %s,%s,0x%x",brnames[w>>23&7],rname(w>>18&31),rname(w>>13&31),(unsigned)(addr + 4 + sx(w & 0x1fff, 13) * 4));
   else if (op==5 || op==6) f(s,"%s 0x%x",op==5?"j":"jal",(unsigned)(addr + 4 + sx(w & 0x3ffffff, 26) * 4));
   else if (op==7 && (w&0xfffff)==0) f(s,"%s %s",w>>25&1?"jalr":"jr",rname(w>>20&31));

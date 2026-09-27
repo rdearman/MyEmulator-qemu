@@ -40,7 +40,7 @@ if [[ ! -f "$build_dir/.config" ]]; then
 	}
 	for option in LFS STATIC STATIC_LIBGCC INSTALL_APPLET_SYMLINKS \
 		SHELL_ASH ASH TRUE LS CAT ECHO PWD UNAME MKDIR TOUCH CP MV RM \
-		HEAD TAIL GREP FIND PS MOUNT UMOUNT DMESG VI SYNC; do
+		HEAD TAIL GREP FIND PS MOUNT UMOUNT DMESG VI SYNC WHICH SLEEP; do
 		set_config "$option" y
 	done
 	set +e
@@ -57,7 +57,7 @@ make -C "$source_dir" O="$build_dir" \
 	CONFIG_EXTRA_LDLIBS="-lc -lgcc" -j"${JOBS:-1}"
 mkdir -p "$build_dir/_install/bin"
 install -m 0755 "$build_dir/busybox" "$build_dir/_install/bin/busybox"
-for applet in sh ls cat echo pwd uname mkdir touch cp mv rm head tail grep find ps mount umount dmesg vi; do
+for applet in sh ls cat echo pwd uname mkdir touch cp mv rm head tail grep find ps mount umount dmesg vi which sleep; do
 	ln -sf busybox "$build_dir/_install/bin/$applet"
 done
 printf '%s\n' "$build_dir/busybox"

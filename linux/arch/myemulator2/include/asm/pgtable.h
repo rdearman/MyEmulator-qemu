@@ -64,16 +64,12 @@ static inline void myemulator2_tlbflush(void)
 {
 	asm volatile("tlbflush" ::: "memory");
 }
-/* TEMPORARY diagnostic (Bug #4 investigation): warn + dump_stack() the first
- * few times a PTE is installed with a physically-impossible pfn (this
- * platform only has 16MB of RAM == 4096 pages).  Remove once Bug #4 is
- * root-caused and fixed. */
+/* Keep the PTE diagnostic valid for the configured RAM size. */
 extern void dump_stack(void);
-#define MYEMU2_MAX_VALID_PFN 0x1000u
 #define set_pte(ptep, pte) do { \
 	pte_t __mset_pte = (pte); \
 	if ((pte_val(__mset_pte) & 1) && \
-	    (pte_val(__mset_pte) >> 12) >= MYEMU2_MAX_VALID_PFN) { \
+	    (pte_val(__mset_pte) >> 12) >= max_low_pfn) { \
 		static int __mset_warned; \
 		if (__mset_warned < 5) { \
 			__mset_warned++; \
@@ -110,12 +106,12 @@ extern void dump_stack(void);
 #define pmd_clear(pmd) do { *(pmd) = __pmd(0); } while (0)
 #define pmd_populate(mm, pmd, pte) \
 	do { memset(page_to_virt((pte)), 0, PAGE_SIZE); \
-		*(pmd) = __pmd(((unsigned long)page_to_virt((pte)) & PAGE_MASK) | \
+		*(pmd) = __pmd((__pa(page_to_virt((pte))) & PAGE_MASK) | \
 			_PAGE_PRESENT | _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC); \
 		myemulator2_tlbflush(); } while (0)
 #define pmd_populate_kernel(mm, pmd, pte) \
 	do { memset((pte), 0, PAGE_SIZE); \
-		*(pmd) = __pmd(((unsigned long)(pte) & PAGE_MASK) | \
+		*(pmd) = __pmd((__pa(pte) & PAGE_MASK) | \
 			_PAGE_PRESENT | _PAGE_USER | _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC); \
 		myemulator2_tlbflush(); } while (0)
 #define pmd_pfn(pmd) (pmd_val(pmd) >> PAGE_SHIFT)
@@ -126,7 +122,7 @@ extern pgd_t *pgd_alloc(struct mm_struct *mm);
 extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
 #define __HAVE_ARCH_PGD_FREE
 static inline unsigned long pmd_page_vaddr(pmd_t pmd)
-{ return pmd_val(pmd) & PAGE_MASK; }
+{ return (unsigned long)__va(pmd_val(pmd) & PAGE_MASK); }
 static inline unsigned long pud_page_vaddr(pud_t pud)
 { return pud_val(pud); }
 static inline unsigned long p4d_page_vaddr(p4d_t p4d)

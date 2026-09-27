@@ -15,6 +15,7 @@ static bool myemu32_supervisor(CPUMyEmulator32State *env)
     return (env->sr & MYEMU32_SR_S) != 0;
 }
 
+
 static void myemu32_save_visible_sp(CPUMyEmulator32State *env)
 {
     if (myemu32_supervisor(env)) {
@@ -160,6 +161,15 @@ static G_NORETURN void myemu32_enter_exception(CPUMyEmulator32State *env,
     uint32_t handler;
     MemTxResult result = MEMTX_OK;
 
+    if (getenv("MYEMU_TRACE_EXCEPTION")) {
+        fprintf(stderr, "MYEMU_EX_ENTER pc=%08" PRIx32
+                " cause=%u r13=%08" PRIx32 " r15=%08" PRIx32
+                " ssp=%08" PRIx32 " usp=%08" PRIx32 " sr=%08" PRIx32 "\n",
+                saved_pc, cause, env->r[13], env->r[15], env->ssp,
+                env->usp, env->sr);
+        fflush(stderr);
+    }
+
     myemu32_save_visible_sp(env);
     env->sr |= MYEMU32_SR_S;
     myemu32_select_visible_sp(env);
@@ -216,8 +226,6 @@ void helper_nmi(CPUMyEmulator32State *env)
     myemu32_enter_exception(env, MYEMU32_VECTOR_NMI, env->pc, 0, 0, true);
 }
 
-
-
 void helper_halt(CPUMyEmulator32State *env)
 {
     CPUState *cs = env_cpu(env);
@@ -236,6 +244,14 @@ void helper_rfe(CPUMyEmulator32State *env, uint32_t pc)
     CPUState *cs = env_cpu(env);
     uint32_t frame, saved_pc, saved_sr, cause;
     uint32_t values[4];
+
+    if (getenv("MYEMU_TRACE_EXCEPTION")) {
+        fprintf(stderr, "MYEMU_RFE_BEFORE pc=%08" PRIx32
+                " r13=%08" PRIx32 " r15=%08" PRIx32
+                " ssp=%08" PRIx32 " usp=%08" PRIx32 " sr=%08" PRIx32 "\n",
+                pc, env->r[13], env->r[15], env->ssp, env->usp, env->sr);
+        fflush(stderr);
+    }
 
 
     if (!myemu32_supervisor(env)) {
@@ -259,9 +275,76 @@ void helper_rfe(CPUMyEmulator32State *env, uint32_t pc)
     if (cause == MYEMU32_VECTOR_NMI) {
         env->nmi_active = false;
     }
+    if (getenv("MYEMU_TRACE_EXCEPTION")) {
+        fprintf(stderr, "MYEMU_RFE_AFTER pc=%08" PRIx32
+                " r13=%08" PRIx32 " r15=%08" PRIx32
+                " ssp=%08" PRIx32 " usp=%08" PRIx32 " sr=%08" PRIx32 "\n",
+                saved_pc, env->r[13], env->r[15], env->ssp, env->usp, env->sr);
+        fflush(stderr);
+    }
     env->halted = false;
     cs->halted = 0;
 }
+
+void helper_sync_stack_frame(CPUMyEmulator32State *env, uint32_t sp,
+                             uint32_t fp)
+{
+    if (getenv("MYEMU_TRACE_EXCEPTION") &&
+        env->pc >= 0x02000000 && env->pc < 0x03000000 &&
+        fp < 0x02000000) {
+        fprintf(stderr, "MYEMU_SYNC_BAD sp=%08" PRIx32 " fp=%08" PRIx32
+                " envpc=%08" PRIx32 " envfp=%08" PRIx32 "\n",
+                sp, fp, env->pc, env->r[15]);
+        fflush(stderr);
+    }
+    env->r[13] = sp;
+    env->r[15] = fp;
+    if (env->sr & MYEMU32_SR_S)
+        env->ssp = sp;
+    else
+        env->usp = sp;
+}
+
+void helper_trace_state(CPUMyEmulator32State *env, uint32_t pc,
+                        uint32_t sp, uint32_t fp)
+{
+    static int enabled = -1;
+    static unsigned count;
+
+    if (enabled < 0)
+        enabled = getenv("MYEMU_TRACE_USER_STATE") != NULL;
+    if (getenv("MYEMU_TRACE_R15") && pc >= 0x02000000 &&
+        pc < 0x03000000 && fp < 0x02000000 && count++ < 2000) {
+        fprintf(stderr, "MYEMU_R15_LOW pc=%08" PRIx32
+                " sp=%08" PRIx32 " fp=%08" PRIx32
+                " lr=%08" PRIx32 " sr=%08" PRIx32 " n=%u\n",
+                pc, sp, fp, env->r[14], env->sr, count);
+        fflush(stderr);
+    } else if (enabled && pc >= 0x02140b24 && pc < 0x02140ed0 && count++ < 1000) {
+        fprintf(stderr, "MYEMU_MEMCPY_STATE pc=%08" PRIx32
+                " sp=%08" PRIx32 " fp=%08" PRIx32
+                " lr=%08" PRIx32 " sr=%08" PRIx32 " n=%u\n",
+                pc, sp, fp, env->r[14], env->sr, count);
+        fflush(stderr);
+    }
+}
+
+void helper_trace_reg5(CPUMyEmulator32State *env, uint32_t pc,
+                       uint32_t sp, uint32_t fp, uint32_t value)
+{
+    static unsigned count;
+    if (getenv("MYEMU_TRACE_R5") && pc >= 0x0212f6dc &&
+        pc < 0x0212f7d0 && count++ < 200) {
+        fprintf(stderr, "MYEMU_R5_WRITE pc=%08" PRIx32
+                " value=%08" PRIx32 " sp=%08" PRIx32
+                " fp=%08" PRIx32 " r1=%08" PRIx32
+                " r2=%08" PRIx32 " r7=%08" PRIx32 " n=%u\n",
+                pc, value, sp, fp, env->r[1], env->r[2], env->r[7], count);
+        fflush(stderr);
+    }
+}
+
+
 
 enum {
     MYEMU32_SYS_SR = 0,
@@ -525,4 +608,15 @@ uint32_t helper_remu(CPUMyEmulator32State *env, uint32_t lhs,
                      uint32_t rhs, uint32_t pc)
 {
     return myemu32_divide(env, lhs, rhs, pc, true, true);
+}
+
+void helper_watch_store(CPUMyEmulator32State *env, uint32_t address,
+                        uint32_t value, uint32_t pc)
+{
+    if ((address & 0xfffff000u) == 0x024e3000u)
+        qemu_log_mask(LOG_GUEST_ERROR,
+                      "MYEMU_WATCH_STORE addr=%08x value=%08x pc=%08x r1=%08x r2=%08x r3=%08x r4=%08x r5=%08x r6=%08x r7=%08x r8=%08x r9=%08x r10=%08x r11=%08x r12=%08x\n",
+                      address, value, pc, env->r[1], env->r[2], env->r[3],
+                      env->r[4], env->r[5], env->r[6], env->r[7], env->r[8],
+                      env->r[9], env->r[10], env->r[11], env->r[12]);
 }

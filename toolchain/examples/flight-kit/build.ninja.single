@@ -1,0 +1,6 @@
+rule cc_link
+  command = chibicc -o $out $in
+  description = LINK $out
+
+build hello: cc_link hello.c
+default hello

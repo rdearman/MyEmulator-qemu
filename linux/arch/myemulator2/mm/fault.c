@@ -8,6 +8,7 @@
 #include <asm/ptrace.h>
 #include <asm/page.h>
 #include <asm/pgtable.h>
+#include <asm/setup.h>
 #include <asm/tlbflush.h>
 
 /*
@@ -66,23 +67,51 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
 	mmap_read_lock(mm);
 	vma = find_vma(mm, address);
-	if (!vma || vma->vm_start > address)
+	if (!vma)
 		goto bad_area_unlock;
+	if ((address & PAGE_MASK) == 0x024e3000UL) {
+		pmd_t *__pmd = pmd_off(mm, address);
+		pte_t *__ptep = pmd_none(*__pmd) ? NULL : pte_offset_kernel(__pmd, address);
+		pr_warn("MYEMU_HL_PAGE_FAULT pid=%d addr=%08lx cause=%lu vma=%px flags=%08lx file=%px pgoff=%lx pmd=%08lx pte=%08lx\n", current->pid, address, cause, vma, vma->vm_flags, vma->vm_file, vma->vm_pgoff, (unsigned long)pmd_val(*__pmd), (unsigned long)(__ptep ? pte_val(*__ptep) : 0));
+	}
+	if (vma->vm_start > address) {
+		/* A userspace function may reserve a large frame in one
+		 * instruction sequence.  The REM stack VMA grows downward,
+		 * so a fault below its current start must expand that VMA
+		 * before the normal permission and page-fault checks.  The
+		 * old port rejected this legitimate stack-growth fault as an
+		 * invalid write, which made large-frame programs such as wc
+		 * terminate with SIGSEGV. */
+		if (!(vma->vm_flags & VM_GROWSDOWN))
+			goto bad_area_unlock;
+		if (user && address + PAGE_SIZE < regs->r[13])
+			goto bad_area_unlock;
+		vma = expand_stack(mm, address);
+		if (!vma)
+			goto bad_area_unlock;
+	}
 	if (write && !(vma->vm_flags & VM_WRITE))
 		goto bad_area_unlock;
 	if (exec && !(vma->vm_flags & VM_EXEC))
 		goto bad_area_unlock;
 	if (!write && !exec && !(vma->vm_flags & (VM_READ | VM_WRITE)))
 		goto bad_area_unlock;
-	/* The low kernel identity map overlaps the initial user image window.
-	 * A copied identity PTE is valid for supervisor accesses but must be
-	 * replaced before Linux installs the user mapping for an executable or
-	 * writable VMA. */
-	if (user) {
+	/* The low kernel identity map is also present at higher physical-backed
+	 * addresses.  A supervisor fault from ELF loading (copy_to_user()) can
+	 * therefore encounter a copied identity PTE before the first user-mode
+	 * access does.  Replace it for every fault in the user address space, not
+	 * only faults taken with USER set, or the stale supervisor PTE survives
+	 * until unmap and is reported as a bad user mapping. */
+	if (address < TASK_SIZE) {
 		pmd_t *pmd = pmd_off(mm, address);
 		if (!pmd_none(*pmd)) {
 			pte_t *ptep = pte_offset_kernel(pmd, address);
 			if (pte_present(*ptep) && !pte_user(*ptep)) {
+				pr_warn_ratelimited("MYEMU_USER_IDENTITY_REPLACE pid=%d "
+					"addr=%08lx user=%d cause=%lu pmd=%08lx pte=%08lx\n",
+					current->pid, address, user, cause,
+					(unsigned long)pmd_val(*pmd),
+					(unsigned long)pte_val(*ptep));
 				pte_clear(mm, address, ptep);
 				flush_tlb_page(vma, address);
 			}
@@ -100,31 +129,24 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
 	}
 
 	fault = handle_mm_fault(vma, address, flags, regs);
-	/* TEMPORARY DIAGNOSTIC (Bug #4 investigation): dump the actual PMD/PTE
-	 * values Linux believes are now installed at the faulting address,
-	 * immediately after handle_mm_fault() reports success, to compare
-	 * against what QEMU's tlb_fill() walk sees at the same physical
-	 * addresses. Rate-limited; remove once Bug #4 is resolved. */
-	if (!(fault & VM_FAULT_ERROR)) {
-		pmd_t *dpmd = pmd_off(mm, address);
-		if (!pmd_none(*dpmd)) {
-			pte_t *dptep = pte_offset_kernel(dpmd, address);
-			pr_warn_ratelimited(
-				"MYEMU_FAULT_DIAG pid=%d addr=%08lx write=%d exec=%d "
-				"fault=%08x pmd=%08lx pte=%08lx vma_flags=%08lx\n",
-				current->pid, address, write, exec, fault,
-				(unsigned long)pmd_val(*dpmd),
-				(unsigned long)pte_val(*dptep),
-				(unsigned long)vma->vm_flags);
-		}
-	}
 	/* The generic folded-page-table path can preserve the copied kernel
 	 * identity entry's supervisor-only flags while replacing its PTE.  A
 	 * user VMA requires USER permission at both levels of the REM walk. */
-	if (user) {
+	if (address < TASK_SIZE) {
 		pmd_t *pmd = pmd_off(mm, address);
 		if (!pmd_none(*pmd) && !(pmd_val(*pmd) & _PAGE_USER))
 			*pmd = __pmd(pmd_val(*pmd) | _PAGE_USER);
+		/* File-backed faults can arrive with a protection assembled from
+		 * the kernel-side page protection flags.  A user VMA must never
+		 * retain such a supervisor-only PTE: the hardware rejects it and
+		 * Linux later reports a bad page map while tearing the VMA down. */
+		if (!pmd_none(*pmd)) {
+			pte_t *ptep = pte_offset_kernel(pmd, address);
+			if (pte_present(*ptep) && !pte_user(*ptep)) {
+				*ptep = __pte(pte_val(*ptep) | _PAGE_USER);
+				myemulator2_tlbflush();
+			}
+		}
 	}
 	/* Generic fault handling may install a previously non-present
 	 * executable PTE without going through the architecture's set_pte()
@@ -173,9 +195,15 @@ bad_area:
 			 regs->r[6]);
 		panic("MyEmulator2 kernel page fault");
 	}
-	pr_warn("MYEMU_BAD_USER_FAULT pid=%d addr=%08lx cause=%lu vma=%px "
-		"start=%08lx end=%08lx flags=%08lx brk=%08lx start_brk=%08lx\\n",
-		current->pid, address, cause, vma,
+	pr_warn("MYEMU_BAD_USER_FAULT pid=%d comm=%s pc=%08lx addr=%08lx "
+		"cause=%lu sp=%08lx lr=%08lx fp=%08lx r1=%08lx r2=%08lx "
+		"r3=%08lx r4=%08lx r5=%08lx r6=%08lx r7=%08lx r8=%08lx "
+		"r9=%08lx r10=%08lx r11=%08lx r12=%08lx vma=%px start=%08lx "
+		"end=%08lx flags=%08lx brk=%08lx start_brk=%08lx\\n",
+		current->pid, current->comm, regs->pc, address, cause,
+		regs->r[13], regs->r[14], regs->r[15], regs->r[1], regs->r[2],
+		regs->r[3], regs->r[4], regs->r[5], regs->r[6], regs->r[7],
+		regs->r[8], regs->r[9], regs->r[10], regs->r[11], regs->r[12], vma,
 		vma ? vma->vm_start : 0, vma ? vma->vm_end : 0,
 		vma ? vma->vm_flags : 0, mm->brk, mm->start_brk);
 	force_sig_fault(SIGSEGV,

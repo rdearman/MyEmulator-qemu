@@ -158,6 +158,8 @@ int copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
 		childregs->sr = (1u << 5);
 		p->thread.fn = (unsigned long)args->fn;
 		p->thread.fn_arg = (unsigned long)args->fn_arg;
+		pr_emerg("MYEMU_TTYTRACE copy-thread pid=%d sp=%08lx pc=%08lx\n",
+			 p->pid, p->thread.sp, p->thread.pc);
 		return 0;
 	}
 
@@ -174,5 +176,11 @@ int copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
 		asm volatile("mfsr %0, tp" : "=r"(tp));
 		p->thread.tp = tp;
 	}
+	pr_emerg("MYEMU_TTYTRACE copy-thread pid=%d sp=%08lx pc=%08lx\n",
+		 p->pid, p->thread.sp, p->thread.pc);
+	pr_emerg("MYEMU_TTYTRACE copied-regs pc=%08lx sp=%08lx sr=%08lx\n",
+		 childregs->pc, childregs->r[13], childregs->sr);
+	pr_emerg("MYEMU_TTYTRACE source-regs=%px pc=%08lx sp=%08lx\n",
+		 current_pt_regs(), current_pt_regs()->pc, current_pt_regs()->r[13]);
 	return 0;
 }

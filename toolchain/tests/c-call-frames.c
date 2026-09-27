@@ -27,6 +27,14 @@ __attribute__((noinline)) static int indirect_call(int (*fn)(int), int value)
     return fn(value);
 }
 
+/* Keep a libgcc 64-bit multiply in the executable.  This exercises the
+   runtime helper's own frame/LR layout, not just compiler-generated C. */
+__attribute__((noinline)) static unsigned long long multiply_u64(
+    unsigned long long left, unsigned long long right)
+{
+    return left * right;
+}
+
 __attribute__((noinline)) static int large_local_frame(int value)
 {
     int locals[32];
@@ -48,7 +56,9 @@ int main(void)
         return 2;
     if (indirect_call(add_one, 41) != 42)
         return 3;
-    if (large_local_frame(3) != 3 * 32 + (31 * 32) / 2)
+    if (multiply_u64(3, 7) != 21)
         return 4;
+    if (large_local_frame(3) != 3 * 32 + (31 * 32) / 2)
+        return 5;
     return 0;
 }

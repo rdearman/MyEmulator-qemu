@@ -1,0 +1,14 @@
+rule cc
+  command = chibicc -c -o $out $in
+  description = CC $out
+rule as
+  command = as -o $out $in
+  description = AS $out
+rule link
+  command = chibicc -o $out $in
+  description = LINK $out
+
+build main.o: cc call-asm.c
+build add.o: as call-asm.S
+build call-asm: link main.o add.o
+default call-asm
