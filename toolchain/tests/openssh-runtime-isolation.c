@@ -24,22 +24,6 @@ int main(void)
 	mark("HEAP_STRING", heap_ok);
 	if (!heap_ok) return 1;
 
-	mark("OPENSSL_VERSION", OpenSSL_version_num() != 0);
-	if (OPENSSL_init_crypto(OPENSSL_INIT_NO_LOAD_CONFIG, NULL) != 1) {
-		mark("OPENSSL_INIT", 0); return 2;
-	}
-	mark("OPENSSL_INIT", 1);
-
-	unsigned char digest[SHA256_DIGEST_LENGTH];
-	static const unsigned char expected[SHA256_DIGEST_LENGTH] = {
-		0xba,0x78,0x16,0xbf,0x8f,0x01,0xcf,0xea,
-		0x41,0x41,0x40,0xde,0x5d,0xae,0x22,0x23,
-		0xb0,0x03,0x61,0xa3,0x96,0x17,0x7a,0x9c,
-		0xb4,0x10,0xff,0x61,0xf2,0x00,0x15,0xad
-	};
-	mark("CRYPTO_SHA256", SHA256((const unsigned char *)"abc", 3, digest) == digest &&
-	     memcmp(digest, expected, sizeof(expected)) == 0);
-
 	z_stream zs = {0};
 	unsigned char compressed[128], plain[16];
 	const unsigned char input[] = "REM transfer probe";
@@ -62,6 +46,22 @@ int main(void)
 	inflateEnd(&zs);
 	mark("ZLIB_INFLATE", inflate_ok);
 	if (!inflate_ok) return 4;
+
+	mark("OPENSSL_VERSION", OpenSSL_version_num() != 0);
+	if (OPENSSL_init_crypto(OPENSSL_INIT_NO_LOAD_CONFIG, NULL) != 1) {
+		mark("OPENSSL_INIT", 0); return 2;
+	}
+	mark("OPENSSL_INIT", 1);
+
+	unsigned char digest[SHA256_DIGEST_LENGTH];
+	static const unsigned char expected[SHA256_DIGEST_LENGTH] = {
+		0xba,0x78,0x16,0xbf,0x8f,0x01,0xcf,0xea,
+		0x41,0x41,0x40,0xde,0x5d,0xae,0x22,0x23,
+		0xb0,0x03,0x61,0xa3,0x96,0x17,0x7a,0x9c,
+		0xb4,0x10,0xff,0x61,0xf2,0x00,0x15,0xad
+	};
+	mark("CRYPTO_SHA256", SHA256((const unsigned char *)"abc", 3, digest) == digest &&
+	     memcmp(digest, expected, sizeof(expected)) == 0);
 
 	EVP_MD_CTX *ctx = EVP_MD_CTX_new();
 	unsigned int digest_len = 0;
