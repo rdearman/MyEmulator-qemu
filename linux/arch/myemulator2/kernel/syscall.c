@@ -54,6 +54,7 @@
 #define MYEMU2_NR_SETSID     157
 #define MYEMU2_NR_SETGID     144
 #define MYEMU2_NR_SETUID     146
+#define MYEMU2_NR_SETGROUPS  159
 #define MYEMU2_NR_EXECVE     221
 #define MYEMU2_NR_CLOCK_GETTIME64 403
 #define MYEMU2_NR_CLONE      220
@@ -151,6 +152,7 @@ extern long sys_getsid(pid_t pid);
 extern long sys_setsid(void);
 extern long sys_setgid(gid_t gid);
 extern long sys_setuid(uid_t uid);
+extern long sys_setgroups(int gidsetsize, gid_t __user *grouplist);
 extern long sys_fcntl(unsigned int fd, unsigned int cmd, unsigned long arg);
 extern long sys_fcntl64(unsigned int fd, unsigned int cmd, unsigned long arg);
 extern long sys_writev(unsigned long fd, const struct iovec __user *vec,
@@ -487,6 +489,8 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 		return sys_setgid((gid_t)a0);
 	case MYEMU2_NR_SETUID:
 		return sys_setuid((uid_t)a0);
+	case MYEMU2_NR_SETGROUPS:
+		return sys_setgroups((int)a0, (gid_t __user *)a1);
 	case MYEMU2_NR_SET_TID_ADDRESS:
 		return sys_set_tid_address((int __user *)a0);
 	case MYEMU2_NR_GETTID:
