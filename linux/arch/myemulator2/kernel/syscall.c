@@ -80,6 +80,7 @@
 #define MYEMU2_NR_TKILL       130
 #define MYEMU2_NR_TGKILL      131
 #define MYEMU2_NR_SIGALTSTACK 132
+#define MYEMU2_NR_RT_SIGSUSPEND 133
 #define MYEMU2_NR_UMOUNT2    39
 #define MYEMU2_NR_MOUNT      40
 #define MYEMU2_NR_SOCKET    198
@@ -517,6 +518,8 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 	case MYEMU2_NR_SIGALTSTACK:
 		return sys_sigaltstack((const struct sigaltstack __user *)a0,
 			(struct sigaltstack __user *)a1);
+	case MYEMU2_NR_RT_SIGSUSPEND:
+		return sys_rt_sigsuspend((sigset_t __user *)a0, (size_t)a1);
 	case MYEMU2_NR_EXECVE:
 		return sys_execve((const char __user *)a0,
 			(const char __user *const __user *)a1,
