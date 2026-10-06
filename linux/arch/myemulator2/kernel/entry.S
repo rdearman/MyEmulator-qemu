@@ -8,10 +8,12 @@
 	.globl myemulator2_exception_entry
 	.type myemulator2_exception_entry,@function
 myemulator2_exception_entry:
-	sw r15, -4(sp)
-	addi r15, sp, 0
 	/* 84 bytes of pt_regs plus 12 bytes padding keeps the C stack aligned. */
+	/* Reserve the saved-r15 slot before a higher-priority IRQ can push its
+	 * native frame over it. Exception entry leaves nested IRQs eligible. */
 	addi sp, sp, -96
+	sw r15, 92(sp)
+	addi r15, sp, 96
 	sw r0, 0(sp)
 	sw r1, 4(sp)
 	sw r2, 8(sp)
