@@ -95,6 +95,24 @@ Bootstrap partial links now use an explicit relocatable-section script with
 no executable image symbols; request 048 proves this fixes the blocking link
 without suppressing duplicate-definition errors or changing QEMU/kernel.
 
+### Hostname-resolution failure reported on the Fold
+
+The reported `nc bbc.co.uk 80` fault has r15/fp=`0x570` (1392), while raw
+`nc 1.1.1.1 80` succeeds. The retained baseline libc disassembly shows exactly
+this frame size in `__lookup_serv`: `addi r12,r0,1392`, then
+`sw r12,4(r13)` in the saved-frame-pointer slot. This is the already established
+NU-13 libc construction defect on a resolver path, not evidence of a kernel
+or QEMU network failure. Exact Fold PC-to-symbol correspondence has not yet
+been verified. `__lookup_serv` and the remaining audited resolver members are
+already included in the source rebuild.
+
+The source kit's `tests/dns-tcp.c` separately exercises raw outbound TCP,
+`getaddrinfo` hostname resolution, TCP by hostname, and a second resolver call.
+A small source-built `nc HOST PORT` client links against the repaired runtime,
+because changing a private archive cannot repair the existing static BusyBox
+nc executable. BusyBox itself, vi and boot programs are not replaced. Native
+DNS acceptance remains pending.
+
 `float-global.c` is the additional static-initializer reducer for NU-01/03;
 runtime literals and global constant evaluation must both pass before the
 floating compiler is accepted.
