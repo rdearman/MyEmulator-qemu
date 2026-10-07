@@ -12,11 +12,38 @@ The float/varargs/integer probes pass there. The separately confirmed
 upstream long-double *header* issue is recorded in the EXISTING
 `CHIBICC_UPSTREAM_REPORT.md`; it is not conflated with REM's ABI.
 
-The source-kit compiler repair is currently staged in
-`/home/rick/rem-native-userland/kit/bootstrap/chibicc`, NOT yet qualified or
-installed. Source inspection and host syntax checks are not native PASS.
+The source-kit compiler repair is staged in
+`/home/rick/rem-native-userland/kit/bootstrap/chibicc`. Its clean native
+compiler/runtime bootstrap and compiler self-rebuild completed on 2026-10-07.
+Application and installation qualification remain incomplete.
+Source inspection and host syntax checks are not native PASS.
 No compiler replacement, Fold change, original-rootfs edit, kernel change,
 or QEMU source change has been made for this task.
+
+### Clean bootstrap and the installed GNU Make blocker (2026-10-07)
+
+The exact staged source completed the integer compiler, IEEE helper build,
+floating/decimal stages, all audited libc replacements, final compiler and
+compiler self-rebuild. The retained clean log is
+`/home/rick/rem-native-userland/evidence/clean-native-bootstrap.log`;
+requests 105--107 establish progression beyond bootstrap into application
+building. The earlier individual native regression results remain valid.
+
+The first BearSSL build did not reach compilation: installed GNU Make 4.4.1
+grew to 82,924 KiB anonymous RSS and was OOM-killed (exit 137) in the
+128 MiB disposable guest. A native `make -r -n` retry also exhausted memory,
+followed by a kernel page fault during OOM handling. The same host dry run
+uses 3,968 KiB RSS. The existing Make executable's failure is not yet
+attributed to a particular compiler/libc defect, and is not an upstream
+chibicc allegation. Disk and serial evidence were preserved, the owned guest
+stopped, and its journal replayed offline; the original rootfs is unchanged.
+
+The kit now supplies existing GNU Make 4.4.1 source for bootstrap using its
+upstream shell-based `build.sh`, without requiring the failing Make binary.
+This retains the previously documented REM archive-search guard, disabled
+optional stack-limit hook, disabled POSIX spawn and vfork-to-fork mapping.
+The new Make bootstrap itself is still being qualified. No kernel/QEMU
+investigation or modification is authorized or performed.
 
 | ID | Defect / minimal C reproducer | Classification and current evidence |
 |---|---|---|
