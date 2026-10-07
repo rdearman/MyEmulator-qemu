@@ -201,6 +201,26 @@ from restoring the entirely missing REM bitfield load/merge lowering.
 Native request 069 passes both separate bitfield reducers and rebuilds the
 complete compiler natively. No upstream report was submitted.
 
+### Further source-kit findings: invalid array bounds and GNU attributes
+
+`toolchain/tests/native-userland/negative-array-bound.c` is a constant
+negative array bound hidden behind a compile-time size expression. The
+otherwise-unmodified supported-target compiler accepts it (exit 0), while
+GCC rejects the invalid declaration (exit 1). This is an architecture-
+independent constraint-diagnostic defect. It caused cross-configure probes
+to treat the REM target's `sizeof(unsigned int)` as zero. The source-kit
+frontend now rejects a negative constant bound while retaining its separate
+zero-length-array extension.
+
+`toolchain/tests/native-userland/function-pointer-unused-attribute.c`
+isolates a GNU `unused` attribute on a function-pointer parameter. GCC
+accepts and runs it; pristine upstream chibicc rejects the declarator
+(`expected ','`). This is an unsupported GNU extension, not an ISO C or
+architecture defect. Vim's optional unused-annotation capability probe now
+tests this actual spelling rather than advertising it based on an unrelated
+ordinary variable declaration. These source-kit findings have not been
+reported upstream.
+
 ## 1. Executive Summary
 
 REM is a 32-bit little-endian Linux architecture with an ILP32 C data model:

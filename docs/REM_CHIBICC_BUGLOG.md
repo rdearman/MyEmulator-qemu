@@ -20,6 +20,40 @@ Source inspection and host syntax checks are not native PASS.
 No compiler replacement, Fold change, original-rootfs edit, kernel change,
 or QEMU source change has been made for this task.
 
+### Required compiler/code-generation gaps found in the current source plans
+
+These reducers are retained under `toolchain/tests/native-userland/` and
+were separately checked against pristine upstream x86-64 chibicc. They are
+REM-specific backend gaps, not upstream defects:
+
+* `vla-frame.c`: variable-length arrays lower through `alloca`, but the REM
+  backend rejected VLA locals and returned the address of the pointer slot
+  rather than the allocated object. The staged source reserves a pointer
+  word and loads the stored allocation.
+* `long-conditional-branch.c`: a sufficiently large conditional body emitted
+  an out-of-range `R_MYEMULATOR2_BRANCH13` relocation, encountered in
+  BearSSL's large functions. The staged backend branches over a long `J`
+  rather than requiring a scratch register or changing the ABI.
+* `atomic-exchange.c`: the REM backend does not lower C11 atomic exchange.
+  The compiler now advertises `__STDC_NO_ATOMICS__`, and its target
+  `stdatomic.h` rejects use explicitly instead of pretending ordinary loads
+  and stores provide atomic semantics. Curl's synchronous CLI configuration
+  consequently uses its actual non-atomic build path; this does not establish
+  thread-safe global initialization.
+
+Host source emission now succeeds for the 226 curl translation units and
+the 124 configured Vim translation units. This does not prove native build,
+execution, HTTPS or terminal-editor acceptance.
+
+The latest disposable native self-rebuild has produced no result marker.
+Its preserved serial tail ends while a shell command is being entered; the
+exact process/console cause is not established. Separately, an earlier guest
+panicked in kernel `memcpy` called by `copy_from_user_nofault` (PC
+`007b7fb0`, LR `001c71c8`, cause 6, info `020ae5e0`); the preceding userspace
+trigger is unknown. Logs and the pre-replay disk image are preserved under
+`/home/rick/rem-native-userland/evidence/`. Neither event proves the latest
+compiler or userland passed. No kernel or QEMU source change is proposed.
+
 ### Clean bootstrap and the installed GNU Make blocker (2026-10-07)
 
 The exact staged source completed the integer compiler, IEEE helper build,
