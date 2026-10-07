@@ -7,6 +7,73 @@ The otherwise-unmodified upstream revision
 `/home/rick/rem-native-userland/upstream-chibicc` workspace and built on its
 supported x86-64 Linux target. No issue, patch or message was sent upstream.
 
+### Further findings directly blocking GNU coreutils (2026-10-07)
+
+These are ordinary frontend failures, independently reproduced with the same
+otherwise-unmodified upstream x86-64 compiler. Fixtures are retained in
+`toolchain/tests/native-userland/` and in the source kit; no upstream contact
+was made.
+
+* `include-next/main.c` with `-Iinclude-next/first -Iinclude-next/second`:
+  the first wrapper includes another header from the second directory, then
+  uses `#include_next` for its own wrapper. Upstream fails to find the second
+  wrapper (exit 1); GCC compiles/runs it (exit 0). A single process-global
+  include cursor is incorrectly changed by nested/cached header searches.
+  This directly blocks gnulib wrapper headers. The staged fix retains the
+  search continuation on each included File and restores cached-search
+  origin information.
+* `static-assert.c`: ordinary C11 assertions at file, structure and block
+  scopes compile/run with GCC, but upstream stops at `_Static_assert`
+  (`expected ','`, exit 1). This is an unsupported C11 frontend construct,
+  not a REM ABI defect. Gnulib directly requires it. The staged parser
+  evaluates assertions at those declaration scopes and reports failed
+  assertions rather than ignoring them. `static-assert-fail.c` must be
+  rejected with its actual assertion message.
+* `designator-unnamed-bitfield.c`: a named designated initializer after an
+  unnamed padding bitfield makes upstream's `struct_designator` dereference
+  `mem->name == NULL`. GCC compiles/runs it (exit 0); upstream's internal
+  `-cc1` run SIGSEGVs at `parse.c:1015`, confirmed by a retained backtrace.
+  Musl's timespec padding exposes the same failure in GNU coreutils. The
+  staged parser skips unnamed nonaggregate members while retaining
+  anonymous aggregate lookup.
+
+The new REM aggregate-by-reference/hidden-return implementation is not an
+upstream issue: `aggregate-abi.c` already passes pristine upstream x86-64.
+Its REM-specific ABI classification and qualification status are in the
+existing REM bug log.
+
+### Additional failures encountered by the selected GNU sources
+
+The same pristine upstream x86-64 revision independently reproduces:
+
+* `preprocessor-signed-comparison.c`: `#if (-1) >= 0` incorrectly enters the
+  error branch. The signed/unsigned ternary in constant-cast evaluation
+  promotes the negative `int32_t` branch to `uint32_t`. Separate branches
+  preserve signed extension before returning the constant value.
+* `line-in-conditional.c`: `#line` inside an active `#if` reports an
+  unterminated conditional. Public preprocessing of the line operands checks
+  the outer conditional stack prematurely; internal expansion and number
+  conversion avoid that unrelated end-of-file check.
+* `nested-designator-continuation.c`: an array of structures initialized with
+  successive member designators fails with `expected an expression`.
+  Structure-initializer continuation must consume the separating comma after
+  an already-initialized member, not treat the next member as a fresh start.
+* `hashmap-tombstone.c`: the compiler's hashmap inserts immediately at a deleted
+  bucket before looking for an existing colliding key. The reducer uses the
+  actual upstream hashmap/strings sources and ordinary C API calls; its exit
+  status is 1 with upstream and 0 with the repair. Duplicate keys subsequently
+  make `rehash` assert while compiling GNU diffutils' `stdopen.c`. Continue
+  probing past the first deleted bucket and reuse it only after establishing
+  that the key is absent.
+
+`parenthesized-string-initializer.c` also fails upstream and passes GCC.
+This is a GNU-extension support gap (parenthesized character-array string
+initializer), not an ISO C conformance claim. Diffutils' port simply removes
+the unnecessary parentheses while retaining the identical literal contents.
+`parenthesized-function-parameter.c` passes pristine upstream; its failure
+belongs only in the REM report. Native qualification of newly repaired
+compiler paths remains separate from these host differential results.
+
 **Confirmed upstream header defect:** upstream `include/float.h` describes
 `long double` using binary64 constants (`LDBL_MANT_DIG=53`,
 `LDBL_MAX_EXP=1024`), although its x86-64 type/backend uses the extended

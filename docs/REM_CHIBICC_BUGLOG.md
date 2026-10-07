@@ -58,6 +58,117 @@ Certificate-validity/HTTPS acceptance has not run and must not be inferred
 from DNS success. No certificate verification bypass or clock substitution
 was introduced.
 
+### Clock investigation and build-system bypass (2026-10-07 continuation)
+
+GNU Make is optional and no longer gates `build-all-native.sh`. BearSSL's
+builder directly compiles the upstream library C files and archives them,
+without Make or configure. Other packages are being translated to compact
+native recipes where needed; source configuration is distinct from native
+compilation/execution acceptance.
+
+The earlier Make configure error was not proof that configure needs a clock
+setter. Request 217 shows the bootstrap `ls` rejects `-t`; Automake's
+timestamp-order check consequently cannot work with that utility, regardless
+of touching configure. This build-infrastructure failure must not be
+conflated with certificate validation.
+
+Certificate validation really does need correct current UTC. BearSSL 0.6's
+`src/x509/x509_minimal.c` case 41 obtains `time(NULL)`; its source
+`x509_minimal.t0:1190-1193` checks both notBefore and notAfter and fails with
+`BR_ERR_X509_EXPIRED` outside that interval. Curl's BearSSL backend retains
+this validator when peer verification is enabled. A successful TCP or DNS
+test cannot demonstrate HTTPS validity.
+
+Request 216 runs `tests/clock-interfaces.c` with the repaired native compiler
+and private runtime through sudo. CLOCK_REALTIME reads successfully through
+syscall 403 but is 346 seconds after the Unix epoch. Alternative setter/
+adjustment syscalls 112, 170, 171, 266, 404 and 405 all return ENOSYS; neither
+`/dev/rtc` nor `/dev/rtc0` exists. The architecture's kernel dispatcher
+`linux/arch/myemulator2/kernel/syscall.c` exposes 403, not any of those
+setters, and its default returns `-ENOSYS`. Its `time_init` in
+`linux/arch/myemulator2/kernel/time.c` registers an elapsed-time clocksource
+and clockevent, not a persistent wall-clock initializer. No existing exposed
+setter or RTC API was found.
+
+**Minimal required kernel interface, not implemented here:** dispatch syscall
+404 (`clock_settime64`) to Linux's existing `sys_clock_settime(clockid_t,
+const struct __kernel_timespec __user *)` in the architecture's
+`myemulator2_syscall` switch, matching the adjacent 403 dispatch. The
+kernel symbol's declaration must be added alongside `sys_clock_gettime`.
+At the REM trap boundary r1 holds 404, r2 is the 32-bit clock ID
+(`CLOCK_REALTIME=0`), and r3 is the 32-bit user pointer. The pointed structure
+is 16 bytes: signed little-endian int64 seconds at offset 0 and signed int64
+nanoseconds at offset 8, with nanoseconds in [0, 999999999]. The musl source
+already defines and calls this time64 syscall. The generic implementation in
+`kernel/time/posix-timers.c` validates the clock/copies the structure and
+delegates to `posix_clock_realtime_set`/`do_sys_settimeofday64` for permissions
+and timekeeping. Return 0 on success or the normal negative errno in r1
+(EFAULT, EINVAL, EPERM as appropriate); musl maps that to -1 and errno.
+A privileged userland clock setter/time synchronizer would then set actual
+UTC. The syscall alone does not supply an authoritative current date.
+
+Userland cannot update the kernel's CLOCK_REALTIME without an exposed
+interface. Supplying a package-specific timestamp or disabling certificate
+dates would not fix that interface and is not provided. Only genuine HTTPS
+acceptance on this clock-dependent path is blocked pending the kernel
+interface and a real UTC source. Independent native builds continue; no
+kernel or QEMU files are modified.
+
+### GNU coreutils aggregate ABI blocker
+
+The generated coreutils configuration now comes from compile/link checks
+using a host-executed build of the exact repaired REM frontend/backend and
+the existing REM musl headers, rather than GCC's C23 defaults. This avoids
+incorrectly advertising chibicc support for GCC-only headers or language
+keywords. Native configure/Make are not a goal or a release gate.
+
+Coreutils' `lib/timespec.h` passes/returns `struct timespec` by value.
+The REM backend previously rejected aggregate parameters and did not lower
+aggregate returns. This is a REM ABI/backend feature gap, not an upstream
+defect: `aggregate-abi.c` passes both pristine upstream x86-64 and GCC.
+The existing REM GCC backend's `myemulator2_pass_by_reference` passes every
+aggregate argument as one pointer word; `myemulator2_return_in_memory`
+uses a hidden first return-buffer pointer for values larger than 8 bytes,
+while values at most 8 bytes return in r1:r2.
+
+The staged REM source copies each aggregate argument into a caller-owned
+temporary and passes its address; the callee's parameter accesses use that
+address. Large returns use the hidden destination; small returns pack/unpack
+the exact object bytes. Aggregate assignment now returns its destination
+address and no longer confuses an 8-byte aggregate with an r1:r2 scalar
+store. The minimal reducer checks small/large returns, caller value
+preservation and argument spill across the four-register boundary.
+GNU cp now generates REM assembly that the existing target assembler accepts.
+Native execution, GCC/chibicc ABI interchange and the native compiler
+rebuild with these further changes are still pending; no additional PASS
+is inferred from host assembly generation.
+
+### Further directly required REM lowering and declarator repairs
+
+`parenthesized-function-parameter.c` retains the callback-declarator failure.
+The REM abstract-function-parameter compatibility hook incorrectly handled
+named parenthesized callbacks as abstract type names; it now applies only
+when the next token is a type name. Pristine upstream compiles the reducer:
+this is a REM-port parser regression, not an upstream issue.
+
+`alloca-frame.c` checks repeated aligned allocation, preserved earlier
+allocations, and allocation inside a call argument while expression
+temporaries are live. The previously absent REM builtin lowering is required
+by selected gnulib sources. Lowering rounds allocations to 16 bytes, moves
+active expression-stack words below the allocation, and keeps locals
+frame-relative. The epilogue resets SP to the saved frame base before
+restoring registers and the original incoming SP. New native execution and
+self-rebuild evidence are pending.
+
+Source-only Samurai plans now cover coreutils, find/xargs, grep, sed,
+diffutils, tar and gzip. They retain upstream C/header organization and
+record target configuration rather than requiring native autotools or
+GNU Make. GNU `ginstall` is published as `install`. REM's downward-growing
+stack supplies both upstream stack-direction cache values; leaving the
+cross-configure guess at zero omits required gnulib structure fields.
+Generated `colorize.c` is obtained from the upstream generation rule.
+Host source emission is not native binary/runtime acceptance.
+
 | ID | Defect / minimal C reproducer | Classification and current evidence |
 |---|---|---|
 | NU-01 | Floating arithmetic: `float-arithmetic.c` | REM backend dispatches double arithmetic to integer pair operations. Native `1.5+2.25==3.75` probe actually returned failure (42 in initial probe). Soft-float helper lowering staged; native fix verification pending. |
