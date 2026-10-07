@@ -62,6 +62,6 @@ REM is still required.
 This content was recovered on 2026-10-07 from a standalone working tree
 (commit `42de157a`) that had been created outside this repository. Each kit
 file was compared byte for byte with a kit assembled from this directory.
-Some generated plan files, such as ncurses `MK*` outputs and Vim's
-`auto/pathdef.c`, still contain the original generation paths. These appear
-only in comments or `:version` text and do not affect the build.
+Generation paths embedded in generated plan files (ncurses `MK*` outputs,
+Dropbear's options guard, Vim's `auto/pathdef.c`) were rewritten to be
+kit-relative; they occur only in comments or `:version` text.
