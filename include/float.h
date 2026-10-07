@@ -1,12 +1,14 @@
 #ifndef __STDFLOAT_H
 #define __STDFLOAT_H
 
-#define DECIMAL_DIG 21
+#define DECIMAL_DIG 17
 #define FLT_EVAL_METHOD 0 // C11 5.2.4.2.2p9
 #define FLT_RADIX 2
 #define FLT_ROUNDS 1      // C11 5.2.4.2.2p8: to nearest
 
 #define FLT_DIG 6
+#define FLT_DECIMAL_DIG 9
+#define FLT_HAS_SUBNORM 1
 #define FLT_EPSILON 0x1p-23
 #define FLT_MANT_DIG 24
 #define FLT_MAX 0x1.fffffep+127
@@ -18,6 +20,8 @@
 #define FLT_TRUE_MIN 0x1p-149
 
 #define DBL_DIG 15
+#define DBL_DECIMAL_DIG 17
+#define DBL_HAS_SUBNORM 1
 #define DBL_EPSILON 0x1p-52
 #define DBL_MANT_DIG 53
 #define DBL_MAX 0x1.fffffffffffffp+1023
@@ -29,6 +33,8 @@
 #define DBL_TRUE_MIN 0x0.0000000000001p-1022
 
 #define LDBL_DIG 15
+#define LDBL_DECIMAL_DIG 17
+#define LDBL_HAS_SUBNORM 1
 #define LDBL_EPSILON 0x1p-52
 #define LDBL_MANT_DIG 53
 #define LDBL_MAX 0x1.fffffffffffffp+1023

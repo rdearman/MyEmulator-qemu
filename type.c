@@ -21,7 +21,7 @@ Type *ty_float = &(Type){TY_FLOAT, 4, 4};
  * layouts from GCC (for example Token becomes 72 instead of 68 bytes),
  * corrupting copies of compiler-internal structs. */
 Type *ty_double = &(Type){TY_DOUBLE, 8, 4};
-Type *ty_ldouble = &(Type){TY_LDOUBLE, 16, 16};
+Type *ty_ldouble = &(Type){TY_LDOUBLE, 8, 4};
 
 static Type *new_type(TypeKind kind, int size, int align) {
   Type *ty = calloc(1, sizeof(Type));

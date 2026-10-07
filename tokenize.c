@@ -180,7 +180,7 @@ static bool is_keyword(Token *tok) {
       hashmap_put(&map, kw[i], (void *)1);
   }
 
-  return hashmap_get2(&map, tok->loc, tok->len);
+  return hashmap_get2(&map, tok->loc, tok->len) != NULL;
 }
 
 static int read_escaped_char(char **new_pos, char *p) {
@@ -414,18 +414,20 @@ static bool convert_pp_int(Token *tok) {
     if (ll && u)
       ty = ty_ullong;
     else if (ll)
-      ty = ty_llong;
+      ty = (val >> 63) ? ty_ullong : ty_llong;
     else if (l && u)
       ty = (val >> 32) && ty_ulong->size < 8 ? ty_ullong : ty_ulong;
     else if (l)
-      ty = (val >> 63) ? ty_ulong : ((val >> 31) && ty_long->size < 8 ? ty_llong : ty_long);
+      ty = ty_long->size == 8 ? ((val >> 63) ? ty_ulong : ty_long) :
+           (val >> 32) ? ((val >> 63) ? ty_ullong : ty_llong) :
+           (val >> 31) ? ty_ulong : ty_long;
     else if (u)
       ty = (val >> 32) && ty_ulong->size < 8 ? ty_ullong :
            ((val >> 32) ? ty_ulong : ty_uint);
     else if (val >> 63)
-      ty = ty_ulong;
+      ty = ty_ulong->size == 8 ? ty_ulong : ty_ullong;
     else if (val >> 32)
-      ty = ty_long;
+      ty = ty_long->size == 8 ? ty_long : ty_llong;
     else if (val >> 31)
       ty = ty_uint;
     else
@@ -452,34 +454,14 @@ static void convert_pp_number(Token *tok) {
 
   // If it's not an integer, it must be a floating point constant.
   char *end;
-  /* The REM hosted libc/toolchain currently has no reliable long-double
-     runtime for a native compiler.  The C front end only needs the value as
-     an intermediate constant; use the target's supported double conversion
-     while retaining the upstream long-double path elsewhere. */
-#ifdef CHIBICC_REM
-  /* Avoid the target musl strtod path while bootstrapping a native compiler:
-     its floating scanner is not yet reliable for compiler-host workloads.
-     Parse the decimal forms used by the C sources directly. */
-  const char *p = tok->loc;
-  bool neg = false;
-  if (*p == '+' || *p == '-') { neg = *p++ == '-'; }
-  double val = 0;
-  while (isdigit(*p)) val = val * 10 + (*p++ - '0');
-  if (*p == '.') {
-    double scale = 0.1; p++;
-    while (isdigit(*p)) { val += (*p++ - '0') * scale; scale *= 0.1; }
-  }
-  if (*p == 'e' || *p == 'E') {
-    bool eneg = false; int exp = 0; p++;
-    if (*p == '+' || *p == '-') { eneg = *p++ == '-'; }
-    while (isdigit(*p)) exp = exp * 10 + (*p++ - '0');
-    while (exp-- > 0) val *= eneg ? 0.1 : 10.0;
-  }
-  if (neg) val = -val;
-  end = (char *)p;
-#else
-  long double val = strtold(tok->loc, &end);
-#endif
+  int length = tok->len;
+  end = tok->loc + length;
+  if (length && strchr("fFlL", end[-1]) &&
+      !(length > 2 && tok->loc[0] == '0' &&
+        (tok->loc[1] == 'x' || tok->loc[1] == 'X') &&
+        !memchr(tok->loc, 'p', length) && !memchr(tok->loc, 'P', length)))
+    end--;
+  rem_parse_float(tok->loc, end - tok->loc, &tok->fval);
 
   Type *ty;
   if (*end == 'f' || *end == 'F') {
@@ -496,7 +478,6 @@ static void convert_pp_number(Token *tok) {
     error_tok(tok, "invalid numeric constant");
 
   tok->kind = TK_NUM;
-  tok->fval = val;
   tok->ty = ty;
 }
 

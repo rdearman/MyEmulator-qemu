@@ -1,6 +1,10 @@
 #ifndef __STDATOMIC_H
 #define __STDATOMIC_H
 
+#ifdef __STDC_NO_ATOMICS__
+#error "C11 atomics are not implemented by the REM backend"
+#endif
+
 #define ATOMIC_BOOL_LOCK_FREE 1
 #define ATOMIC_CHAR_LOCK_FREE 1
 #define ATOMIC_CHAR16_T_LOCK_FREE 1

@@ -46,6 +46,8 @@ typedef struct {
   bool is_inline;
   bool is_tls;
   int align;
+  bool is_weak;
+  char *alias_name;
 } VarAttr;
 
 // This struct represents a variable initializer. Since initializers
@@ -107,6 +109,7 @@ static Node *current_switch;
 static Obj *builtin_alloca;
 
 static bool is_typename(Token *tok);
+static Token *static_assertion(Token *tok);
 static Type *declspec(Token **rest, Token *tok, VarAttr *attr);
 
 /* Ignore GNU declaration attributes that do not affect REM code generation.
@@ -114,19 +117,31 @@ static Type *declspec(Token **rest, Token *tok, VarAttr *attr);
  * and visibility.  These may follow a declarator, including a parameter
  * declarator, so they must be consumed before the enclosing declaration is
  * parsed. */
-static Token *skip_decl_attributes(Token *tok) {
+static Token *read_decl_attributes(Token *tok, VarAttr *attr) {
   while (equal(tok, "__attribute__")) {
-    tok = tok->next;
-    if (!equal(tok, "("))
-      continue;
-    int depth = 0;
-    do {
+    tok = skip(tok->next, "(");
+    int depth = 1;
+    while (depth) {
+      if (tok->kind == TK_EOF)
+        error_tok(tok, "unterminated declaration attribute");
+      if (depth == 2 && (equal(tok, "weak") || equal(tok, "__weak__"))) {
+        if (attr) attr->is_weak = true;
+      }
+      if (depth == 2 && (equal(tok, "alias") || equal(tok, "__alias__"))) {
+        Token *name = skip(tok->next, "(");
+        if (name->kind != TK_STR || name->ty->base->kind != TY_CHAR)
+          error_tok(name, "alias requires a narrow string literal");
+        if (attr)
+          attr->alias_name = strndup(name->str, name->ty->array_len - 1);
+        tok = skip(name->next, ")");
+        continue;
+      }
       if (equal(tok, "("))
         depth++;
       else if (equal(tok, ")"))
         depth--;
       tok = tok->next;
-    } while (depth > 0 && tok);
+    }
   }
   return tok;
 }
@@ -423,7 +438,11 @@ static Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
   int counter = 0;
   bool is_atomic = false;
 
-  while (is_typename(tok)) {
+  while (is_typename(tok) || equal(tok, "__attribute__")) {
+    if (equal(tok, "__attribute__")) {
+      tok = read_decl_attributes(tok, attr);
+      continue;
+    }
     // Handle storage class specifiers.
     if (equal(tok, "typedef") || equal(tok, "static") || equal(tok, "extern") ||
         equal(tok, "inline") || equal(tok, "_Thread_local") || equal(tok, "__thread")) {
@@ -646,7 +665,7 @@ static Type *func_params(Token **rest, Token *tok, Type *ty) {
        The regular declarator path handles named function pointers, while
        this form starts an abstract function declarator immediately after
        the base type. */
-    if (equal(tok, "(") && !equal(tok->next, "*")) {
+    if (equal(tok, "(") && is_typename(tok->next)) {
       Type *fty = func_type(ty2);
       tok = tok->next;
       Type head2 = {};
@@ -710,7 +729,10 @@ static Type *array_dimensions(Token **rest, Token *tok, Type *ty) {
 
   if (ty->kind == TY_VLA || !is_const_expr(expr))
     return vla_of(ty, expr);
-  return array_of(ty, eval(expr));
+  int64_t length = eval(expr);
+  if (length < 0)
+    error_tok(expr->tok, "negative array bound");
+  return array_of(ty, length);
 }
 
 // type-suffix = "(" func-params
@@ -761,7 +783,13 @@ static Type *declarator(Token **rest, Token *tok, Type *ty) {
   }
 
   ty = type_suffix(rest, tok, ty);
-  *rest = skip_decl_attributes(*rest);
+  VarAttr decl_attr = {};
+  *rest = read_decl_attributes(*rest, &decl_attr);
+  if (decl_attr.is_weak || decl_attr.alias_name) {
+    ty = copy_type(ty);
+    ty->decl_is_weak = decl_attr.is_weak;
+    ty->decl_alias_name = decl_attr.alias_name;
+  }
   ty->name = name;
   ty->name_pos = name_pos;
   return ty;
@@ -1066,7 +1094,7 @@ static Member *struct_designator(Token **rest, Token *tok, Type *ty) {
 
   for (Member *mem = ty->members; mem; mem = mem->next) {
     // Anonymous struct member
-    if (mem->ty->kind == TY_STRUCT && !mem->name) {
+    if ((mem->ty->kind == TY_STRUCT || mem->ty->kind == TY_UNION) && !mem->name) {
       if (get_struct_member(mem->ty, tok)) {
         *rest = start;
         return mem;
@@ -1075,7 +1103,8 @@ static Member *struct_designator(Token **rest, Token *tok, Type *ty) {
     }
 
     // Regular struct member
-    if (mem->name->len == tok->len && !strncmp(mem->name->loc, tok->loc, tok->len)) {
+    if (mem->name && mem->name->len == tok->len &&
+        !strncmp(mem->name->loc, tok->loc, tok->len)) {
       *rest = tok->next;
       return mem;
     }
@@ -1227,6 +1256,9 @@ static void struct_initializer1(Token **rest, Token *tok, Initializer *init) {
       tok = skip(tok, ",");
     first = false;
 
+    while (mem && mem->is_bitfield && !mem->name)
+      mem = mem->next;
+
     if (equal(tok, ".")) {
       mem = struct_designator(&tok, tok, init->ty);
       designation(&tok, tok, init->children[mem->idx]);
@@ -1245,9 +1277,11 @@ static void struct_initializer1(Token **rest, Token *tok, Initializer *init) {
 
 // struct-initializer2 = initializer ("," initializer)*
 static void struct_initializer2(Token **rest, Token *tok, Initializer *init, Member *mem) {
-  bool first = true;
+  bool first = mem == init->ty->members;
 
   for (; mem && !is_end(tok); mem = mem->next) {
+    if (mem->is_bitfield && !mem->name)
+      continue;
     Token *start = tok;
 
     if (!first)
@@ -1291,6 +1325,15 @@ static void union_initializer(Token **rest, Token *tok, Initializer *init) {
 //             | struct-initializer | union-initializer
 //             | assign
 static void initializer2(Token **rest, Token *tok, Initializer *init) {
+  if (init->ty->kind == TY_ARRAY && equal(tok, "{") &&
+      tok->next->kind == TK_STR &&
+      init->ty->base->kind == tok->next->ty->base->kind) {
+    string_initializer(&tok, tok->next, init);
+    consume(&tok, tok, ",");
+    *rest = skip(tok, "}");
+    return;
+  }
+
   if (init->ty->kind == TY_ARRAY && tok->kind == TK_STR) {
     string_initializer(rest, tok, init);
     return;
@@ -1521,7 +1564,7 @@ write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int off
     return cur;
   }
 
-  if (ty->kind == TY_DOUBLE) {
+  if (ty->kind == TY_DOUBLE || ty->kind == TY_LDOUBLE) {
     *(double *)(buf + offset) = eval_double(init->expr);
     return cur;
   }
@@ -1834,6 +1877,10 @@ static Node *compound_stmt(Token **rest, Token *tok) {
   enter_scope();
 
   while (!equal(tok, "}")) {
+    if (equal(tok, "_Static_assert") || equal(tok, "static_assert")) {
+      tok = static_assertion(tok);
+      continue;
+    }
     if (is_typename(tok) && !equal(tok->next, ":")) {
       VarAttr attr = {};
       Type *basety = declspec(&tok, tok, &attr);
@@ -1845,6 +1892,10 @@ static Node *compound_stmt(Token **rest, Token *tok) {
 
       if (is_function(tok)) {
         tok = function(tok, basety, &attr);
+        if (consume(&tok, tok, ","))
+          tok = global_variable(tok, basety, &attr);
+        else
+          consume(&tok, tok, ";");
         continue;
       }
 
@@ -1966,7 +2017,10 @@ static int64_t eval2(Node *node, char ***label) {
       switch (node->ty->size) {
       case 1: return node->ty->is_unsigned ? (uint8_t)val : (int8_t)val;
       case 2: return node->ty->is_unsigned ? (uint16_t)val : (int16_t)val;
-      case 4: return node->ty->is_unsigned ? (uint32_t)val : (int32_t)val;
+      case 4:
+        if (node->ty->is_unsigned)
+          return (uint32_t)val;
+        return (int32_t)val;
       }
     }
     return val;
@@ -2608,12 +2662,33 @@ static Node *unary(Token **rest, Token *tok) {
 }
 
 // struct-members = (declspec declarator (","  declarator)* ";")*
+static Token *static_assertion(Token *tok) {
+  Token *start = tok;
+  tok = skip(tok->next, "(");
+  int64_t value = const_expr(&tok, tok);
+  if (consume(&tok, tok, ",")) {
+    if (tok->kind != TK_STR)
+      error_tok(tok, "static assertion message must be a string literal");
+    if (!value)
+      error_tok(start, "static assertion failed: %s", tok->str);
+    tok = tok->next;
+  }
+  if (!value)
+    error_tok(start, "static assertion failed");
+  tok = skip(tok, ")");
+  return skip(tok, ";");
+}
+
 static void struct_members(Token **rest, Token *tok, Type *ty) {
   Member head = {};
   Member *cur = &head;
   int idx = 0;
 
   while (!equal(tok, "}")) {
+    if (equal(tok, "_Static_assert") || equal(tok, "static_assert")) {
+      tok = static_assertion(tok);
+      continue;
+    }
     VarAttr attr = {};
     Type *basety = declspec(&tok, tok, &attr);
     bool first = true;
@@ -2872,6 +2947,7 @@ static Node *new_inc_dec(Node *node, Token *tok, int addend) {
 //              | "++"
 //              | "--"
 static Node *postfix(Token **rest, Token *tok) {
+  Node *node;
   if (equal(tok, "(") && is_typename(tok->next)) {
     // Compound literal
     Token *start = tok;
@@ -2880,17 +2956,16 @@ static Node *postfix(Token **rest, Token *tok) {
 
     if (scope->next == NULL) {
       Obj *var = new_anon_gvar(ty);
-      gvar_initializer(rest, tok, var);
-      return new_var_node(var, start);
+      gvar_initializer(&tok, tok, var);
+      node = new_var_node(var, start);
+    } else {
+      Obj *var = new_lvar("", ty);
+      Node *lhs = lvar_initializer(&tok, tok, var);
+      Node *rhs = new_var_node(var, tok);
+      node = new_binary(ND_COMMA, lhs, rhs, start);
     }
-
-    Obj *var = new_lvar("", ty);
-    Node *lhs = lvar_initializer(rest, tok, var);
-    Node *rhs = new_var_node(var, tok);
-    return new_binary(ND_COMMA, lhs, rhs, start);
-  }
-
-  Node *node = primary(&tok, tok);
+  } else
+    node = primary(&tok, tok);
 
   for (;;) {
     if (equal(tok, "(")) {
@@ -2972,6 +3047,13 @@ static Node *funcall(Token **rest, Token *tok, Node *fn) {
       arg = new_cast(arg, ty_double);
     }
 
+#ifdef CHIBICC_REM
+    if (arg->ty->kind == TY_STRUCT || arg->ty->kind == TY_UNION) {
+      Obj *copy = new_lvar("", arg->ty);
+      arg = new_binary(ND_ASSIGN, new_var_node(copy, arg->tok), arg, arg->tok);
+      add_type(arg);
+    }
+#endif
     cur = cur->next = arg;
   }
 
@@ -3049,6 +3131,11 @@ static Node *generic_selection(Token **rest, Token *tok) {
 //         | num
 static Node *primary(Token **rest, Token *tok) {
   Token *start = tok;
+
+  if (equal(tok, "__builtin_alloca")) {
+    *rest = tok->next;
+    return new_var_node(builtin_alloca, tok);
+  }
 
   if (equal(tok, "(") && equal(tok->next, "{")) {
     // This is a GNU statement expresssion.
@@ -3220,7 +3307,7 @@ static Node *primary(Token **rest, Token *tok) {
     Node *node;
     if (is_flonum(tok->ty)) {
       node = new_node(ND_NUM, tok);
-      node->fval = tok->fval;
+      memcpy(&node->fval, &tok->fval, sizeof(node->fval));
     } else {
       node = new_num(tok->val, tok);
     }
@@ -3327,8 +3414,18 @@ static Token *function(Token *tok, Type *basety, VarAttr *attr) {
   }
 
   fn->is_root = !(fn->is_static && fn->is_inline);
+  fn->is_weak |= attr->is_weak || ty->decl_is_weak;
+  if (attr->alias_name || ty->decl_alias_name) {
+    if (equal(tok, "{"))
+      error_tok(tok, "an alias cannot have a function body");
+    fn->alias_name = attr->alias_name ? attr->alias_name : ty->decl_alias_name;
+  }
+  if (fn->is_static && (fn->is_weak || fn->alias_name))
+    error_tok(ty->name, "weak and alias declarations require external linkage");
+  if (equal(tok, "{"))
+    fn->tok = ty->name;  // for the .loc of the function entry (-g)
 
-  if (consume(&tok, tok, ";"))
+  if (equal(tok, ";") || equal(tok, ","))
     return tok;
 
   current_fn = fn;
@@ -3339,7 +3436,13 @@ static Token *function(Token *tok, Type *basety, VarAttr *attr) {
   // A buffer for a struct/union return value is passed
   // as the hidden first parameter.
   Type *rty = ty->return_ty;
-  if ((rty->kind == TY_STRUCT || rty->kind == TY_UNION) && rty->size > 16)
+  if ((rty->kind == TY_STRUCT || rty->kind == TY_UNION) && rty->size >
+#ifdef CHIBICC_REM
+      8
+#else
+      16
+#endif
+      )
     new_lvar("", pointer_to(rty));
 
   fn->params = locals;
@@ -3364,6 +3467,8 @@ static Token *function(Token *tok, Type *basety, VarAttr *attr) {
   fn->locals = locals;
   leave_scope();
   resolve_goto_labels();
+  if (equal(tok, ","))
+    error_tok(tok, "a function definition cannot be part of a declaration list");
   return tok;
 }
 
@@ -3375,6 +3480,13 @@ static Token *global_variable(Token *tok, Type *basety, VarAttr *attr) {
       tok = skip(tok, ",");
     first = false;
 
+    if (is_function(tok)) {
+      tok = function(tok, basety, attr);
+      if (!equal(tok, ";") && !equal(tok, ","))
+        error_tok(tok, "a function definition cannot follow another declarator");
+      continue;
+    }
+
     Type *ty = declarator(&tok, tok, basety);
     if (!ty->name)
       error_tok(ty->name_pos, "variable name omitted");
@@ -3383,6 +3495,15 @@ static Token *global_variable(Token *tok, Type *basety, VarAttr *attr) {
     var->is_definition = !attr->is_extern;
     var->is_static = attr->is_static;
     var->is_tls = attr->is_tls;
+    var->is_weak = attr->is_weak || ty->decl_is_weak;
+    var->alias_name = attr->alias_name ? attr->alias_name : ty->decl_alias_name;
+    if (var->alias_name) {
+      if (equal(tok, "="))
+        error_tok(tok, "an alias cannot have an initializer");
+      var->is_definition = false;
+    }
+    if (var->is_static && (var->is_weak || var->alias_name))
+      error_tok(ty->name, "weak and alias declarations require external linkage");
     if (attr->align)
       var->align = attr->align;
 
@@ -3436,6 +3557,7 @@ static void declare_builtin_functions(void) {
   Type *ty = func_type(pointer_to(ty_void));
   ty->params = copy_type(ty_int);
   builtin_alloca = new_gvar("alloca", ty);
+  builtin_alloca->is_function = true;
   builtin_alloca->is_definition = false;
 }
 
@@ -3445,6 +3567,10 @@ Obj *parse(Token *tok) {
   globals = NULL;
 
   while (tok->kind != TK_EOF) {
+    if (equal(tok, "_Static_assert") || equal(tok, "static_assert")) {
+      tok = static_assertion(tok);
+      continue;
+    }
     VarAttr attr = {};
     Type *basety = declspec(&tok, tok, &attr);
 
@@ -3457,6 +3583,10 @@ Obj *parse(Token *tok) {
     // Function
     if (is_function(tok)) {
       tok = function(tok, basety, &attr);
+      if (consume(&tok, tok, ","))
+        tok = global_variable(tok, basety, &attr);
+      else
+        consume(&tok, tok, ";");
       continue;
     }
 

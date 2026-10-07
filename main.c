@@ -7,6 +7,7 @@ typedef enum {
 StringArray include_paths;
 bool opt_fcommon = true;
 bool opt_fpic;
+bool opt_g;
 
 static FileType opt_x;
 static StringArray opt_include;
@@ -333,10 +334,21 @@ static void parse_args(int argc, char **argv) {
       exit(0);
     }
 
+    // Debug information.  -g and -g2 are the same; -g1 is accepted as a
+    // synonym.  -g0 turns debug information off.  Anything else starting
+    // with -g (-g3, -ggdb, ...) is rejected below as an unknown argument.
+    if (!strcmp(argv[i], "-g") || !strcmp(argv[i], "-g1") || !strcmp(argv[i], "-g2")) {
+      opt_g = true;
+      continue;
+    }
+    if (!strcmp(argv[i], "-g0")) {
+      opt_g = false;
+      continue;
+    }
+
     // These options are ignored for now.
     if (!strncmp(argv[i], "-O", 2) ||
         !strncmp(argv[i], "-W", 2) ||
-        !strncmp(argv[i], "-g", 2) ||
         !strncmp(argv[i], "-std=", 5) ||
         !strcmp(argv[i], "-ffreestanding") ||
         !strcmp(argv[i], "-fno-builtin") ||
@@ -594,8 +606,13 @@ static void cc1(void) {
 
 static void assemble(char *input, char *output) {
   char *as = (opt_rem && getenv("CHIBICC_REM_AS")) ? getenv("CHIBICC_REM_AS") : "as";
-  char *cmd[] = {as, "-c", input, "-o", output, NULL};
-  run_subprocess(cmd);
+  if (opt_g) {
+    char *cmd[] = {as, "-g", "-c", input, "-o", output, NULL};
+    run_subprocess(cmd);
+  } else {
+    char *cmd[] = {as, "-c", input, "-o", output, NULL};
+    run_subprocess(cmd);
+  }
 }
 
 static char *find_file(char *pattern) {
@@ -646,6 +663,8 @@ static void run_linker(StringArray *inputs, char *output) {
     char *script = getenv("CHIBICC_REM_LINKER_SCRIPT");
     char *crt = getenv("CHIBICC_REM_CRTDIR");
     char *gcclib = getenv("CHIBICC_REM_GCCLIB");
+    char *runtime = getenv("CHIBICC_REM_LIBC");
+    char *softfloat = getenv("CHIBICC_REM_SOFTFLOAT");
     strarray_push(&arr, ld ? ld : "ld");
     strarray_push(&arr, "-T");
     strarray_push(&arr, script ? script : "/lib/myemulator2-user.ld");
@@ -656,7 +675,10 @@ static void run_linker(StringArray *inputs, char *output) {
       strarray_push(&arr, format("%s/crt1.o", crt));
       strarray_push(&arr, format("%s/crti.o", crt));
     }
+    for (int i = 0; i < ld_extra_args.len; i++)
+      strarray_push(&arr, ld_extra_args.data[i]);
     if (gcclib) strarray_push(&arr, format("-L%s", gcclib));
+    if (softfloat) strarray_push(&arr, softfloat);
     for (int i = 0; i < inputs->len; i++) strarray_push(&arr, inputs->data[i]);
     // The REM native linker resolves this archive combination reliably when
     // libc is presented before the compiler-runtime helpers.  libc references
@@ -665,7 +687,7 @@ static void run_linker(StringArray *inputs, char *output) {
     // exports it.  Keep both archives in a group so later libc references can
     // still pull additional runtime members.
     strarray_push(&arr, "--start-group");
-    strarray_push(&arr, "-lc");
+    strarray_push(&arr, runtime ? runtime : "-lc");
     if (gcclib) strarray_push(&arr, format("%s/libgcc.a", gcclib));
     strarray_push(&arr, "--end-group");
     if (crt) strarray_push(&arr, format("%s/crtn.o", crt));

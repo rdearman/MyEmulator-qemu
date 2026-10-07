@@ -42,6 +42,8 @@ typedef struct {
 } StringArray;
 
 void strarray_push(StringArray *arr, char *s);
+void rem_float_bits(const double *value, uint32_t *bits);
+void rem_parse_float(const char *text, int length, double *value);
 char *format(char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
 //
@@ -63,6 +65,7 @@ typedef struct {
   char *name;
   int file_no;
   char *contents;
+  int include_next_idx;
 
   // For #line directive
   char *display_name;
@@ -138,11 +141,14 @@ struct Obj {
 
   // Local variable
   int offset;
+  bool is_by_ref;
 
   // Global variable or function
   bool is_function;
   bool is_definition;
   bool is_static;
+  bool is_weak;
+  char *alias_name;
 
   // Global variable
   bool is_tentative;
@@ -358,6 +364,8 @@ struct Type {
   // Declaration
   Token *name;
   Token *name_pos;
+  bool decl_is_weak;
+  char *decl_alias_name;
 
   // Array
   int array_len;
@@ -435,6 +443,7 @@ void add_type(Node *node);
 // codegen.c
 //
 
+extern bool opt_g;
 void codegen(Obj *prog, FILE *out);
 int align_to(int n, int align);
 

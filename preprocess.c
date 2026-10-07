@@ -692,31 +692,44 @@ static bool expand_macro(Token **rest, Token *tok) {
 }
 
 char *search_include_paths(char *filename) {
+  include_next_idx = 0;
   if (filename[0] == '/')
     return filename;
 
+  typedef struct {
+    char *path;
+    int next_idx;
+  } IncludePath;
   static HashMap cache;
-  char *cached = hashmap_get(&cache, filename);
-  if (cached)
-    return cached;
+  IncludePath *cached = hashmap_get(&cache, filename);
+  if (cached) {
+    include_next_idx = cached->next_idx;
+    return cached->path;
+  }
 
   // Search a file from the include paths.
   for (int i = 0; i < include_paths.len; i++) {
     char *path = format("%s/%s", include_paths.data[i], filename);
     if (!file_exists(path))
       continue;
-    hashmap_put(&cache, filename, path);
+    IncludePath *entry = calloc(1, sizeof(IncludePath));
+    entry->path = path;
+    entry->next_idx = i + 1;
+    hashmap_put(&cache, filename, entry);
     include_next_idx = i + 1;
     return path;
   }
   return NULL;
 }
 
-static char *search_include_next(char *filename) {
+static char *search_include_next(char *filename, int next_idx) {
+  include_next_idx = next_idx;
   for (; include_next_idx < include_paths.len; include_next_idx++) {
     char *path = format("%s/%s", include_paths.data[include_next_idx], filename);
-    if (file_exists(path))
+    if (file_exists(path)) {
+      include_next_idx++;
       return path;
+    }
   }
   return NULL;
 }
@@ -801,7 +814,8 @@ static char *detect_include_guard(Token *tok) {
   return NULL;
 }
 
-static Token *include_file(Token *tok, char *path, Token *filename_tok) {
+static Token *include_file(Token *tok, char *path, Token *filename_tok,
+                           int next_idx) {
   static bool trace = false;
   static bool trace_init = false;
   if (!trace_init) { trace = getenv("CHIBICC_TRACE_PP") != NULL; trace_init = true; }
@@ -821,6 +835,7 @@ static Token *include_file(Token *tok, char *path, Token *filename_tok) {
   Token *tok2 = tokenize_file(path);
   if (!tok2)
     error_tok(filename_tok, "%s: cannot open file: %s", path, strerror(errno));
+  tok2->file->include_next_idx = next_idx;
 
   if (trace) fprintf(stderr, "TRACE include tokenized %s\n", path);
   guard_name = detect_include_guard(tok2);
@@ -835,7 +850,8 @@ static Token *include_file(Token *tok, char *path, Token *filename_tok) {
 // Read #line arguments
 static void read_line_marker(Token **rest, Token *tok) {
   Token *start = tok;
-  tok = preprocess(copy_line(rest, tok));
+  tok = preprocess2(copy_line(rest, tok));
+  convert_pp_tokens(tok);
 
   if (tok->kind != TK_NUM || tok->ty->kind != TY_INT)
     error_tok(tok, "invalid line marker");
@@ -887,21 +903,24 @@ static Token *preprocess2(Token *tok) {
       if (filename[0] != '/' && is_dquote) {
         char *path = format("%s/%s", dirname(strdup(start->file->name)), filename);
         if (file_exists(path)) {
-          tok = include_file(tok, path, start->next->next);
+          tok = include_file(tok, path, start->next->next,
+                             start->file->include_next_idx);
           continue;
         }
       }
 
       char *path = search_include_paths(filename);
-      tok = include_file(tok, path ? path : filename, start->next->next);
+      tok = include_file(tok, path ? path : filename, start->next->next,
+                         include_next_idx);
       continue;
     }
 
     if (equal(tok, "include_next")) {
       bool ignore;
       char *filename = read_include_filename(&tok, tok->next, &ignore);
-      char *path = search_include_next(filename);
-      tok = include_file(tok, path ? path : filename, start->next->next);
+      char *path = search_include_next(filename, start->file->include_next_idx);
+      tok = include_file(tok, path ? path : filename, start->next->next,
+                         include_next_idx);
       continue;
     }
 
@@ -928,7 +947,7 @@ static Token *preprocess2(Token *tok) {
     }
 
     if (equal(tok, "ifdef")) {
-      bool defined = find_macro(tok->next);
+      bool defined = find_macro(tok->next) != NULL;
       push_cond_incl(tok, defined);
       tok = skip_line(tok->next->next);
       if (!defined)
@@ -937,7 +956,7 @@ static Token *preprocess2(Token *tok) {
     }
 
     if (equal(tok, "ifndef")) {
-      bool defined = find_macro(tok->next);
+      bool defined = find_macro(tok->next) != NULL;
       push_cond_incl(tok, !defined);
       tok = skip_line(tok->next->next);
       if (defined)
@@ -1101,6 +1120,7 @@ void init_macros(void) {
   define_macro("__SIZE_TYPE__", "unsigned int");
   define_macro("__STDC_HOSTED__", "1");
   define_macro("__STDC_NO_COMPLEX__", "1");
+  define_macro("__STDC_NO_ATOMICS__", "1");
   define_macro("__STDC_UTF_16__", "1");
   define_macro("__STDC_UTF_32__", "1");
   define_macro("__STDC_VERSION__", "201112L");
@@ -1115,6 +1135,7 @@ void init_macros(void) {
   define_macro("__linux__", "1");
   define_macro("__signed__", "signed");
   define_macro("__typeof__", "typeof");
+  define_macro("__typeof", "typeof");
   define_macro("__unix", "1");
   define_macro("__unix__", "1");
   define_macro("__volatile__", "volatile");
