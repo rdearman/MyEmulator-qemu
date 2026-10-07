@@ -1,0 +1,332 @@
+cc = @CC@
+root = ../../..
+
+rule cc
+  command = mkdir -p $directory && $cc $flags -c $in -o $out
+  description = CC $in
+rule archive
+  command = ar rcs $out $in
+  description = AR $out
+rule link
+  command = mkdir -p ../native/bin && ld -r -T $root/bootstrap/rem-reloc.ld -o $out.partial.o $in && $cc -o $out $out.partial.o $libraries
+  description = LINK $out
+
+build src/liblzma/liblzma_la-tuklib_physmem.o: cc ../src/liblzma/../common/tuklib_physmem.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-common.o: cc ../src/liblzma/common/common.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-block_util.o: cc ../src/liblzma/common/block_util.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-easy_preset.o: cc ../src/liblzma/common/easy_preset.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-filter_common.o: cc ../src/liblzma/common/filter_common.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-hardware_physmem.o: cc ../src/liblzma/common/hardware_physmem.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-index.o: cc ../src/liblzma/common/index.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-stream_flags_common.o: cc ../src/liblzma/common/stream_flags_common.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-string_conversion.o: cc ../src/liblzma/common/string_conversion.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-vli_size.o: cc ../src/liblzma/common/vli_size.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-alone_encoder.o: cc ../src/liblzma/common/alone_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-block_buffer_encoder.o: cc ../src/liblzma/common/block_buffer_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-block_encoder.o: cc ../src/liblzma/common/block_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-block_header_encoder.o: cc ../src/liblzma/common/block_header_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-easy_buffer_encoder.o: cc ../src/liblzma/common/easy_buffer_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-easy_encoder.o: cc ../src/liblzma/common/easy_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-easy_encoder_memusage.o: cc ../src/liblzma/common/easy_encoder_memusage.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-filter_buffer_encoder.o: cc ../src/liblzma/common/filter_buffer_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-filter_encoder.o: cc ../src/liblzma/common/filter_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-filter_flags_encoder.o: cc ../src/liblzma/common/filter_flags_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-index_encoder.o: cc ../src/liblzma/common/index_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-stream_buffer_encoder.o: cc ../src/liblzma/common/stream_buffer_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-stream_encoder.o: cc ../src/liblzma/common/stream_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-stream_flags_encoder.o: cc ../src/liblzma/common/stream_flags_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-vli_encoder.o: cc ../src/liblzma/common/vli_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-microlzma_encoder.o: cc ../src/liblzma/common/microlzma_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-alone_decoder.o: cc ../src/liblzma/common/alone_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-auto_decoder.o: cc ../src/liblzma/common/auto_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-block_buffer_decoder.o: cc ../src/liblzma/common/block_buffer_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-block_decoder.o: cc ../src/liblzma/common/block_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-block_header_decoder.o: cc ../src/liblzma/common/block_header_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-easy_decoder_memusage.o: cc ../src/liblzma/common/easy_decoder_memusage.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-file_info.o: cc ../src/liblzma/common/file_info.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-filter_buffer_decoder.o: cc ../src/liblzma/common/filter_buffer_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-filter_decoder.o: cc ../src/liblzma/common/filter_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-filter_flags_decoder.o: cc ../src/liblzma/common/filter_flags_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-index_decoder.o: cc ../src/liblzma/common/index_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-index_hash.o: cc ../src/liblzma/common/index_hash.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-stream_buffer_decoder.o: cc ../src/liblzma/common/stream_buffer_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-stream_decoder.o: cc ../src/liblzma/common/stream_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-stream_flags_decoder.o: cc ../src/liblzma/common/stream_flags_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-vli_decoder.o: cc ../src/liblzma/common/vli_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-microlzma_decoder.o: cc ../src/liblzma/common/microlzma_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-lzip_decoder.o: cc ../src/liblzma/common/lzip_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-check.o: cc ../src/liblzma/check/check.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-crc32_table.o: cc ../src/liblzma/check/crc32_table.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-crc32_fast.o: cc ../src/liblzma/check/crc32_fast.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-crc64_table.o: cc ../src/liblzma/check/crc64_table.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-crc64_fast.o: cc ../src/liblzma/check/crc64_fast.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-sha256.o: cc ../src/liblzma/check/sha256.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-lz_encoder.o: cc ../src/liblzma/lz/lz_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-lz_encoder_mf.o: cc ../src/liblzma/lz/lz_encoder_mf.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-lz_decoder.o: cc ../src/liblzma/lz/lz_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-lzma_encoder_presets.o: cc ../src/liblzma/lzma/lzma_encoder_presets.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-lzma_encoder.o: cc ../src/liblzma/lzma/lzma_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-lzma_encoder_optimum_fast.o: cc ../src/liblzma/lzma/lzma_encoder_optimum_fast.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-lzma_encoder_optimum_normal.o: cc ../src/liblzma/lzma/lzma_encoder_optimum_normal.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-fastpos_table.o: cc ../src/liblzma/lzma/fastpos_table.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-lzma_decoder.o: cc ../src/liblzma/lzma/lzma_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-lzma2_encoder.o: cc ../src/liblzma/lzma/lzma2_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-lzma2_decoder.o: cc ../src/liblzma/lzma/lzma2_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-price_table.o: cc ../src/liblzma/rangecoder/price_table.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-delta_common.o: cc ../src/liblzma/delta/delta_common.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-delta_encoder.o: cc ../src/liblzma/delta/delta_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-delta_decoder.o: cc ../src/liblzma/delta/delta_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-simple_coder.o: cc ../src/liblzma/simple/simple_coder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-simple_encoder.o: cc ../src/liblzma/simple/simple_encoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-simple_decoder.o: cc ../src/liblzma/simple/simple_decoder.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-x86.o: cc ../src/liblzma/simple/x86.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-powerpc.o: cc ../src/liblzma/simple/powerpc.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-ia64.o: cc ../src/liblzma/simple/ia64.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-arm.o: cc ../src/liblzma/simple/arm.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-armthumb.o: cc ../src/liblzma/simple/armthumb.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-arm64.o: cc ../src/liblzma/simple/arm64.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-sparc.o: cc ../src/liblzma/simple/sparc.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/liblzma/liblzma_la-riscv.o: cc ../src/liblzma/simple/riscv.c | config.h
+  directory = src/liblzma
+  flags = -DHAVE_CONFIG_H -Isrc/liblzma -I../src/liblzma -I. -I../src/liblzma/api -I../src/liblzma/common -I../src/liblzma/check -I../src/liblzma/lz -I../src/liblzma/rangecoder -I../src/liblzma/lzma -I../src/liblzma/delta -I../src/liblzma/simple -I../src/common -DTUKLIB_SYMBOL_PREFIX=lzma_ -O0
+build src/xz/xz-args.o: cc ../src/xz/args.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xz/xz-coder.o: cc ../src/xz/coder.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xz/xz-file_io.o: cc ../src/xz/file_io.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xz/xz-hardware.o: cc ../src/xz/hardware.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xz/xz-main.o: cc ../src/xz/main.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xz/xz-message.o: cc ../src/xz/message.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xz/xz-mytime.o: cc ../src/xz/mytime.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xz/xz-options.o: cc ../src/xz/options.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xz/xz-sandbox.o: cc ../src/xz/sandbox.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xz/xz-signals.o: cc ../src/xz/signals.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xz/xz-suffix.o: cc ../src/xz/suffix.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xz/xz-util.o: cc ../src/xz/util.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xz/xz-tuklib_open_stdxxx.o: cc ../src/xz/../common/tuklib_open_stdxxx.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xz/xz-tuklib_progname.o: cc ../src/xz/../common/tuklib_progname.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xz/xz-tuklib_exit.o: cc ../src/xz/../common/tuklib_exit.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xz/xz-tuklib_mbstr_width.o: cc ../src/xz/../common/tuklib_mbstr_width.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xz/xz-tuklib_mbstr_fw.o: cc ../src/xz/../common/tuklib_mbstr_fw.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xz/xz-list.o: cc ../src/xz/list.c | config.h
+  directory = src/xz
+  flags = -DHAVE_CONFIG_H -Isrc/xz -I../src/xz -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xzdec/xzdec-xzdec.o: cc ../src/xzdec/xzdec.c | config.h
+  directory = src/xzdec
+  flags = -DHAVE_CONFIG_H -Isrc/xzdec -I../src/xzdec -I. -DTUKLIB_GETTEXT=0 -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xzdec/xzdec-tuklib_progname.o: cc ../src/xzdec/../common/tuklib_progname.c | config.h
+  directory = src/xzdec
+  flags = -DHAVE_CONFIG_H -Isrc/xzdec -I../src/xzdec -I. -DTUKLIB_GETTEXT=0 -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xzdec/xzdec-tuklib_exit.o: cc ../src/xzdec/../common/tuklib_exit.c | config.h
+  directory = src/xzdec
+  flags = -DHAVE_CONFIG_H -Isrc/xzdec -I../src/xzdec -I. -DTUKLIB_GETTEXT=0 -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/xzdec/lzmadec-xzdec.o: cc ../src/xzdec/xzdec.c | config.h
+  directory = src/xzdec
+  flags = -DHAVE_CONFIG_H -Isrc/xzdec -I../src/xzdec -I. -DTUKLIB_GETTEXT=0 -I../src/common -I../src/liblzma/api -Ilib -DLZMADEC -O0
+build src/xzdec/lzmadec-tuklib_progname.o: cc ../src/xzdec/../common/tuklib_progname.c | config.h
+  directory = src/xzdec
+  flags = -DHAVE_CONFIG_H -Isrc/xzdec -I../src/xzdec -I. -DTUKLIB_GETTEXT=0 -I../src/common -I../src/liblzma/api -Ilib -DLZMADEC -O0
+build src/xzdec/lzmadec-tuklib_exit.o: cc ../src/xzdec/../common/tuklib_exit.c | config.h
+  directory = src/xzdec
+  flags = -DHAVE_CONFIG_H -Isrc/xzdec -I../src/xzdec -I. -DTUKLIB_GETTEXT=0 -I../src/common -I../src/liblzma/api -Ilib -DLZMADEC -O0
+build src/lzmainfo/lzmainfo-lzmainfo.o: cc ../src/lzmainfo/lzmainfo.c | config.h
+  directory = src/lzmainfo
+  flags = -DHAVE_CONFIG_H -Isrc/lzmainfo -I../src/lzmainfo -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/lzmainfo/lzmainfo-tuklib_progname.o: cc ../src/lzmainfo/../common/tuklib_progname.c | config.h
+  directory = src/lzmainfo
+  flags = -DHAVE_CONFIG_H -Isrc/lzmainfo -I../src/lzmainfo -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/lzmainfo/lzmainfo-tuklib_exit.o: cc ../src/lzmainfo/../common/tuklib_exit.c | config.h
+  directory = src/lzmainfo
+  flags = -DHAVE_CONFIG_H -Isrc/lzmainfo -I../src/lzmainfo -I. '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../src/common -I../src/liblzma/api -Ilib -O0
+build src/liblzma/liblzma.a: archive src/liblzma/liblzma_la-tuklib_physmem.o src/liblzma/liblzma_la-common.o src/liblzma/liblzma_la-block_util.o src/liblzma/liblzma_la-easy_preset.o src/liblzma/liblzma_la-filter_common.o src/liblzma/liblzma_la-hardware_physmem.o src/liblzma/liblzma_la-index.o src/liblzma/liblzma_la-stream_flags_common.o src/liblzma/liblzma_la-string_conversion.o src/liblzma/liblzma_la-vli_size.o src/liblzma/liblzma_la-alone_encoder.o src/liblzma/liblzma_la-block_buffer_encoder.o src/liblzma/liblzma_la-block_encoder.o src/liblzma/liblzma_la-block_header_encoder.o src/liblzma/liblzma_la-easy_buffer_encoder.o src/liblzma/liblzma_la-easy_encoder.o src/liblzma/liblzma_la-easy_encoder_memusage.o src/liblzma/liblzma_la-filter_buffer_encoder.o src/liblzma/liblzma_la-filter_encoder.o src/liblzma/liblzma_la-filter_flags_encoder.o src/liblzma/liblzma_la-index_encoder.o src/liblzma/liblzma_la-stream_buffer_encoder.o src/liblzma/liblzma_la-stream_encoder.o src/liblzma/liblzma_la-stream_flags_encoder.o src/liblzma/liblzma_la-vli_encoder.o src/liblzma/liblzma_la-microlzma_encoder.o src/liblzma/liblzma_la-alone_decoder.o src/liblzma/liblzma_la-auto_decoder.o src/liblzma/liblzma_la-block_buffer_decoder.o src/liblzma/liblzma_la-block_decoder.o src/liblzma/liblzma_la-block_header_decoder.o src/liblzma/liblzma_la-easy_decoder_memusage.o src/liblzma/liblzma_la-file_info.o src/liblzma/liblzma_la-filter_buffer_decoder.o src/liblzma/liblzma_la-filter_decoder.o src/liblzma/liblzma_la-filter_flags_decoder.o src/liblzma/liblzma_la-index_decoder.o src/liblzma/liblzma_la-index_hash.o src/liblzma/liblzma_la-stream_buffer_decoder.o src/liblzma/liblzma_la-stream_decoder.o src/liblzma/liblzma_la-stream_flags_decoder.o src/liblzma/liblzma_la-vli_decoder.o src/liblzma/liblzma_la-microlzma_decoder.o src/liblzma/liblzma_la-lzip_decoder.o src/liblzma/liblzma_la-check.o src/liblzma/liblzma_la-crc32_table.o src/liblzma/liblzma_la-crc32_fast.o src/liblzma/liblzma_la-crc64_table.o src/liblzma/liblzma_la-crc64_fast.o src/liblzma/liblzma_la-sha256.o src/liblzma/liblzma_la-lz_encoder.o src/liblzma/liblzma_la-lz_encoder_mf.o src/liblzma/liblzma_la-lz_decoder.o src/liblzma/liblzma_la-lzma_encoder_presets.o src/liblzma/liblzma_la-lzma_encoder.o src/liblzma/liblzma_la-lzma_encoder_optimum_fast.o src/liblzma/liblzma_la-lzma_encoder_optimum_normal.o src/liblzma/liblzma_la-fastpos_table.o src/liblzma/liblzma_la-lzma_decoder.o src/liblzma/liblzma_la-lzma2_encoder.o src/liblzma/liblzma_la-lzma2_decoder.o src/liblzma/liblzma_la-price_table.o src/liblzma/liblzma_la-delta_common.o src/liblzma/liblzma_la-delta_encoder.o src/liblzma/liblzma_la-delta_decoder.o src/liblzma/liblzma_la-simple_coder.o src/liblzma/liblzma_la-simple_encoder.o src/liblzma/liblzma_la-simple_decoder.o src/liblzma/liblzma_la-x86.o src/liblzma/liblzma_la-powerpc.o src/liblzma/liblzma_la-ia64.o src/liblzma/liblzma_la-arm.o src/liblzma/liblzma_la-armthumb.o src/liblzma/liblzma_la-arm64.o src/liblzma/liblzma_la-sparc.o src/liblzma/liblzma_la-riscv.o
+build ../native/bin/xz: link src/xz/xz-args.o src/xz/xz-coder.o src/xz/xz-file_io.o src/xz/xz-hardware.o src/xz/xz-main.o src/xz/xz-message.o src/xz/xz-mytime.o src/xz/xz-options.o src/xz/xz-sandbox.o src/xz/xz-signals.o src/xz/xz-suffix.o src/xz/xz-util.o src/xz/xz-tuklib_open_stdxxx.o src/xz/xz-tuklib_progname.o src/xz/xz-tuklib_exit.o src/xz/xz-tuklib_mbstr_width.o src/xz/xz-tuklib_mbstr_fw.o src/xz/xz-list.o src/liblzma/liblzma.a
+  libraries = 
+build ../native/bin/xzdec: link src/xzdec/xzdec-xzdec.o src/xzdec/xzdec-tuklib_progname.o src/xzdec/xzdec-tuklib_exit.o src/liblzma/liblzma.a
+  libraries = 
+build ../native/bin/lzmadec: link src/xzdec/lzmadec-xzdec.o src/xzdec/lzmadec-tuklib_progname.o src/xzdec/lzmadec-tuklib_exit.o src/liblzma/liblzma.a
+  libraries = 
+build ../native/bin/lzmainfo: link src/lzmainfo/lzmainfo-lzmainfo.o src/lzmainfo/lzmainfo-tuklib_progname.o src/lzmainfo/lzmainfo-tuklib_exit.o src/liblzma/liblzma.a
+  libraries = 
+default src/liblzma/liblzma.a ../native/bin/xz ../native/bin/xzdec ../native/bin/lzmadec ../native/bin/lzmainfo

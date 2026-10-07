@@ -1,0 +1,57 @@
+--- a/build-native.sh	1970-01-01 01:00:00.000000000 +0100
++++ b/build-native.sh	2026-10-07 11:18:10.584466847 +0100
+@@ -0,0 +1,10 @@
++#!/bin/bash
++set -eu
++case $0 in */*) cd "${0%/*}" ;; esac
++source ../../native-env.sh
++mkdir -p native/bin "$ROOT/native-tests"
++test -f "$ROOT/native-deps/lib/libncurses.a"
++"$CC" "$ROOT/tests/vim-libc-contracts.c" -o "$ROOT/native-tests/vim-libc-contracts"
++(cd "$ROOT"; native-tests/vim-libc-contracts)
++bash "$ROOT/bootstrap/build-plan-native.sh" "$PWD"
++native/bin/vim --version
+--- a/src/auto/configure	2024-01-02 15:51:11.000000000 +0000
++++ b/src/auto/configure	2026-10-07 11:15:41.197140457 +0100
+@@ -11381,10 +11381,11 @@
+ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ #include <stdio.h>
++static void annotated(void (*fn)(void) __attribute__((unused))) {}
+ int
+ main (void)
+ {
+-int x __attribute__((unused));
++int x __attribute__((unused)); annotated(0);
+   ;
+   return 0;
+ }
+@@ -17552,4 +17553,3 @@
+ fi
+ 
+ 
+-
+--- a/src/configure.ac	2024-01-02 15:51:11.000000000 +0000
++++ b/src/configure.ac	2026-10-07 11:15:41.167140591 +0100
+@@ -3297,7 +3297,9 @@
+ 	AC_MSG_RESULT(no))
+ 
+ AC_MSG_CHECKING(whether __attribute__((unused)) is allowed)
+-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <stdio.h>], [int x __attribute__((unused));])],
++AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <stdio.h>
++static void annotated(void (*fn)(void) __attribute__((unused))) {}
++], [int x __attribute__((unused)); annotated(0);])],
+ 	AC_MSG_RESULT(yes); AC_DEFINE(HAVE_ATTRIBUTE_UNUSED),
+ 	AC_MSG_RESULT(no))
+ 
+--- a/src/xdiff/xinclude.h	2024-01-02 15:51:11.000000000 +0000
++++ b/src/xdiff/xinclude.h	2026-10-07 11:17:41.564598115 +0100
+@@ -27,7 +27,7 @@
+ # ifdef VMS
+ #  include "[.auto]config.h"
+ # else
+-#  include "../auto/config.h"
++#  include "auto/config.h"
+ # endif
+ #endif
+ 

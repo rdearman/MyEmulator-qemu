@@ -1,0 +1,8 @@
+#!/bin/bash
+set -eu
+test "$#" = 1 -o "$#" = 2 || { echo "bootstrap basename: invalid operands" >&2; exit 2; }
+p=$1
+while [ "$p" != / ] && [ "${p%/}" != "$p" ]; do p=${p%/}; done
+case $p in /) ;; *) p=${p##*/} ;; esac
+if [ "$#" = 2 ] && [ -n "$2" ] && [ "$p" != "$2" ]; then p=${p%"$2"}; fi
+printf '%s\n' "$p"

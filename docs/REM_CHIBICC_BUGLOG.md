@@ -12,8 +12,8 @@ The float/varargs/integer probes pass there. The separately confirmed
 upstream long-double *header* issue is recorded in the EXISTING
 `CHIBICC_UPSTREAM_REPORT.md`; it is not conflated with REM's ABI.
 
-The source-kit compiler repair is staged in
-`/home/rick/rem-native-userland/kit/bootstrap/chibicc`. Its clean native
+The source-kit compiler repair is in
+`toolchain/chibicc-rem` (source kit: `toolchain/native-userland/`). Its clean native
 compiler/runtime bootstrap and compiler self-rebuild completed on 2026-10-07.
 Application and installation qualification remain incomplete.
 Source inspection and host syntax checks are not native PASS.
@@ -50,8 +50,8 @@ Its preserved serial tail ends while a shell command is being entered; the
 exact process/console cause is not established. Separately, an earlier guest
 panicked in kernel `memcpy` called by `copy_from_user_nofault` (PC
 `007b7fb0`, LR `001c71c8`, cause 6, info `020ae5e0`); the preceding userspace
-trigger is unknown. Logs and the pre-replay disk image are preserved under
-`/home/rick/rem-native-userland/evidence/`. Neither event proves the latest
+trigger is unknown. The logs and pre-replay disk image were disposable evidence outside the
+repository. Neither event proves the latest
 compiler or userland passed. No kernel or QEMU source change is proposed.
 
 ### Clean bootstrap and the installed GNU Make blocker (2026-10-07)
@@ -59,7 +59,7 @@ compiler or userland passed. No kernel or QEMU source change is proposed.
 The exact staged source completed the integer compiler, IEEE helper build,
 floating/decimal stages, all audited libc replacements, final compiler and
 compiler self-rebuild. The retained clean log is
-`/home/rick/rem-native-userland/evidence/clean-native-bootstrap.log`;
+`toolchain/tests/native-userland/results/clean-native-bootstrap.log`;
 requests 105--107 establish progression beyond bootstrap into application
 building. The earlier individual native regression results remain valid.
 
@@ -148,6 +148,72 @@ acceptance on this clock-dependent path is blocked pending the kernel
 interface and a real UTC source. Independent native builds continue; no
 kernel or QEMU files are modified.
 
+### Curl atomic capability reporting and long conditional branches
+
+`tests/atomic-exchange.c` passes otherwise-unmodified upstream chibicc on
+x86-64 (exit 0). REM has no lowering for the atomic exchange expression.
+The inherited stdatomic header nevertheless advertised lock-free atomics,
+and curl's configure test only assigned to an atomic int. That test passed
+before curl's actual exchange-based lock failed during source compilation.
+This is a REM backend/capability defect, not an upstream chibicc defect.
+The REM compiler now defines `__STDC_NO_ATOMICS__`; its stdatomic header
+explicitly rejects use rather than providing pretend non-atomic operations.
+Curl is configured again with the actual compiler: its existing fallback
+does not advertise thread-safe global initialization. The synchronous CLI
+does not require that optional feature. All 226 curl translation units now
+emit REM assembly, with genuine BearSSL enabled and certificate date checks
+unchanged. This is source-emission evidence, not native or HTTPS acceptance.
+
+BearSSL's large functions exposed R_MYEMULATOR2_BRANCH13 overflow in
+x509_minimal, chacha20_ct, sha2big and ssl_hs_client. The ordinary C reducer
+`tests/long-conditional-branch.c` contains 1024 volatile increments beneath
+a conditional. Pristine upstream executes it successfully; the original
+REM output fails to link. The repaired backend emits an inverted short
+conditional to a nearby label followed by a long J instruction. The
+existing target assembler/linker accepts the reducer and BearSSL functions.
+No scratch register, ABI, QEMU or kernel change is required. Native execution
+and the latest compiler self-rebuild remain unqualified.
+
+### Terminal Vim source-only configuration
+
+Vim's 124 translation units emit REM assembly using a normal terminal
+configuration, private ncurses and no GUI or interpreter dependency.
+The explicit cross-configuration contracts for musl toupper/getcwd/stat/
+memmove and ncurses tgoto/tgetent are checked by the small ordinary C
+programs `tests/vim-libc-contracts.c` and `tests/vim-terminfo-contracts.c`
+before the corresponding native package builder succeeds. They are source
+contracts pending native verification, not substituted host test results.
+The capability probe for optional unused attributes now includes a callback
+parameter, the form actually used by Vim. Its shared GNU-extension limitation
+is documented in the existing upstream report, not blamed on REM's ABI.
+Xdifference sources find generated auto/config.h through the build include
+directory rather than assuming an in-place configured source tree.
+BusyBox vi is untouched. Native terminal editing acceptance is still pending.
+
+The source kit also carries `tests/ssh-scp-acceptance.sh`, which requires an
+explicit isolated SSH server, key identity and pinned known_hosts file. It
+compares fetched bytes to a nonsecret source payload. No credentials are
+packaged; without those environment settings the build log explicitly states
+that SCP acceptance did not run rather than treating compilation as a PASS.
+
+### Native qualification interruption: kernel nofault copy
+
+The disposable guest panicked during concurrent compiler/BearSSL work:
+PC 007b7fb0 (`memcpy`), LR 001c71c8 (`copy_from_user_nofault`), cause 6,
+info 020ae5e0, SP 3fbe4118. The saved serial tail contains no preceding OOM.
+The preceding userspace trigger is not established. An executable was
+previously copied to a live compiler path without atomic publication;
+that is a possible race, not a demonstrated explanation of the panic.
+Neither the latest compiler nor any package receives a native PASS.
+
+The pre-replay disposable image and serial log are preserved in
+`evidence/native-porting-kernel-fault-20261007.{ext4,serial.log}` outside
+the source kit. Journal replay and the subsequent five-pass read-only fsck
+succeeded. A narrowly scoped resume uses a private known bootstrap seed,
+serial compiler jobs and atomic rename; no kernel/QEMU change or new
+architecture investigation is made. A repeat panic would block that native
+qualification path rather than justify speculative compiler changes.
+
 ### GNU coreutils aggregate ABI blocker
 
 The generated coreutils configuration now comes from compile/link checks
@@ -202,6 +268,25 @@ stack supplies both upstream stack-direction cache values; leaving the
 cross-configure guess at zero omits required gnulib structure fields.
 Generated `colorize.c` is obtained from the upstream generation rule.
 Host source emission is not native binary/runtime acceptance.
+
+XZ's required C99 compiler probe uses a variable-length local array. Its
+frontend lowering was already present, but the REM backend rejected VLA locals
+and returned the address of the pointer slot rather than its stored allocation.
+`vla-frame.c` retains a small one/two-dimensional allocation/sizeof reducer;
+it compiles and runs with pristine upstream x86-64 (exit 0). REM reserves one
+pointer word for a VLA local and loads the allocated address on array use,
+reusing the alloca lowering and frame-based epilogue. This is a REM backend
+gap, not an upstream defect. The required native self-rebuild and execution
+remain pending; no C99 configure capability is fabricated.
+
+The newly encountered negative-array-bound constraint failure is shared
+upstream and documented in the existing upstream report. It affected generated
+GNU package configuration, not REM's actual ABI widths. Those source plans
+are regenerated with the repaired frontend rather than patched with false
+capability answers. Dropbear plans explicitly include both crypto archives
+and every constituent object; omitted object recipes now fail extraction.
+Libtool compile/link recipes are represented as ordinary native objects and
+static archives for XZ, with no native libtool dependency.
 
 | ID | Defect / minimal C reproducer | Classification and current evidence |
 |---|---|---|
@@ -303,8 +388,8 @@ The cached GCC source used for the old artifact selects `__BIG_ENDIAN` in
 `libgcc/config/myemulator2/sfp-machine.h`, despite REM being little endian.
 The current repository's `toolchain/gcc/sfp-machine.h` already selects little
 endian; no change to that current header is warranted by this evidence.
-The retained baseline disassembly and native request results are in
-`/home/rick/rem-native-userland`.
+The baseline disassembly and native request results were disposable
+evidence outside the repository.
 
 The source bootstrap now includes compiler-rt 15.0.7's scalar IEEE helpers
 (official source SHA256
@@ -451,8 +536,8 @@ the repaired source-built compiler/runtime is still required.
 
 ### Preserved evidence and safety boundary
 
-Initial native probe logs and generated assembly are retained under
-`/home/rick/rem-native-userland/requests/`; the failing float executable and
+Initial native probe logs and generated assembly were disposable evidence
+outside the repository; the failing float executable and
 old curl ELF disassemblies resolve the actual frame failures. Testing used an
 owned disposable image derived from `fold-flight/final.ext4`; all QEMUs
 started for initial probes were stopped, including clean guest poweroff of

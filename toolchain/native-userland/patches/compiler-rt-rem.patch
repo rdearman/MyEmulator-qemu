@@ -1,0 +1,243 @@
+--- a/README-REM.txt	1970-01-01 01:00:00.000000000 +0100
++++ b/README-REM.txt	2026-10-06 23:19:19.260422760 +0100
+@@ -0,0 +1,39 @@
++REM scalar IEEE runtime source port
++
++Upstream: LLVM compiler-rt 15.0.7
++Archive SHA256:
++353832c66cce60931ea0413b3c071faad59eefa70d02c97daa8978b15e4b25b7
++License: LICENSE.TXT (Apache 2.0 with LLVM exception)
++
++Build with the repaired native REM compiler:
++    CC=/absolute/path/to/chibicc-integer bash build-native.sh
++
++This builds only scalar binary32/binary64 arithmetic, comparisons, conversions,
++and the software rounding-mode support. No CMake, Python, complex arithmetic,
++128-bit integer support, kernel modification, or QEMU modification is needed.
++REM uses the little-endian ILP32 ABI, with wide values passed low word first.
++
++Port changes:
++- Recognize REM's little-endian layout.
++- Respect the compiler's lack of complex support.
++- Replace unavailable bit-count and prediction builtins with ordinary C.
++- Exclude unused complex-math helpers requiring unsupported math builtins.
++- Select software-only conversion code with __SOFTFP__.
++- Construct zero return values through integer union members so an initial
++  integer-only compiler can build the floating runtime without parsing decimal
++  floating literals or recursively calling a not-yet-repaired float helper.
++
++The default software environment rounds to nearest-even and has no hardware
++floating exception environment. This is not a hardware fenv implementation.
++
++Link native/ieee-runtime.o explicitly BEFORE libc/libgcc. An archive alone is
++not sufficient: legacy libc references can otherwise pull the old non-IEEE
++floating helpers from libgcc. The source-kit compiler driver accepts the
++absolute object path through CHIBICC_REM_SOFTFLOAT.
++
++All 29 selected sources built natively on REM. The repaired runtime and
++relinked native compiler pass ieee-soft-float.c, covering literals, arithmetic,
++conversions, NaN, signed zero and subnormals (request 048). This is not full
++compiler/libc or userland qualification.
++The existing REM_CHIBICC_BUGLOG.md records the native encoding failure as
++NU-22; ieee-soft-float.c supplies representative numerical acceptance.
+--- a/build-native.sh	1970-01-01 01:00:00.000000000 +0100
++++ b/build-native.sh	2026-10-06 23:17:00.686168567 +0100
+@@ -0,0 +1,17 @@
++#!/bin/bash
++set -eu
++case $0 in */*) cd "${0%/*}" ;; esac
++CC=${CC:-chibicc}
++mkdir -p native
++objects=
++for file in addsf3 adddf3 subsf3 subdf3 mulsf3 muldf3 divsf3 divdf3 \
++    comparesf2 comparedf2 extendsfdf2 truncdfsf2 \
++    fixsfsi fixdfsi fixunssfsi fixunsdfsi fixsfdi fixdfdi fixunssfdi fixunsdfdi \
++    floatsisf floatsidf floatdisf floatdidf floatunsisf floatunsidf \
++    floatundisf floatundidf fp_mode; do
++    echo "CC IEEE runtime $file.c"
++    "$CC" -D__SOFTFP__=1 -c "lib/builtins/$file.c" -o "native/$file.o"
++    objects="$objects native/$file.o"
++done
++ld -r -T ../rem-reloc.ld -o native/ieee-runtime.o $objects
++echo "IEEE runtime built; link native/ieee-runtime.o before libc and libgcc."
+--- a/lib/builtins/floatdidf.c	2023-01-12 07:12:30.000000000 +0000
++++ b/lib/builtins/floatdidf.c	2026-10-06 22:58:01.383868435 +0100
+@@ -46,8 +46,11 @@
+ // implementation.
+ 
+ COMPILER_RT_ABI double __floatdidf(di_int a) {
+-  if (a == 0)
+-    return 0.0;
++  if (a == 0) {
++    double_bits zero;
++    zero.u.all = 0;
++    return zero.f;
++  }
+   const unsigned N = sizeof(di_int) * CHAR_BIT;
+   const di_int s = a >> (N - 1);
+   a = (a ^ s) - s;
+--- a/lib/builtins/floatdisf.c	2023-01-12 07:12:30.000000000 +0000
++++ b/lib/builtins/floatdisf.c	2026-10-06 22:58:01.387868416 +0100
+@@ -20,8 +20,11 @@
+ #include "int_lib.h"
+ 
+ COMPILER_RT_ABI float __floatdisf(di_int a) {
+-  if (a == 0)
+-    return 0.0F;
++  if (a == 0) {
++    float_bits zero;
++    zero.u = 0;
++    return zero.f;
++  }
+   const unsigned N = sizeof(di_int) * CHAR_BIT;
+   const di_int s = a >> (N - 1);
+   a = (a ^ s) - s;
+--- a/lib/builtins/floatundidf.c	2023-01-12 07:12:30.000000000 +0000
++++ b/lib/builtins/floatundidf.c	2026-10-06 22:58:01.385868425 +0100
+@@ -52,8 +52,11 @@
+ // implementation.
+ 
+ COMPILER_RT_ABI double __floatundidf(du_int a) {
+-  if (a == 0)
+-    return 0.0;
++  if (a == 0) {
++    double_bits zero;
++    zero.u.all = 0;
++    return zero.f;
++  }
+   const unsigned N = sizeof(du_int) * CHAR_BIT;
+   int sd = N - __builtin_clzll(a); // number of significant digits
+   int e = sd - 1;                  // exponent
+--- a/lib/builtins/floatundisf.c	2023-01-12 07:12:30.000000000 +0000
++++ b/lib/builtins/floatundisf.c	2026-10-06 22:58:01.390868402 +0100
+@@ -20,8 +20,11 @@
+ #include "int_lib.h"
+ 
+ COMPILER_RT_ABI float __floatundisf(du_int a) {
+-  if (a == 0)
+-    return 0.0F;
++  if (a == 0) {
++    float_bits zero;
++    zero.u = 0;
++    return zero.f;
++  }
+   const unsigned N = sizeof(du_int) * CHAR_BIT;
+   int sd = N - __builtin_clzll(a); // number of significant digits
+   si_int e = sd - 1;               // 8 exponent
+--- a/lib/builtins/fp_lib.h	2023-01-12 07:12:30.000000000 +0000
++++ b/lib/builtins/fp_lib.h	2026-10-06 22:54:42.252799266 +0100
+@@ -21,7 +21,9 @@
+ #define FP_LIB_HEADER
+ 
+ #include "int_lib.h"
++#ifndef __chibicc__
+ #include "int_math.h"
++#endif
+ #include <limits.h>
+ #include <stdbool.h>
+ #include <stdint.h>
+@@ -266,6 +268,7 @@
+   }
+ }
+ 
++#ifndef __chibicc__
+ // Implements logb methods (logb, logbf, logbl) for IEEE-754. This avoids
+ // pulling in a libm dependency from compiler-rt, but is not meant to replace
+ // it (i.e. code calling logb() should get the one from libm, not this), hence
+@@ -347,9 +350,11 @@
+   // arbitrarily return the first one.
+   return (crt_isnan(x) || x < y) ? y : x;
+ }
++#endif
+ 
+ #endif
+ 
++#if !defined(__chibicc__)
+ #if defined(SINGLE_PRECISION)
+ 
+ static __inline fp_t __compiler_rt_logbf(fp_t x) {
+@@ -413,5 +418,6 @@
+ #endif // CRT_LDBL_128BIT
+ 
+ #endif // *_PRECISION
++#endif
+ 
+ #endif // FP_LIB_HEADER
+--- a/lib/builtins/int_endianness.h	2023-01-12 07:12:30.000000000 +0000
++++ b/lib/builtins/int_endianness.h	2026-10-06 22:53:41.835081714 +0100
+@@ -14,7 +14,10 @@
+ #ifndef INT_ENDIANNESS_H
+ #define INT_ENDIANNESS_H
+ 
+-#if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) &&                \
++#if defined(__myemulator2__)
++#define _YUGA_LITTLE_ENDIAN 1
++#define _YUGA_BIG_ENDIAN 0
++#elif defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) &&             \
+     defined(__ORDER_LITTLE_ENDIAN__)
+ 
+ // Clang and GCC provide built-in endianness definitions.
+--- a/lib/builtins/int_lib.h	2023-01-12 07:12:30.000000000 +0000
++++ b/lib/builtins/int_lib.h	2026-10-06 22:52:39.963370974 +0100
+@@ -96,6 +96,9 @@
+ #endif
+ 
+ // Include the commonly used internal type definitions.
++#ifdef __chibicc__
++#include "rem_port.h"
++#endif
+ #include "int_types.h"
+ 
+ // Include internal utility function declarations.
+--- a/lib/builtins/int_types.h	2023-01-12 07:12:30.000000000 +0000
++++ b/lib/builtins/int_types.h	2026-10-06 22:54:42.250799276 +0100
+@@ -171,7 +171,7 @@
+   long double f;
+ } long_double_bits;
+ 
+-#if __STDC_VERSION__ >= 199901L
++#if __STDC_VERSION__ >= 199901L && !defined(__STDC_NO_COMPLEX__)
+ typedef float _Complex Fcomplex;
+ typedef double _Complex Dcomplex;
+ typedef long double _Complex Lcomplex;
+--- a/lib/builtins/rem_port.h	1970-01-01 01:00:00.000000000 +0100
++++ b/lib/builtins/rem_port.h	2026-10-06 22:52:39.960370988 +0100
+@@ -0,0 +1,38 @@
++#ifndef REM_COMPILER_RT_PORT_H
++#define REM_COMPILER_RT_PORT_H
++
++#define __inline inline
++
++static inline int rem_clz32(uint32_t value) {
++  int count = 0;
++  if (!value) return 32;
++  while (!(value & 0x80000000U)) {
++    value <<= 1;
++    count++;
++  }
++  return count;
++}
++
++static inline int rem_clz64(uint64_t value) {
++  uint32_t high = value >> 32;
++  return high ? rem_clz32(high) : 32 + rem_clz32((uint32_t)value);
++}
++
++static inline int rem_ctz32(uint32_t value) {
++  int count = 0;
++  if (!value) return 32;
++  while (!(value & 1U)) {
++    value >>= 1;
++    count++;
++  }
++  return count;
++}
++
++#define __builtin_clz rem_clz32
++#define __builtin_clzl rem_clz32
++#define __builtin_clzll rem_clz64
++#define __builtin_ctz rem_ctz32
++#define __builtin_ctzl rem_ctz32
++#define __builtin_expect(value, expected) (value)
++
++#endif

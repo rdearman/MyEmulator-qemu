@@ -1,0 +1,23 @@
+--- a/build-native.sh	1970-01-01 01:00:00.000000000 +0100
++++ b/build-native.sh	2026-10-07 00:07:08.976317571 +0100
+@@ -0,0 +1,20 @@
++#!/bin/bash
++set -eu
++case $0 in */*) cd "${0%/*}" ;; esac
++source ../../native-env.sh
++mkdir -p native
++objects=
++for source in blocksort huffman crctable randtable compress decompress bzlib; do
++    echo "CC $source.c"
++    "$CC" -D_FILE_OFFSET_BITS=64 -I. -c "$source.c" -o "native/$source.o"
++    objects="$objects native/$source.o"
++done
++ar rcs native/libbz2.a $objects
++"$CC" -D_FILE_OFFSET_BITS=64 -I. -c bzip2.c -o native/bzip2.o
++ld -r -T ../../bootstrap/rem-reloc.ld -o native/bzip2-partial.o native/bzip2.o $objects
++"$CC" -o native/bzip2 native/bzip2-partial.o
++"$CC" -I. -o native/bzip2recover bzip2recover.c
++mkdir -p native/bin
++cp native/bzip2 native/bzip2recover native/bin/
++ln -sf bzip2 native/bin/bunzip2
++ln -sf bzip2 native/bin/bzcat

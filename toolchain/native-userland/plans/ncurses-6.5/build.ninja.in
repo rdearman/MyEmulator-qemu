@@ -1,0 +1,481 @@
+cc = @CC@
+root = ../../..
+
+rule cc
+  command = mkdir -p $directory && $cc $flags -c $in -o $out
+  description = CC $in
+rule archive
+  command = ar rcs $out $in
+  description = AR $out
+rule link
+  command = mkdir -p ../native/bin && ld -r -T $root/bootstrap/rem-reloc.ld -o $out.partial.o $in && $cc -o $out $out.partial.o $libraries
+  description = LINK $out
+
+build objects/hardscroll.o: cc ../ncurses/tty/hardscroll.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/hashmap.o: cc ../ncurses/tty/hashmap.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_addch.o: cc ../ncurses/base/lib_addch.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_addstr.o: cc ../ncurses/base/lib_addstr.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_beep.o: cc ../ncurses/base/lib_beep.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_bkgd.o: cc ../ncurses/base/lib_bkgd.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_box.o: cc ../ncurses/base/lib_box.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_chgat.o: cc ../ncurses/base/lib_chgat.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_clear.o: cc ../ncurses/base/lib_clear.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_clearok.o: cc ../ncurses/base/lib_clearok.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_clrbot.o: cc ../ncurses/base/lib_clrbot.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_clreol.o: cc ../ncurses/base/lib_clreol.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_color.o: cc ../ncurses/base/lib_color.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_colorset.o: cc ../ncurses/base/lib_colorset.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_delch.o: cc ../ncurses/base/lib_delch.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_delwin.o: cc ../ncurses/base/lib_delwin.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_echo.o: cc ../ncurses/base/lib_echo.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_endwin.o: cc ../ncurses/base/lib_endwin.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_erase.o: cc ../ncurses/base/lib_erase.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_flash.o: cc ../ncurses/base/lib_flash.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_gen.o: cc ncurses/lib_gen.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_getch.o: cc ../ncurses/base/lib_getch.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_getstr.o: cc ../ncurses/base/lib_getstr.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_hline.o: cc ../ncurses/base/lib_hline.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_immedok.o: cc ../ncurses/base/lib_immedok.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_inchstr.o: cc ../ncurses/base/lib_inchstr.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_initscr.o: cc ../ncurses/base/lib_initscr.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_insch.o: cc ../ncurses/base/lib_insch.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_insdel.o: cc ../ncurses/base/lib_insdel.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_insnstr.o: cc ../ncurses/base/lib_insnstr.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_instr.o: cc ../ncurses/base/lib_instr.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_isendwin.o: cc ../ncurses/base/lib_isendwin.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_leaveok.o: cc ../ncurses/base/lib_leaveok.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_mouse.o: cc ../ncurses/base/lib_mouse.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_move.o: cc ../ncurses/base/lib_move.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_mvcur.o: cc ../ncurses/tty/lib_mvcur.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_mvwin.o: cc ../ncurses/base/lib_mvwin.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_newterm.o: cc ../ncurses/base/lib_newterm.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_newwin.o: cc ../ncurses/base/lib_newwin.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_nl.o: cc ../ncurses/base/lib_nl.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_overlay.o: cc ../ncurses/base/lib_overlay.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_pad.o: cc ../ncurses/base/lib_pad.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_printw.o: cc ../ncurses/base/lib_printw.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_redrawln.o: cc ../ncurses/base/lib_redrawln.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_refresh.o: cc ../ncurses/base/lib_refresh.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_restart.o: cc ../ncurses/base/lib_restart.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_scanw.o: cc ../ncurses/base/lib_scanw.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_screen.o: cc ../ncurses/base/lib_screen.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_scroll.o: cc ../ncurses/base/lib_scroll.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_scrollok.o: cc ../ncurses/base/lib_scrollok.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_scrreg.o: cc ../ncurses/base/lib_scrreg.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_set_term.o: cc ../ncurses/base/lib_set_term.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_slk.o: cc ../ncurses/base/lib_slk.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_slkatr_set.o: cc ../ncurses/base/lib_slkatr_set.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_slkatrof.o: cc ../ncurses/base/lib_slkatrof.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_slkatron.o: cc ../ncurses/base/lib_slkatron.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_slkatrset.o: cc ../ncurses/base/lib_slkatrset.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_slkattr.o: cc ../ncurses/base/lib_slkattr.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_slkclear.o: cc ../ncurses/base/lib_slkclear.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_slkcolor.o: cc ../ncurses/base/lib_slkcolor.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_slkinit.o: cc ../ncurses/base/lib_slkinit.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_slklab.o: cc ../ncurses/base/lib_slklab.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_slkrefr.o: cc ../ncurses/base/lib_slkrefr.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_slkset.o: cc ../ncurses/base/lib_slkset.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_slktouch.o: cc ../ncurses/base/lib_slktouch.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_touch.o: cc ../ncurses/base/lib_touch.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_tstp.o: cc ../ncurses/tty/lib_tstp.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_ungetch.o: cc ../ncurses/base/lib_ungetch.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_vidattr.o: cc ../ncurses/tty/lib_vidattr.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_vline.o: cc ../ncurses/base/lib_vline.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_wattroff.o: cc ../ncurses/base/lib_wattroff.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_wattron.o: cc ../ncurses/base/lib_wattron.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_winch.o: cc ../ncurses/base/lib_winch.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_window.o: cc ../ncurses/base/lib_window.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/nc_panel.o: cc ../ncurses/base/nc_panel.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/safe_sprintf.o: cc ../ncurses/base/safe_sprintf.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/tty_update.o: cc ../ncurses/tty/tty_update.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/varargs.o: cc ../ncurses/trace/varargs.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/vsscanf.o: cc ../ncurses/base/vsscanf.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_freeall.o: cc ../ncurses/base/lib_freeall.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/expanded.o: cc ncurses/expanded.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/legacy_coding.o: cc ../ncurses/base/legacy_coding.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_dft_fgbg.o: cc ../ncurses/base/lib_dft_fgbg.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_print.o: cc ../ncurses/tinfo/lib_print.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/new_pair.o: cc ../ncurses/base/new_pair.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/resizeterm.o: cc ../ncurses/base/resizeterm.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/use_screen.o: cc ../ncurses/tinfo/use_screen.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/use_window.o: cc ../ncurses/base/use_window.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/wresize.o: cc ../ncurses/base/wresize.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/access.o: cc ../ncurses/tinfo/access.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/add_tries.o: cc ../ncurses/tinfo/add_tries.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/alloc_ttype.o: cc ../ncurses/tinfo/alloc_ttype.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/codes.o: cc ncurses/codes.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/comp_captab.o: cc ncurses/comp_captab.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/comp_error.o: cc ../ncurses/tinfo/comp_error.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/comp_hash.o: cc ../ncurses/tinfo/comp_hash.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/comp_userdefs.o: cc ncurses/comp_userdefs.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/db_iterator.o: cc ../ncurses/tinfo/db_iterator.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/doalloc.o: cc ../ncurses/tinfo/doalloc.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/entries.o: cc ../ncurses/tinfo/entries.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/fallback.o: cc ncurses/fallback.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/free_ttype.o: cc ../ncurses/tinfo/free_ttype.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/getenv_num.o: cc ../ncurses/tinfo/getenv_num.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/home_terminfo.o: cc ../ncurses/tinfo/home_terminfo.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/init_keytry.o: cc ../ncurses/tinfo/init_keytry.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_acs.o: cc ../ncurses/tinfo/lib_acs.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_baudrate.o: cc ../ncurses/tinfo/lib_baudrate.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_cur_term.o: cc ../ncurses/tinfo/lib_cur_term.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_data.o: cc ../ncurses/tinfo/lib_data.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_has_cap.o: cc ../ncurses/tinfo/lib_has_cap.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_kernel.o: cc ../ncurses/tinfo/lib_kernel.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_keyname.o: cc ncurses/lib_keyname.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_longname.o: cc ../ncurses/tinfo/lib_longname.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_napms.o: cc ../ncurses/tinfo/lib_napms.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_options.o: cc ../ncurses/tinfo/lib_options.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_raw.o: cc ../ncurses/tinfo/lib_raw.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_setup.o: cc ../ncurses/tinfo/lib_setup.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_termcap.o: cc ../ncurses/tinfo/lib_termcap.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_termname.o: cc ../ncurses/tinfo/lib_termname.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_tgoto.o: cc ../ncurses/tinfo/lib_tgoto.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_ti.o: cc ../ncurses/tinfo/lib_ti.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_tparm.o: cc ../ncurses/tinfo/lib_tparm.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_tputs.o: cc ../ncurses/tinfo/lib_tputs.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_trace.o: cc ../ncurses/trace/lib_trace.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_ttyflags.o: cc ../ncurses/tinfo/lib_ttyflags.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/lib_twait.o: cc ../ncurses/tty/lib_twait.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/name_match.o: cc ../ncurses/tinfo/name_match.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/names.o: cc ncurses/names.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/obsolete.o: cc ../ncurses/tinfo/obsolete.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/read_entry.o: cc ../ncurses/tinfo/read_entry.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/read_termcap.o: cc ../ncurses/tinfo/read_termcap.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/strings.o: cc ../ncurses/tinfo/strings.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/tries.o: cc ../ncurses/base/tries.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/trim_sgr0.o: cc ../ncurses/tinfo/trim_sgr0.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/unctrl.o: cc ncurses/unctrl.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/visbuf.o: cc ../ncurses/trace/visbuf.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/alloc_entry.o: cc ../ncurses/tinfo/alloc_entry.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/captoinfo.o: cc ../ncurses/tinfo/captoinfo.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/comp_expand.o: cc ../ncurses/tinfo/comp_expand.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/comp_parse.o: cc ../ncurses/tinfo/comp_parse.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/comp_scan.o: cc ../ncurses/tinfo/comp_scan.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/parse_entry.o: cc ../ncurses/tinfo/parse_entry.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/write_entry.o: cc ../ncurses/tinfo/write_entry.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/define_key.o: cc ../ncurses/base/define_key.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/hashed_db.o: cc ../ncurses/tinfo/hashed_db.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/key_defined.o: cc ../ncurses/base/key_defined.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/keybound.o: cc ../ncurses/base/keybound.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/keyok.o: cc ../ncurses/base/keyok.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/version.o: cc ../ncurses/base/version.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -DBUILDING_NCURSES -Incurses -Incurses -I../ncurses -Iinclude -I../ncurses/../include -O0 -DNCURSES_STATIC
+build objects/tic.o: cc ../progs/tic.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -Iprogs -Incurses -I../ncurses -Iprogs -I../progs -Iinclude -I../progs/../include -O0 -DNCURSES_STATIC
+build objects/dump_entry.o: cc ../progs/dump_entry.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -Iprogs -Incurses -I../ncurses -Iprogs -I../progs -Iinclude -I../progs/../include -O0 -DNCURSES_STATIC
+build objects/tparm_type.o: cc ../progs/tparm_type.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -Iprogs -Incurses -I../ncurses -Iprogs -I../progs -Iinclude -I../progs/../include -O0 -DNCURSES_STATIC
+build objects/transform.o: cc ../progs/transform.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -Iprogs -Incurses -I../ncurses -Iprogs -I../progs -Iinclude -I../progs/../include -O0 -DNCURSES_STATIC
+build objects/infocmp.o: cc ../progs/infocmp.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h
+  directory = objects
+  flags = -DHAVE_CONFIG_H -Iprogs -Incurses -I../ncurses -Iprogs -I../progs -Iinclude -I../progs/../include -O0 -DNCURSES_STATIC
+build lib/libncurses.a: archive objects/hardscroll.o objects/hashmap.o objects/lib_addch.o objects/lib_addstr.o objects/lib_beep.o objects/lib_bkgd.o objects/lib_box.o objects/lib_chgat.o objects/lib_clear.o objects/lib_clearok.o objects/lib_clrbot.o objects/lib_clreol.o objects/lib_color.o objects/lib_colorset.o objects/lib_delch.o objects/lib_delwin.o objects/lib_echo.o objects/lib_endwin.o objects/lib_erase.o objects/lib_flash.o objects/lib_gen.o objects/lib_getch.o objects/lib_getstr.o objects/lib_hline.o objects/lib_immedok.o objects/lib_inchstr.o objects/lib_initscr.o objects/lib_insch.o objects/lib_insdel.o objects/lib_insnstr.o objects/lib_instr.o objects/lib_isendwin.o objects/lib_leaveok.o objects/lib_mouse.o objects/lib_move.o objects/lib_mvcur.o objects/lib_mvwin.o objects/lib_newterm.o objects/lib_newwin.o objects/lib_nl.o objects/lib_overlay.o objects/lib_pad.o objects/lib_printw.o objects/lib_redrawln.o objects/lib_refresh.o objects/lib_restart.o objects/lib_scanw.o objects/lib_screen.o objects/lib_scroll.o objects/lib_scrollok.o objects/lib_scrreg.o objects/lib_set_term.o objects/lib_slk.o objects/lib_slkatr_set.o objects/lib_slkatrof.o objects/lib_slkatron.o objects/lib_slkatrset.o objects/lib_slkattr.o objects/lib_slkclear.o objects/lib_slkcolor.o objects/lib_slkinit.o objects/lib_slklab.o objects/lib_slkrefr.o objects/lib_slkset.o objects/lib_slktouch.o objects/lib_touch.o objects/lib_tstp.o objects/lib_ungetch.o objects/lib_vidattr.o objects/lib_vline.o objects/lib_wattroff.o objects/lib_wattron.o objects/lib_winch.o objects/lib_window.o objects/nc_panel.o objects/safe_sprintf.o objects/tty_update.o objects/varargs.o objects/vsscanf.o objects/lib_freeall.o objects/expanded.o objects/legacy_coding.o objects/lib_dft_fgbg.o objects/lib_print.o objects/new_pair.o objects/resizeterm.o objects/use_screen.o objects/use_window.o objects/wresize.o objects/access.o objects/add_tries.o objects/alloc_ttype.o objects/codes.o objects/comp_captab.o objects/comp_error.o objects/comp_hash.o objects/comp_userdefs.o objects/db_iterator.o objects/doalloc.o objects/entries.o objects/fallback.o objects/free_ttype.o objects/getenv_num.o objects/home_terminfo.o objects/init_keytry.o objects/lib_acs.o objects/lib_baudrate.o objects/lib_cur_term.o objects/lib_data.o objects/lib_has_cap.o objects/lib_kernel.o objects/lib_keyname.o objects/lib_longname.o objects/lib_napms.o objects/lib_options.o objects/lib_raw.o objects/lib_setup.o objects/lib_termcap.o objects/lib_termname.o objects/lib_tgoto.o objects/lib_ti.o objects/lib_tparm.o objects/lib_tputs.o objects/lib_trace.o objects/lib_ttyflags.o objects/lib_twait.o objects/name_match.o objects/names.o objects/obsolete.o objects/read_entry.o objects/read_termcap.o objects/strings.o objects/tries.o objects/trim_sgr0.o objects/unctrl.o objects/visbuf.o objects/alloc_entry.o objects/captoinfo.o objects/comp_expand.o objects/comp_parse.o objects/comp_scan.o objects/parse_entry.o objects/write_entry.o objects/define_key.o objects/hashed_db.o objects/key_defined.o objects/keybound.o objects/keyok.o objects/version.o
+build ../native/bin/tic: link objects/tic.o objects/dump_entry.o objects/tparm_type.o objects/transform.o lib/libncurses.a
+  libraries = -Llib -Llib
+build ../native/bin/infocmp: link objects/infocmp.o objects/dump_entry.o lib/libncurses.a
+  libraries = -Llib -Llib
+default lib/libncurses.a ../native/bin/tic ../native/bin/infocmp

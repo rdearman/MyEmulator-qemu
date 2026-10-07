@@ -1,0 +1,695 @@
+cc = @CC@
+root = ../../..
+
+rule cc
+  command = mkdir -p $directory && $cc $flags -c $in -o $out
+  description = CC $in
+rule archive
+  command = ar rcs $out $in
+  description = AR $out
+rule link
+  command = mkdir -p ../native/bin && ld -r -T $root/bootstrap/rem-reloc.ld -o $out.partial.o $in && $cc -o $out $out.partial.o $libraries
+  description = LINK $out
+
+build lib/libcurl_la-altsvc.o: cc ../lib/altsvc.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-amigaos.o: cc ../lib/amigaos.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-asyn-ares.o: cc ../lib/asyn-ares.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-asyn-thread.o: cc ../lib/asyn-thread.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-base64.o: cc ../lib/base64.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-bufq.o: cc ../lib/bufq.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-bufref.o: cc ../lib/bufref.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-cf-h1-proxy.o: cc ../lib/cf-h1-proxy.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-cf-h2-proxy.o: cc ../lib/cf-h2-proxy.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-cf-haproxy.o: cc ../lib/cf-haproxy.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-cf-https-connect.o: cc ../lib/cf-https-connect.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-cf-socket.o: cc ../lib/cf-socket.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-cfilters.o: cc ../lib/cfilters.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-conncache.o: cc ../lib/conncache.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-connect.o: cc ../lib/connect.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-content_encoding.o: cc ../lib/content_encoding.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-cookie.o: cc ../lib/cookie.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-curl_addrinfo.o: cc ../lib/curl_addrinfo.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-curl_des.o: cc ../lib/curl_des.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-curl_endian.o: cc ../lib/curl_endian.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-curl_fnmatch.o: cc ../lib/curl_fnmatch.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-curl_get_line.o: cc ../lib/curl_get_line.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-curl_gethostname.o: cc ../lib/curl_gethostname.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-curl_gssapi.o: cc ../lib/curl_gssapi.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-curl_memrchr.o: cc ../lib/curl_memrchr.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-curl_multibyte.o: cc ../lib/curl_multibyte.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-curl_ntlm_core.o: cc ../lib/curl_ntlm_core.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-curl_range.o: cc ../lib/curl_range.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-curl_rtmp.o: cc ../lib/curl_rtmp.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-curl_sasl.o: cc ../lib/curl_sasl.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-curl_sha512_256.o: cc ../lib/curl_sha512_256.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-curl_sspi.o: cc ../lib/curl_sspi.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-curl_threads.o: cc ../lib/curl_threads.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-curl_trc.o: cc ../lib/curl_trc.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-cw-out.o: cc ../lib/cw-out.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-dict.o: cc ../lib/dict.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-dllmain.o: cc ../lib/dllmain.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-doh.o: cc ../lib/doh.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-dynbuf.o: cc ../lib/dynbuf.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-dynhds.o: cc ../lib/dynhds.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-easy.o: cc ../lib/easy.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-easygetopt.o: cc ../lib/easygetopt.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-easyoptions.o: cc ../lib/easyoptions.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-escape.o: cc ../lib/escape.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-file.o: cc ../lib/file.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-fileinfo.o: cc ../lib/fileinfo.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-fopen.o: cc ../lib/fopen.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-formdata.o: cc ../lib/formdata.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-ftp.o: cc ../lib/ftp.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-ftplistparser.o: cc ../lib/ftplistparser.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-getenv.o: cc ../lib/getenv.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-getinfo.o: cc ../lib/getinfo.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-gopher.o: cc ../lib/gopher.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-hash.o: cc ../lib/hash.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-headers.o: cc ../lib/headers.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-hmac.o: cc ../lib/hmac.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-hostasyn.o: cc ../lib/hostasyn.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-hostip.o: cc ../lib/hostip.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-hostip4.o: cc ../lib/hostip4.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-hostip6.o: cc ../lib/hostip6.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-hostsyn.o: cc ../lib/hostsyn.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-hsts.o: cc ../lib/hsts.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-http.o: cc ../lib/http.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-http1.o: cc ../lib/http1.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-http2.o: cc ../lib/http2.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-http_aws_sigv4.o: cc ../lib/http_aws_sigv4.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-http_chunks.o: cc ../lib/http_chunks.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-http_digest.o: cc ../lib/http_digest.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-http_negotiate.o: cc ../lib/http_negotiate.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-http_ntlm.o: cc ../lib/http_ntlm.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-http_proxy.o: cc ../lib/http_proxy.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-httpsrr.o: cc ../lib/httpsrr.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-idn.o: cc ../lib/idn.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-if2ip.o: cc ../lib/if2ip.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-imap.o: cc ../lib/imap.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-inet_ntop.o: cc ../lib/inet_ntop.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-inet_pton.o: cc ../lib/inet_pton.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-krb5.o: cc ../lib/krb5.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-ldap.o: cc ../lib/ldap.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-llist.o: cc ../lib/llist.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-macos.o: cc ../lib/macos.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-md4.o: cc ../lib/md4.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-md5.o: cc ../lib/md5.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-memdebug.o: cc ../lib/memdebug.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-mime.o: cc ../lib/mime.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-mprintf.o: cc ../lib/mprintf.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-mqtt.o: cc ../lib/mqtt.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-multi.o: cc ../lib/multi.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-netrc.o: cc ../lib/netrc.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-nonblock.o: cc ../lib/nonblock.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-noproxy.o: cc ../lib/noproxy.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-openldap.o: cc ../lib/openldap.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-parsedate.o: cc ../lib/parsedate.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-pingpong.o: cc ../lib/pingpong.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-pop3.o: cc ../lib/pop3.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-progress.o: cc ../lib/progress.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-psl.o: cc ../lib/psl.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-rand.o: cc ../lib/rand.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-rename.o: cc ../lib/rename.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-request.o: cc ../lib/request.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-rtsp.o: cc ../lib/rtsp.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-select.o: cc ../lib/select.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-sendf.o: cc ../lib/sendf.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-setopt.o: cc ../lib/setopt.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-sha256.o: cc ../lib/sha256.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-share.o: cc ../lib/share.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-slist.o: cc ../lib/slist.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-smb.o: cc ../lib/smb.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-smtp.o: cc ../lib/smtp.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-socketpair.o: cc ../lib/socketpair.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-socks.o: cc ../lib/socks.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-socks_gssapi.o: cc ../lib/socks_gssapi.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-socks_sspi.o: cc ../lib/socks_sspi.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-speedcheck.o: cc ../lib/speedcheck.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-splay.o: cc ../lib/splay.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-strcase.o: cc ../lib/strcase.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-strdup.o: cc ../lib/strdup.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-strerror.o: cc ../lib/strerror.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-strparse.o: cc ../lib/strparse.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-strtok.o: cc ../lib/strtok.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-strtoofft.o: cc ../lib/strtoofft.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-system_win32.o: cc ../lib/system_win32.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-telnet.o: cc ../lib/telnet.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-tftp.o: cc ../lib/tftp.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-timediff.o: cc ../lib/timediff.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-timeval.o: cc ../lib/timeval.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-transfer.o: cc ../lib/transfer.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-url.o: cc ../lib/url.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-urlapi.o: cc ../lib/urlapi.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-version.o: cc ../lib/version.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-version_win32.o: cc ../lib/version_win32.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-warnless.o: cc ../lib/warnless.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl_la-ws.o: cc ../lib/ws.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vauth/libcurl_la-cleartext.o: cc ../lib/vauth/cleartext.c | lib/curl_config.h
+  directory = lib/vauth
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vauth/libcurl_la-cram.o: cc ../lib/vauth/cram.c | lib/curl_config.h
+  directory = lib/vauth
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vauth/libcurl_la-digest.o: cc ../lib/vauth/digest.c | lib/curl_config.h
+  directory = lib/vauth
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vauth/libcurl_la-digest_sspi.o: cc ../lib/vauth/digest_sspi.c | lib/curl_config.h
+  directory = lib/vauth
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vauth/libcurl_la-gsasl.o: cc ../lib/vauth/gsasl.c | lib/curl_config.h
+  directory = lib/vauth
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vauth/libcurl_la-krb5_gssapi.o: cc ../lib/vauth/krb5_gssapi.c | lib/curl_config.h
+  directory = lib/vauth
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vauth/libcurl_la-krb5_sspi.o: cc ../lib/vauth/krb5_sspi.c | lib/curl_config.h
+  directory = lib/vauth
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vauth/libcurl_la-ntlm.o: cc ../lib/vauth/ntlm.c | lib/curl_config.h
+  directory = lib/vauth
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vauth/libcurl_la-ntlm_sspi.o: cc ../lib/vauth/ntlm_sspi.c | lib/curl_config.h
+  directory = lib/vauth
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vauth/libcurl_la-oauth2.o: cc ../lib/vauth/oauth2.c | lib/curl_config.h
+  directory = lib/vauth
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vauth/libcurl_la-spnego_gssapi.o: cc ../lib/vauth/spnego_gssapi.c | lib/curl_config.h
+  directory = lib/vauth
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vauth/libcurl_la-spnego_sspi.o: cc ../lib/vauth/spnego_sspi.c | lib/curl_config.h
+  directory = lib/vauth
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vauth/libcurl_la-vauth.o: cc ../lib/vauth/vauth.c | lib/curl_config.h
+  directory = lib/vauth
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vtls/libcurl_la-bearssl.o: cc ../lib/vtls/bearssl.c | lib/curl_config.h
+  directory = lib/vtls
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vtls/libcurl_la-cipher_suite.o: cc ../lib/vtls/cipher_suite.c | lib/curl_config.h
+  directory = lib/vtls
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vtls/libcurl_la-gtls.o: cc ../lib/vtls/gtls.c | lib/curl_config.h
+  directory = lib/vtls
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vtls/libcurl_la-hostcheck.o: cc ../lib/vtls/hostcheck.c | lib/curl_config.h
+  directory = lib/vtls
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vtls/libcurl_la-keylog.o: cc ../lib/vtls/keylog.c | lib/curl_config.h
+  directory = lib/vtls
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vtls/libcurl_la-mbedtls.o: cc ../lib/vtls/mbedtls.c | lib/curl_config.h
+  directory = lib/vtls
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vtls/libcurl_la-mbedtls_threadlock.o: cc ../lib/vtls/mbedtls_threadlock.c | lib/curl_config.h
+  directory = lib/vtls
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vtls/libcurl_la-openssl.o: cc ../lib/vtls/openssl.c | lib/curl_config.h
+  directory = lib/vtls
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vtls/libcurl_la-rustls.o: cc ../lib/vtls/rustls.c | lib/curl_config.h
+  directory = lib/vtls
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vtls/libcurl_la-schannel.o: cc ../lib/vtls/schannel.c | lib/curl_config.h
+  directory = lib/vtls
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vtls/libcurl_la-schannel_verify.o: cc ../lib/vtls/schannel_verify.c | lib/curl_config.h
+  directory = lib/vtls
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vtls/libcurl_la-sectransp.o: cc ../lib/vtls/sectransp.c | lib/curl_config.h
+  directory = lib/vtls
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vtls/libcurl_la-vtls.o: cc ../lib/vtls/vtls.c | lib/curl_config.h
+  directory = lib/vtls
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vtls/libcurl_la-vtls_scache.o: cc ../lib/vtls/vtls_scache.c | lib/curl_config.h
+  directory = lib/vtls
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vtls/libcurl_la-vtls_spack.o: cc ../lib/vtls/vtls_spack.c | lib/curl_config.h
+  directory = lib/vtls
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vtls/libcurl_la-wolfssl.o: cc ../lib/vtls/wolfssl.c | lib/curl_config.h
+  directory = lib/vtls
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vtls/libcurl_la-x509asn1.o: cc ../lib/vtls/x509asn1.c | lib/curl_config.h
+  directory = lib/vtls
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vquic/libcurl_la-curl_msh3.o: cc ../lib/vquic/curl_msh3.c | lib/curl_config.h
+  directory = lib/vquic
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vquic/libcurl_la-curl_ngtcp2.o: cc ../lib/vquic/curl_ngtcp2.c | lib/curl_config.h
+  directory = lib/vquic
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vquic/libcurl_la-curl_osslq.o: cc ../lib/vquic/curl_osslq.c | lib/curl_config.h
+  directory = lib/vquic
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vquic/libcurl_la-curl_quiche.o: cc ../lib/vquic/curl_quiche.c | lib/curl_config.h
+  directory = lib/vquic
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vquic/libcurl_la-vquic.o: cc ../lib/vquic/vquic.c | lib/curl_config.h
+  directory = lib/vquic
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vquic/libcurl_la-vquic-tls.o: cc ../lib/vquic/vquic-tls.c | lib/curl_config.h
+  directory = lib/vquic
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vssh/libcurl_la-libssh.o: cc ../lib/vssh/libssh.c | lib/curl_config.h
+  directory = lib/vssh
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vssh/libcurl_la-libssh2.o: cc ../lib/vssh/libssh2.c | lib/curl_config.h
+  directory = lib/vssh
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vssh/libcurl_la-curl_path.o: cc ../lib/vssh/curl_path.c | lib/curl_config.h
+  directory = lib/vssh
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/vssh/libcurl_la-wolfssh.o: cc ../lib/vssh/wolfssh.c | lib/curl_config.h
+  directory = lib/vssh
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -I../lib -DBUILDING_LIBCURL -DCURL_STATICLIB -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-slist_wc.o: cc ../src/slist_wc.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-terminal.o: cc ../src/terminal.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_bname.o: cc ../src/tool_bname.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_cb_dbg.o: cc ../src/tool_cb_dbg.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_cb_hdr.o: cc ../src/tool_cb_hdr.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_cb_prg.o: cc ../src/tool_cb_prg.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_cb_rea.o: cc ../src/tool_cb_rea.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_cb_see.o: cc ../src/tool_cb_see.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_cb_soc.o: cc ../src/tool_cb_soc.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_cb_wrt.o: cc ../src/tool_cb_wrt.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_cfgable.o: cc ../src/tool_cfgable.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_dirhie.o: cc ../src/tool_dirhie.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_doswin.o: cc ../src/tool_doswin.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_easysrc.o: cc ../src/tool_easysrc.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_filetime.o: cc ../src/tool_filetime.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_findfile.o: cc ../src/tool_findfile.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_formparse.o: cc ../src/tool_formparse.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_getparam.o: cc ../src/tool_getparam.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_getpass.o: cc ../src/tool_getpass.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_help.o: cc ../src/tool_help.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_helpers.o: cc ../src/tool_helpers.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_ipfs.o: cc ../src/tool_ipfs.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_libinfo.o: cc ../src/tool_libinfo.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_listhelp.o: cc ../src/tool_listhelp.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_main.o: cc ../src/tool_main.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_msgs.o: cc ../src/tool_msgs.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_operate.o: cc ../src/tool_operate.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_operhlp.o: cc ../src/tool_operhlp.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_paramhlp.o: cc ../src/tool_paramhlp.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_parsecfg.o: cc ../src/tool_parsecfg.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_progress.o: cc ../src/tool_progress.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_setopt.o: cc ../src/tool_setopt.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_sleep.o: cc ../src/tool_sleep.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_ssls.o: cc ../src/tool_ssls.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_stderr.o: cc ../src/tool_stderr.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_strdup.o: cc ../src/tool_strdup.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_urlglob.o: cc ../src/tool_urlglob.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_util.o: cc ../src/tool_util.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_vms.o: cc ../src/tool_vms.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_writeout.o: cc ../src/tool_writeout.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_writeout_json.o: cc ../src/tool_writeout_json.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_xattr.o: cc ../src/tool_xattr.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-var.o: cc ../src/var.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/curl-base64.o: cc ../src/../lib/base64.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/curl-curl_multibyte.o: cc ../src/../lib/curl_multibyte.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/curl-dynbuf.o: cc ../src/../lib/dynbuf.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/curl-nonblock.o: cc ../src/../lib/nonblock.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/curl-strtoofft.o: cc ../src/../lib/strtoofft.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/curl-timediff.o: cc ../src/../lib/timediff.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/curl-version_win32.o: cc ../src/../lib/version_win32.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/curl-warnless.o: cc ../src/../lib/warnless.c | lib/curl_config.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_hugehelp.o: cc ../src/tool_hugehelp.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build src/curl-tool_ca_embed.o: cc src/tool_ca_embed.c | lib/curl_config.h
+  directory = src
+  flags = -DHAVE_CONFIG_H -I../include -Ilib -Isrc -I../lib -I../src -DCURL_STATICLIB -DBUILDING_CURL -D_GNU_SOURCE -I@REM_DEPS@/include -O0
+build lib/libcurl.a: archive lib/libcurl_la-altsvc.o lib/libcurl_la-amigaos.o lib/libcurl_la-asyn-ares.o lib/libcurl_la-asyn-thread.o lib/libcurl_la-base64.o lib/libcurl_la-bufq.o lib/libcurl_la-bufref.o lib/libcurl_la-cf-h1-proxy.o lib/libcurl_la-cf-h2-proxy.o lib/libcurl_la-cf-haproxy.o lib/libcurl_la-cf-https-connect.o lib/libcurl_la-cf-socket.o lib/libcurl_la-cfilters.o lib/libcurl_la-conncache.o lib/libcurl_la-connect.o lib/libcurl_la-content_encoding.o lib/libcurl_la-cookie.o lib/libcurl_la-curl_addrinfo.o lib/libcurl_la-curl_des.o lib/libcurl_la-curl_endian.o lib/libcurl_la-curl_fnmatch.o lib/libcurl_la-curl_get_line.o lib/libcurl_la-curl_gethostname.o lib/libcurl_la-curl_gssapi.o lib/libcurl_la-curl_memrchr.o lib/libcurl_la-curl_multibyte.o lib/libcurl_la-curl_ntlm_core.o lib/libcurl_la-curl_range.o lib/libcurl_la-curl_rtmp.o lib/libcurl_la-curl_sasl.o lib/libcurl_la-curl_sha512_256.o lib/libcurl_la-curl_sspi.o lib/libcurl_la-curl_threads.o lib/libcurl_la-curl_trc.o lib/libcurl_la-cw-out.o lib/libcurl_la-dict.o lib/libcurl_la-dllmain.o lib/libcurl_la-doh.o lib/libcurl_la-dynbuf.o lib/libcurl_la-dynhds.o lib/libcurl_la-easy.o lib/libcurl_la-easygetopt.o lib/libcurl_la-easyoptions.o lib/libcurl_la-escape.o lib/libcurl_la-file.o lib/libcurl_la-fileinfo.o lib/libcurl_la-fopen.o lib/libcurl_la-formdata.o lib/libcurl_la-ftp.o lib/libcurl_la-ftplistparser.o lib/libcurl_la-getenv.o lib/libcurl_la-getinfo.o lib/libcurl_la-gopher.o lib/libcurl_la-hash.o lib/libcurl_la-headers.o lib/libcurl_la-hmac.o lib/libcurl_la-hostasyn.o lib/libcurl_la-hostip.o lib/libcurl_la-hostip4.o lib/libcurl_la-hostip6.o lib/libcurl_la-hostsyn.o lib/libcurl_la-hsts.o lib/libcurl_la-http.o lib/libcurl_la-http1.o lib/libcurl_la-http2.o lib/libcurl_la-http_aws_sigv4.o lib/libcurl_la-http_chunks.o lib/libcurl_la-http_digest.o lib/libcurl_la-http_negotiate.o lib/libcurl_la-http_ntlm.o lib/libcurl_la-http_proxy.o lib/libcurl_la-httpsrr.o lib/libcurl_la-idn.o lib/libcurl_la-if2ip.o lib/libcurl_la-imap.o lib/libcurl_la-inet_ntop.o lib/libcurl_la-inet_pton.o lib/libcurl_la-krb5.o lib/libcurl_la-ldap.o lib/libcurl_la-llist.o lib/libcurl_la-macos.o lib/libcurl_la-md4.o lib/libcurl_la-md5.o lib/libcurl_la-memdebug.o lib/libcurl_la-mime.o lib/libcurl_la-mprintf.o lib/libcurl_la-mqtt.o lib/libcurl_la-multi.o lib/libcurl_la-netrc.o lib/libcurl_la-nonblock.o lib/libcurl_la-noproxy.o lib/libcurl_la-openldap.o lib/libcurl_la-parsedate.o lib/libcurl_la-pingpong.o lib/libcurl_la-pop3.o lib/libcurl_la-progress.o lib/libcurl_la-psl.o lib/libcurl_la-rand.o lib/libcurl_la-rename.o lib/libcurl_la-request.o lib/libcurl_la-rtsp.o lib/libcurl_la-select.o lib/libcurl_la-sendf.o lib/libcurl_la-setopt.o lib/libcurl_la-sha256.o lib/libcurl_la-share.o lib/libcurl_la-slist.o lib/libcurl_la-smb.o lib/libcurl_la-smtp.o lib/libcurl_la-socketpair.o lib/libcurl_la-socks.o lib/libcurl_la-socks_gssapi.o lib/libcurl_la-socks_sspi.o lib/libcurl_la-speedcheck.o lib/libcurl_la-splay.o lib/libcurl_la-strcase.o lib/libcurl_la-strdup.o lib/libcurl_la-strerror.o lib/libcurl_la-strparse.o lib/libcurl_la-strtok.o lib/libcurl_la-strtoofft.o lib/libcurl_la-system_win32.o lib/libcurl_la-telnet.o lib/libcurl_la-tftp.o lib/libcurl_la-timediff.o lib/libcurl_la-timeval.o lib/libcurl_la-transfer.o lib/libcurl_la-url.o lib/libcurl_la-urlapi.o lib/libcurl_la-version.o lib/libcurl_la-version_win32.o lib/libcurl_la-warnless.o lib/libcurl_la-ws.o lib/vauth/libcurl_la-cleartext.o lib/vauth/libcurl_la-cram.o lib/vauth/libcurl_la-digest.o lib/vauth/libcurl_la-digest_sspi.o lib/vauth/libcurl_la-gsasl.o lib/vauth/libcurl_la-krb5_gssapi.o lib/vauth/libcurl_la-krb5_sspi.o lib/vauth/libcurl_la-ntlm.o lib/vauth/libcurl_la-ntlm_sspi.o lib/vauth/libcurl_la-oauth2.o lib/vauth/libcurl_la-spnego_gssapi.o lib/vauth/libcurl_la-spnego_sspi.o lib/vauth/libcurl_la-vauth.o lib/vtls/libcurl_la-bearssl.o lib/vtls/libcurl_la-cipher_suite.o lib/vtls/libcurl_la-gtls.o lib/vtls/libcurl_la-hostcheck.o lib/vtls/libcurl_la-keylog.o lib/vtls/libcurl_la-mbedtls.o lib/vtls/libcurl_la-mbedtls_threadlock.o lib/vtls/libcurl_la-openssl.o lib/vtls/libcurl_la-rustls.o lib/vtls/libcurl_la-schannel.o lib/vtls/libcurl_la-schannel_verify.o lib/vtls/libcurl_la-sectransp.o lib/vtls/libcurl_la-vtls.o lib/vtls/libcurl_la-vtls_scache.o lib/vtls/libcurl_la-vtls_spack.o lib/vtls/libcurl_la-wolfssl.o lib/vtls/libcurl_la-x509asn1.o lib/vquic/libcurl_la-curl_msh3.o lib/vquic/libcurl_la-curl_ngtcp2.o lib/vquic/libcurl_la-curl_osslq.o lib/vquic/libcurl_la-curl_quiche.o lib/vquic/libcurl_la-vquic.o lib/vquic/libcurl_la-vquic-tls.o lib/vssh/libcurl_la-libssh.o lib/vssh/libcurl_la-libssh2.o lib/vssh/libcurl_la-curl_path.o lib/vssh/libcurl_la-wolfssh.o
+build ../native/bin/curl: link src/curl-slist_wc.o src/curl-terminal.o src/curl-tool_bname.o src/curl-tool_cb_dbg.o src/curl-tool_cb_hdr.o src/curl-tool_cb_prg.o src/curl-tool_cb_rea.o src/curl-tool_cb_see.o src/curl-tool_cb_soc.o src/curl-tool_cb_wrt.o src/curl-tool_cfgable.o src/curl-tool_dirhie.o src/curl-tool_doswin.o src/curl-tool_easysrc.o src/curl-tool_filetime.o src/curl-tool_findfile.o src/curl-tool_formparse.o src/curl-tool_getparam.o src/curl-tool_getpass.o src/curl-tool_help.o src/curl-tool_helpers.o src/curl-tool_ipfs.o src/curl-tool_libinfo.o src/curl-tool_listhelp.o src/curl-tool_main.o src/curl-tool_msgs.o src/curl-tool_operate.o src/curl-tool_operhlp.o src/curl-tool_paramhlp.o src/curl-tool_parsecfg.o src/curl-tool_progress.o src/curl-tool_setopt.o src/curl-tool_sleep.o src/curl-tool_ssls.o src/curl-tool_stderr.o src/curl-tool_strdup.o src/curl-tool_urlglob.o src/curl-tool_util.o src/curl-tool_vms.o src/curl-tool_writeout.o src/curl-tool_writeout_json.o src/curl-tool_xattr.o src/curl-var.o lib/curl-base64.o lib/curl-curl_multibyte.o lib/curl-dynbuf.o lib/curl-nonblock.o lib/curl-strtoofft.o lib/curl-timediff.o lib/curl-version_win32.o lib/curl-warnless.o src/curl-tool_hugehelp.o src/curl-tool_ca_embed.o lib/libcurl.a
+  libraries = -L@REM_DEPS@/lib -lbearssl
+default lib/libcurl.a ../native/bin/curl

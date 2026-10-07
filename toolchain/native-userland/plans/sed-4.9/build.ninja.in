@@ -1,0 +1,243 @@
+cc = @CC@
+root = ../../..
+
+rule cc
+  command = mkdir -p $directory && $cc $flags -c $in -o $out
+  description = CC $in
+rule archive
+  command = ar rcs $out $in
+  description = AR $out
+rule link
+  command = mkdir -p ../native/bin && ld -r -T $root/bootstrap/rem-reloc.ld -o $out.partial.o $in && $cc -o $out $out.partial.o $libraries
+  description = LINK $out
+
+build sed/sed-compile.o: cc ../sed/compile.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = sed
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised '-DLOCALEDIR="/home/dev/.local/share/locale"' -O0
+build sed/sed-debug.o: cc ../sed/debug.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = sed
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised '-DLOCALEDIR="/home/dev/.local/share/locale"' -O0
+build sed/sed-execute.o: cc ../sed/execute.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = sed
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised '-DLOCALEDIR="/home/dev/.local/share/locale"' -O0
+build sed/sed-mbcs.o: cc ../sed/mbcs.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = sed
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised '-DLOCALEDIR="/home/dev/.local/share/locale"' -O0
+build sed/sed-regexp.o: cc ../sed/regexp.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = sed
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised '-DLOCALEDIR="/home/dev/.local/share/locale"' -O0
+build sed/sed-sed.o: cc ../sed/sed.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = sed
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised '-DLOCALEDIR="/home/dev/.local/share/locale"' -O0
+build sed/sed-utils.o: cc ../sed/utils.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = sed
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised '-DLOCALEDIR="/home/dev/.local/share/locale"' -O0
+build lib/libsed_a-copy-acl.o: cc ../lib/copy-acl.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-set-acl.o: cc ../lib/set-acl.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-acl-errno-valid.o: cc ../lib/acl-errno-valid.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-acl-internal.o: cc ../lib/acl-internal.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-get-permissions.o: cc ../lib/get-permissions.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-set-permissions.o: cc ../lib/set-permissions.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-basename-lgpl.o: cc ../lib/basename-lgpl.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-binary-io.o: cc ../lib/binary-io.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-c-ctype.o: cc ../lib/c-ctype.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-c-strcasecmp.o: cc ../lib/c-strcasecmp.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-c-strncasecmp.o: cc ../lib/c-strncasecmp.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-canonicalize-lgpl.o: cc ../lib/canonicalize-lgpl.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-cloexec.o: cc ../lib/cloexec.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-close-stream.o: cc ../lib/close-stream.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-closeout.o: cc ../lib/closeout.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-dfa.o: cc ../lib/dfa.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-localeinfo.o: cc ../lib/localeinfo.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-dirname-lgpl.o: cc ../lib/dirname-lgpl.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-stripslash.o: cc ../lib/stripslash.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-error.o: cc ../lib/error.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-exitfail.o: cc ../lib/exitfail.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-fcntl.o: cc ../lib/fcntl.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-fd-hook.o: cc ../lib/fd-hook.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-free.o: cc ../lib/free.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-getprogname.o: cc ../lib/getprogname.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/malloc/libsed_a-dynarray_at_failure.o: cc ../lib/malloc/dynarray_at_failure.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib/malloc
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/malloc/libsed_a-dynarray_emplace_enlarge.o: cc ../lib/malloc/dynarray_emplace_enlarge.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib/malloc
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/malloc/libsed_a-dynarray_finalize.o: cc ../lib/malloc/dynarray_finalize.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib/malloc
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/malloc/libsed_a-dynarray_resize.o: cc ../lib/malloc/dynarray_resize.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib/malloc
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/malloc/libsed_a-dynarray_resize_clear.o: cc ../lib/malloc/dynarray_resize_clear.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib/malloc
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/malloc/libsed_a-scratch_buffer_grow.o: cc ../lib/malloc/scratch_buffer_grow.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib/malloc
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/malloc/libsed_a-scratch_buffer_grow_preserve.o: cc ../lib/malloc/scratch_buffer_grow_preserve.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib/malloc
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/malloc/libsed_a-scratch_buffer_set_array_size.o: cc ../lib/malloc/scratch_buffer_set_array_size.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib/malloc
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-hard-locale.o: cc ../lib/hard-locale.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-ialloc.o: cc ../lib/ialloc.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-localcharset.o: cc ../lib/localcharset.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/glthread/libsed_a-lock.o: cc ../lib/glthread/lock.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib/glthread
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-malloca.o: cc ../lib/malloca.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-mbrlen.o: cc ../lib/mbrlen.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-mbrtowc.o: cc ../lib/mbrtowc.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-memchr.o: cc ../lib/memchr.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-nl_langinfo.o: cc ../lib/nl_langinfo.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-obstack.o: cc ../lib/obstack.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-progname.o: cc ../lib/progname.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-qcopy-acl.o: cc ../lib/qcopy-acl.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-qset-acl.o: cc ../lib/qset-acl.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-quotearg.o: cc ../lib/quotearg.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-rawmemchr.o: cc ../lib/rawmemchr.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-reallocarray.o: cc ../lib/reallocarray.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-regex.o: cc ../lib/regex.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-se-context.o: cc ../lib/se-context.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-se-label.o: cc ../lib/se-label.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-se-selinux.o: cc ../lib/se-selinux.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-setlocale_null.o: cc ../lib/setlocale_null.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-setlocale-lock.o: cc ../lib/setlocale-lock.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-stat-time.o: cc ../lib/stat-time.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-tempname.o: cc ../lib/tempname.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/glthread/libsed_a-threadlib.o: cc ../lib/glthread/threadlib.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib/glthread
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-unistd.o: cc ../lib/unistd.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-version-etc.o: cc ../lib/version-etc.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-version-etc-fsf.o: cc ../lib/version-etc-fsf.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-wctype-h.o: cc ../lib/wctype-h.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-xmalloc.o: cc ../lib/xmalloc.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed_a-xalloc-die.o: cc ../lib/xalloc-die.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/calloc.o: cc ../lib/calloc.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/malloc.o: cc ../lib/malloc.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/realloc.o: cc ../lib/realloc.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build sed/version.o: cc sed/version.c | config.h lib/stdio.h lib/stdlib.h lib/locale.h lib/wchar.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/inttypes.h lib/string.h lib/limits.h lib/wctype.h lib/ctype.h lib/unistd.h lib/time.h sed/version.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/random.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h
+  directory = sed
+  flags = -DHAVE_CONFIG_H -I. -I.. -I.. -I../lib -Ilib -Ised -O0
+build lib/libsed.a: archive lib/libsed_a-copy-acl.o lib/libsed_a-set-acl.o lib/libsed_a-acl-errno-valid.o lib/libsed_a-acl-internal.o lib/libsed_a-get-permissions.o lib/libsed_a-set-permissions.o lib/libsed_a-basename-lgpl.o lib/libsed_a-binary-io.o lib/libsed_a-c-ctype.o lib/libsed_a-c-strcasecmp.o lib/libsed_a-c-strncasecmp.o lib/libsed_a-canonicalize-lgpl.o lib/libsed_a-cloexec.o lib/libsed_a-close-stream.o lib/libsed_a-closeout.o lib/libsed_a-dfa.o lib/libsed_a-localeinfo.o lib/libsed_a-dirname-lgpl.o lib/libsed_a-stripslash.o lib/libsed_a-error.o lib/libsed_a-exitfail.o lib/libsed_a-fcntl.o lib/libsed_a-fd-hook.o lib/libsed_a-free.o lib/libsed_a-getprogname.o lib/malloc/libsed_a-dynarray_at_failure.o lib/malloc/libsed_a-dynarray_emplace_enlarge.o lib/malloc/libsed_a-dynarray_finalize.o lib/malloc/libsed_a-dynarray_resize.o lib/malloc/libsed_a-dynarray_resize_clear.o lib/malloc/libsed_a-scratch_buffer_grow.o lib/malloc/libsed_a-scratch_buffer_grow_preserve.o lib/malloc/libsed_a-scratch_buffer_set_array_size.o lib/libsed_a-hard-locale.o lib/libsed_a-ialloc.o lib/libsed_a-localcharset.o lib/glthread/libsed_a-lock.o lib/libsed_a-malloca.o lib/libsed_a-mbrlen.o lib/libsed_a-mbrtowc.o lib/libsed_a-memchr.o lib/libsed_a-nl_langinfo.o lib/libsed_a-obstack.o lib/libsed_a-progname.o lib/libsed_a-qcopy-acl.o lib/libsed_a-qset-acl.o lib/libsed_a-quotearg.o lib/libsed_a-rawmemchr.o lib/libsed_a-reallocarray.o lib/libsed_a-regex.o lib/libsed_a-se-context.o lib/libsed_a-se-label.o lib/libsed_a-se-selinux.o lib/libsed_a-setlocale_null.o lib/libsed_a-setlocale-lock.o lib/libsed_a-stat-time.o lib/libsed_a-tempname.o lib/glthread/libsed_a-threadlib.o lib/libsed_a-unistd.o lib/libsed_a-version-etc.o lib/libsed_a-version-etc-fsf.o lib/libsed_a-wctype-h.o lib/libsed_a-xmalloc.o lib/libsed_a-xalloc-die.o lib/calloc.o lib/malloc.o lib/realloc.o
+build sed/libver.a: archive sed/version.o
+build ../native/bin/sed: link sed/sed-compile.o sed/sed-debug.o sed/sed-execute.o sed/sed-mbcs.o sed/sed-regexp.o sed/sed-sed.o sed/sed-utils.o sed/libver.a lib/libsed.a
+  libraries = 
+default lib/libsed.a sed/libver.a ../native/bin/sed

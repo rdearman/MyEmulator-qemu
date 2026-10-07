@@ -4,8 +4,19 @@
 
 The otherwise-unmodified upstream revision
 `90d1f7f199cc55b13c7fdb5839d1409806633fdb` was cloned into the isolated
-`/home/rick/rem-native-userland/upstream-chibicc` workspace and built on its
+disposable workspace and built on its
 supported x86-64 Linux target. No issue, patch or message was sent upstream.
+
+### Vim annotation compatibility (not an ISO C conformance claim)
+
+`tests/function-pointer-unused-attribute.c` passes GCC but is rejected by
+otherwise-unmodified upstream x86-64 chibicc (`expected ','`).
+This is an architecture-independent unsupported GNU extension: a trailing
+unused attribute on a parenthesized callback parameter. REM's partial GNU
+attribute compatibility also rejects that form. Vim's capability probe is
+expanded to test the form its sources actually use, so unsupported optional
+warning annotations are omitted without changing program semantics.
+No upstream contact or automatic report is made.
 
 ### Further findings directly blocking GNU coreutils (2026-10-07)
 
@@ -65,11 +76,20 @@ The same pristine upstream x86-64 revision independently reproduces:
   make `rehash` assert while compiling GNU diffutils' `stdopen.c`. Continue
   probing past the first deleted bucket and reuse it only after establishing
   that the key is absent.
+* `negative-array-bound.c`: pristine upstream accepts a constant negative
+  array bound (exit 0); GCC rejects it (exit 1). REM GAS ignores the resulting
+  negative `.space` count with only a warning. Consequently Autoconf's
+  intentional negative-bound sizeof probes incorrectly succeed: gawk reports
+  unsigned int, unsigned long and pointer sizes as zero. Reject negative
+  constant bounds in `array_dimensions`; keep incomplete `[]` and the existing
+  zero-length extension distinct. With the repair, actual configure
+  compile/link checks report all three REM sizes as 4, without size overrides.
 
 `parenthesized-string-initializer.c` also fails upstream and passes GCC.
 This is a GNU-extension support gap (parenthesized character-array string
 initializer), not an ISO C conformance claim. Diffutils' port simply removes
-the unnecessary parentheses while retaining the identical literal contents.
+the unnecessary parentheses while retaining the identical literal contents;
+the exact package delta is in `patches/diffutils-3.10-rem-native.patch`.
 `parenthesized-function-parameter.c` passes pristine upstream; its failure
 belongs only in the REM report. Native qualification of newly repaired
 compiler paths remains separate from these host differential results.
@@ -110,8 +130,9 @@ All these other minimal probes compile and return 0 with pristine upstream:
 `unsupported-diagnostic.c` compiles and returns its intended 42 (upstream
 supports this VLA); REM currently lacks that backend support. Those failures
 are therefore NOT reported as architecture-independent upstream defects.
-Complete per-probe build/run logs are retained in
-`/home/rick/rem-native-userland/upstream-results/`.
+Per-probe build/run logs were disposable host output and are not kept in
+the repository; rerun the reducers in `toolchain/tests/native-userland/`
+against the pristine revision to reproduce them.
 
 ### Multiple function declarators in an ordinary C declaration
 
@@ -127,8 +148,8 @@ runtime-source rebuilding.
 The staged source-kit parser now handles comma-separated function prototypes
 and mixed function/object declarations, including block-scope extern
 declarations. Native acceptance remains pending; a host-emitting REM check
-generates assembly successfully. The upstream failure log is
-`/home/rick/rem-native-userland/upstream-results/comma-functions.upstream.log`.
+generates assembly successfully. The upstream failure is reproduced by compiling the reducer with the
+pristine revision (the original log was disposable).
 
 ### Postfix operations on a compound literal
 
@@ -143,8 +164,8 @@ The generic `postfix` parser returns immediately after constructing a compound
 literal, without consuming its following postfix operators. The staged repair
 routes that expression through the existing common postfix loop. Native
 acceptance remains pending; host-emitting REM assembly generation succeeds.
-The upstream failure log is
-`/home/rick/rem-native-userland/upstream-results/compound-literal.upstream.log`.
+The upstream failure is reproduced by compiling the reducer with the
+pristine revision (the original log was disposable).
 No report, patch, or message has been sent upstream for either finding.
 
 ### NaN converted to `_Bool` becomes false
@@ -153,8 +174,8 @@ Minimal reducer: `toolchain/tests/native-userland/nan-bool.c`. It constructs
 an IEEE binary64 quiet NaN using a union, stores it in a volatile double, and
 converts it to `_Bool`. C requires a true result because NaN does not compare
 equal to zero. Pristine upstream on supported x86-64 compiles the reducer but
-returns 1; system GCC returns 0. The independent log is retained as
-`/home/rick/rem-native-userland/upstream-results/nan-bool.upstream.log`.
+returns 1; system GCC returns 0. Rerun the reducer with the pristine revision to reproduce it (the original
+log was disposable).
 
 The upstream x86-64 cast uses `ucomisd` followed only by `setne`. An unordered
 comparison sets ZF as well as PF, so this incorrectly converts NaN to false.

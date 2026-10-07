@@ -1,0 +1,125 @@
+cc = @CC@
+root = ../../..
+
+rule cc
+  command = mkdir -p $directory && $cc $flags -c $in -o $out
+  description = CC $in
+rule archive
+  command = ar rcs $out $in
+  description = AR $out
+rule link
+  command = mkdir -p ../native/bin && ld -r -T $root/bootstrap/rem-reloc.ld -o $out.partial.o $in && $cc -o $out $out.partial.o $libraries
+  description = LINK $out
+
+build support/dfa.o: cc ../support/dfa.c | config.h
+  directory = support
+  flags = -DGAWK -DHAVE_CONFIG_H -I../support/.. -Isupport -I../support -I. -O0 -DNDEBUG -O0 -DNDEBUG
+build support/getopt.o: cc ../support/getopt.c | config.h
+  directory = support
+  flags = -DGAWK -DHAVE_CONFIG_H -I../support/.. -Isupport -I../support -I. -O0 -DNDEBUG -O0 -DNDEBUG
+build support/getopt1.o: cc ../support/getopt1.c | config.h
+  directory = support
+  flags = -DGAWK -DHAVE_CONFIG_H -I../support/.. -Isupport -I../support -I. -O0 -DNDEBUG -O0 -DNDEBUG
+build support/localeinfo.o: cc ../support/localeinfo.c | config.h
+  directory = support
+  flags = -DGAWK -DHAVE_CONFIG_H -I../support/.. -Isupport -I../support -I. -O0 -DNDEBUG -O0 -DNDEBUG
+build support/random.o: cc ../support/random.c | config.h
+  directory = support
+  flags = -DGAWK -DHAVE_CONFIG_H -I../support/.. -Isupport -I../support -I. -O0 -DNDEBUG -O0 -DNDEBUG
+build support/regex.o: cc ../support/regex.c | config.h
+  directory = support
+  flags = -DGAWK -DHAVE_CONFIG_H -I../support/.. -Isupport -I../support -I. -O0 -DNDEBUG -O0 -DNDEBUG
+build support/malloc/dynarray_at_failure.o: cc ../support/malloc/dynarray_at_failure.c | config.h
+  directory = support/malloc
+  flags = -DGAWK -DHAVE_CONFIG_H -I../support/.. -Isupport -I../support -I. -O0 -DNDEBUG -O0 -DNDEBUG
+build support/malloc/dynarray_emplace_enlarge.o: cc ../support/malloc/dynarray_emplace_enlarge.c | config.h
+  directory = support/malloc
+  flags = -DGAWK -DHAVE_CONFIG_H -I../support/.. -Isupport -I../support -I. -O0 -DNDEBUG -O0 -DNDEBUG
+build support/malloc/dynarray_finalize.o: cc ../support/malloc/dynarray_finalize.c | config.h
+  directory = support/malloc
+  flags = -DGAWK -DHAVE_CONFIG_H -I../support/.. -Isupport -I../support -I. -O0 -DNDEBUG -O0 -DNDEBUG
+build support/malloc/dynarray_resize.o: cc ../support/malloc/dynarray_resize.c | config.h
+  directory = support/malloc
+  flags = -DGAWK -DHAVE_CONFIG_H -I../support/.. -Isupport -I../support -I. -O0 -DNDEBUG -O0 -DNDEBUG
+build support/malloc/dynarray_resize_clear.o: cc ../support/malloc/dynarray_resize_clear.c | config.h
+  directory = support/malloc
+  flags = -DGAWK -DHAVE_CONFIG_H -I../support/.. -Isupport -I../support -I. -O0 -DNDEBUG -O0 -DNDEBUG
+build array.o: cc ../array.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build awkgram.o: cc ../awkgram.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build builtin.o: cc ../builtin.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build cint_array.o: cc ../cint_array.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build command.o: cc ../command.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build debug.o: cc ../debug.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build eval.o: cc ../eval.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build ext.o: cc ../ext.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build field.o: cc ../field.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build floatcomp.o: cc ../floatcomp.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build gawkapi.o: cc ../gawkapi.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build gawkmisc.o: cc ../gawkmisc.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build int_array.o: cc ../int_array.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build io.o: cc ../io.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build main.o: cc ../main.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build mpfr.o: cc ../mpfr.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build msg.o: cc ../msg.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build node.o: cc ../node.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build printf.o: cc ../printf.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build profile.o: cc ../profile.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build re.o: cc ../re.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build replace.o: cc ../replace.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build str_array.o: cc ../str_array.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build symbol.o: cc ../symbol.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build version.o: cc ../version.c | config.h
+  directory = .
+  flags = '-DDEFPATH=".:/home/dev/.local/share/awk"' '-DDEFLIBPATH="/home/dev/.local/lib/gawk"' '-DSHLIBEXT="so"' -DHAVE_CONFIG_H -DGAWK '-DLOCALEDIR="/home/dev/.local/share/locale"' -I../support -I. -I.. -O0 -DNDEBUG -O0 -DNDEBUG
+build support/libsupport.a: archive support/dfa.o support/getopt.o support/getopt1.o support/localeinfo.o support/random.o support/regex.o support/malloc/dynarray_at_failure.o support/malloc/dynarray_emplace_enlarge.o support/malloc/dynarray_finalize.o support/malloc/dynarray_resize.o support/malloc/dynarray_resize_clear.o
+build ../native/bin/gawk: link array.o awkgram.o builtin.o cint_array.o command.o debug.o eval.o ext.o field.o floatcomp.o gawkapi.o gawkmisc.o int_array.o io.o main.o mpfr.o msg.o node.o printf.o profile.o re.o replace.o str_array.o symbol.o version.o support/libsupport.a
+  libraries = 
+default support/libsupport.a ../native/bin/gawk

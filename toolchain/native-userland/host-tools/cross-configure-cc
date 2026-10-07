@@ -1,0 +1,18 @@
+#!/bin/bash
+set -eu
+repo=$(cd "$(dirname "$0")/../../.." && pwd)
+work=${REM_NATIVE_WORK:-/tmp/rem-native-userland-work}
+gcc="$repo/.rem-flight-build-20260924/hosted-gcc-build/build/gcc/xgcc"
+compiler_dir="$repo/.rem-flight-build-20260924/hosted-gcc-build/build/gcc/"
+musl="$repo/.rem-flight-build-20260924/musl-prefix"
+for arg; do
+    case $arg in -c|-E|-S|--version|-dump*|-print*)
+        exec "$gcc" -B"$compiler_dir" -B"$repo/.rem-flight-build-20260924/gcc-prefix/bin/" \
+            --sysroot="$musl" -isystem "$musl/include" "$@" ;;
+    esac
+done
+exec "$gcc" -B"$compiler_dir" -B"$repo/.rem-flight-build-20260924/gcc-prefix/bin/" \
+    --sysroot="$musl" -isystem "$musl/include" \
+    "$musl/lib/crt1.o" "$musl/lib/crti.o" -nostdlib "$@" \
+    -x none "$musl/lib/crtn.o" -L"$musl/lib" -lc -lgcc \
+    -Wl,-T,"$repo/toolchain/userspace/myemulator2-user.ld"

@@ -1,0 +1,13 @@
+#!/bin/bash
+set -eu
+repo=$(cd "$(dirname "$0")/../../.." && pwd)
+work=${REM_NATIVE_WORK:-/tmp/rem-native-userland-work}
+export CHIBICC_REM_SYSROOT="$repo/.rem-flight-build-20260924/musl-prefix"
+export CHIBICC_REM_AS="$repo/.toolchain-install/bin/myemulator2-elf-as"
+export CHIBICC_REM_LD="$repo/.toolchain-install/bin/myemulator2-elf-ld"
+export CHIBICC_REM_LINKER_SCRIPT="$repo/toolchain/userspace/myemulator2-user.ld"
+export CHIBICC_REM_CRTDIR="$CHIBICC_REM_SYSROOT/lib"
+export CHIBICC_REM_LIBC="$CHIBICC_REM_SYSROOT/lib/libc.a"
+export CHIBICC_REM_GCCLIB="$repo/.rem-flight-build-20260924/hosted-gcc-prefix/lib/gcc/myemulator2-elf/15.2.0"
+exec "$work/bootstrap-host-syntax/chibicc-host-current" \
+    "$@" -I"$work/kit/bootstrap/chibicc/include"

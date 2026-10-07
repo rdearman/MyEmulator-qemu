@@ -1,0 +1,17 @@
+bootstrap/make-4.4.1/build-native.sh
+bootstrap/chibicc/build-native.sh
+packages/bearssl-0.6/build-native.sh
+packages/bzip2-1.0.8/build-native.sh
+packages/coreutils-9.7/build-native.sh
+packages/curl-8.12.1/build-native.sh
+packages/diffutils-3.10/build-native.sh
+packages/dropbear-2024.86/build-native.sh
+packages/findutils-4.10.0/build-native.sh
+packages/gawk-5.3.1/build-native.sh
+packages/grep-3.11/build-native.sh
+packages/gzip-1.13/build-native.sh
+packages/ncurses-6.5/build-native.sh
+packages/sed-4.9/build-native.sh
+packages/tar-1.35/build-native.sh
+packages/vim-9.1.0000/build-native.sh
+packages/xz-5.6.3/build-native.sh

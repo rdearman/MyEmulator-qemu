@@ -1,0 +1,21 @@
+--- a/build-native.sh	1970-01-01 01:00:00.000000000 +0100
++++ b/build-native.sh	2026-10-07 08:46:05.354636803 +0100
+@@ -0,0 +1,18 @@
++#!/bin/bash
++set -eu
++case $0 in */*) cd "${0%/*}" ;; esac
++source ../../native-env.sh
++mkdir -p build
++objects=
++for source in src/*.c src/*/*.c; do
++    object="build/${source##*/}"
++    object=${object%.c}.o
++    echo "CC BearSSL $source"
++    "$CC" -O0 -DBR_NO_ASM=1 -DBR_INT128=0 -Iinc -Isrc \
++        -c "$source" -o "$object"
++    objects="$objects $object"
++done
++ar rcs build/libbearssl.a $objects
++mkdir -p ../../native-deps/include ../../native-deps/lib
++cp inc/*.h ../../native-deps/include/
++cp build/libbearssl.a ../../native-deps/lib/

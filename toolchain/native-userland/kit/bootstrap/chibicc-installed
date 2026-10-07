@@ -1,0 +1,6 @@
+#!/bin/bash
+set -eu
+prefix=$(cd "${0%/*}/.." && pwd)
+export CHIBICC_REM_LIBC="$prefix/lib/rem-native-userland/libc.a"
+export CHIBICC_REM_SOFTFLOAT="$prefix/lib/rem-native-userland/ieee-runtime.o"
+exec "$prefix/libexec/rem-chibicc/chibicc" "$@"

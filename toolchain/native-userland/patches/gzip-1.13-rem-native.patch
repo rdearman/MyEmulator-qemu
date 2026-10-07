@@ -1,0 +1,20 @@
+--- a/build-aux/config.sub	2023-08-17 00:47:32.000000000 +0100
++++ b/build-aux/config.sub	2026-10-07 00:07:40.270166375 +0100
+@@ -1,4 +1,7 @@
+ #! /bin/sh
++case ${1-} in
++myemulator2-unknown-linux-musl) echo "$1"; exit 0 ;;
++esac
+ # Configuration validation subroutine script.
+ #   Copyright 1992-2023 Free Software Foundation, Inc.
+ 
+--- a/build-native.sh	1970-01-01 01:00:00.000000000 +0100
++++ b/build-native.sh	2026-10-07 09:54:06.131720963 +0100
+@@ -0,0 +1,7 @@
++#!/bin/bash
++set -eu
++case $0 in */*) cd "${0%/*}" ;; esac
++source ../../native-env.sh
++bash "$ROOT/bootstrap/build-plan-native.sh" "$PWD"
++ln -sf gzip native/bin/gunzip
++ln -sf gzip native/bin/zcat

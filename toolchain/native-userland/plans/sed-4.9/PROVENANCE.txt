@@ -1,0 +1,5 @@
+Extracted from the upstream Makefile after REM-target cross configuration.
+Configure compile/link checks used the repaired REM chibicc source backend
+and the existing REM musl headers. No target binaries are supplied here.
+Native build compilation, linking and runtime acceptance remain required.
+Compile recipes: 75; archives: 2; binaries: 1.

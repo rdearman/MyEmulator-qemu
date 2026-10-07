@@ -1,0 +1,24 @@
+--- a/build-native.sh	1970-01-01 01:00:00.000000000 +0100
++++ b/build-native.sh	2026-10-07 10:19:57.871617418 +0100
+@@ -0,0 +1,7 @@
++#!/bin/bash
++set -eu
++case $0 in */*) cd "${0%/*}" ;; esac
++source ../../native-env.sh
++bash "$ROOT/bootstrap/build-plan-native.sh" "$PWD"
++cp native/bin/dbclient native/bin/ssh
++native/bin/dbclient -V
+--- a/rem-localoptions.h	1970-01-01 01:00:00.000000000 +0100
++++ b/rem-localoptions.h	2026-10-07 00:22:14.989892158 +0100
+@@ -0,0 +1 @@
++#define DROPBEAR_PATH_SSH_PROGRAM "dbclient"
+--- a/src/config.sub	2024-10-22 15:30:00.000000000 +0100
++++ b/src/config.sub	2026-10-07 00:06:11.801593820 +0100
+@@ -1,4 +1,7 @@
+ #! /bin/sh
++case ${1-} in
++myemulator2-unknown-linux-musl) echo "$1"; exit 0 ;;
++esac
+ # Configuration validation subroutine script.
+ #   Copyright 1992-2023 Free Software Foundation, Inc.
+ 

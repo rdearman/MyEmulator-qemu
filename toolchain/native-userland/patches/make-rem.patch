@@ -1,0 +1,156 @@
+--- a/build-aux/config.sub	2023-02-18 15:38:13.000000000 +0000
++++ b/build-aux/config.sub	2026-09-25 19:53:09.898207931 +0100
+@@ -1240,6 +1240,7 @@
+ 			| mipstx39 | mipstx39el \
+ 			| mmix \
+ 			| mn10200 | mn10300 \
++			| myemulator2 \
+ 			| moxie \
+ 			| mt \
+ 			| msp430 \
+--- a/build-native.sh	1970-01-01 01:00:00.000000000 +0100
++++ b/build-native.sh	2026-10-07 08:12:04.543251648 +0100
+@@ -0,0 +1,17 @@
++#!/bin/bash
++set -eu
++case $0 in */*) cd "${0%/*}" ;; esac
++source ../../native-env.sh
++mkdir -p native-build native/bin
++cd native-build
++bash ../configure --build=myemulator2-unknown-linux-musl \
++    --prefix="$REM_PREFIX" --disable-nls --without-guile \
++    --disable-posix-spawn CFLAGS="-O0" CPPFLAGS="-Dvfork=fork"
++cp ../build.sh .
++bash build.sh
++cp make ../native/bin/make
++../native/bin/make --version
++../native/bin/make -n -C "$ROOT/packages/bearssl-0.6" \
++    CC="$CC" CFLAGS="-O0 -DBR_NO_ASM=1 -DBR_INT128=0" lib \
++    > bearssl-dry-run.log
++test -s bearssl-dry-run.log
+--- a/lib/fnmatch.c	2023-02-26 16:04:31.000000000 +0000
++++ b/lib/fnmatch.c	2026-09-25 19:53:51.984017698 +0100
+@@ -120,7 +120,7 @@
+ /* Avoid depending on library functions or files
+    whose names are inconsistent.  */
+ 
+-# if !defined _LIBC && !defined getenv
++# if !defined _LIBC && !defined STDC_HEADERS && !defined getenv
+ extern char *getenv ();
+ # endif
+ 
+--- a/lib/glob.c	2023-02-26 16:04:31.000000000 +0000
++++ b/lib/glob.c	2026-10-03 01:39:51.626722571 +0100
+@@ -272,6 +272,7 @@
+ {
+   const char *filename;
+   const char *dirname;
++  char *dirname_alloc = NULL;
+   size_t dirlen;
+   int status;
+   size_t oldcount;
+@@ -483,7 +484,12 @@
+ 	     from "d:/", since "d:" and "d:/" are not the same.*/
+ 	}
+ #endif
+-      newp = (char *) __alloca (dirlen + 1);
++      /* Avoid dynamic stack allocation here.  Some supported targets do
++         not preserve this buffer across the helper calls below.  */
++      newp = (char *) malloc (dirlen + 1);
++      if (newp == NULL)
++	return GLOB_NOSPACE;
++      dirname_alloc = newp;
+ #ifdef HAVE_MEMPCPY
+       *((char *) mempcpy (newp, pattern, dirlen)) = '\0';
+ #else
+@@ -503,6 +509,7 @@
+ 	/* "pattern/".  Expand "pattern", appending slashes.  */
+ 	{
+ 	  int val = glob (dirname, flags | GLOB_MARK, errfunc, pglob);
++	  free (dirname_alloc);
+ 	  if (val == 0)
+ 	    pglob->gl_flags = ((pglob->gl_flags & ~GLOB_MARK)
+ 			       | (flags & GLOB_MARK));
+@@ -910,7 +917,10 @@
+     {
+       status = glob_in_dir (filename, dirname, flags, errfunc, pglob);
+       if (status != 0)
+-	return status;
++	{
++	  free (dirname_alloc);
++	  return status;
++	}
+ 
+       if (dirlen > 0)
+ 	{
+@@ -923,13 +933,16 @@
+ 	  if (prefix_array (dirname,
+ 			    &pglob->gl_pathv[ignore],
+ 			    pglob->gl_pathc - ignore))
+-	    {
++	  {
+ 	      globfree (pglob);
++	      free (dirname_alloc);
+ 	      return GLOB_NOSPACE;
+ 	    }
+ 	}
+     }
+ 
++  free (dirname_alloc);
++
+   if (flags & GLOB_MARK)
+     {
+       /* Append slashes to directory names.  */
+--- a/src/getopt.c	2023-01-12 00:53:26.000000000 +0000
++++ b/src/getopt.c	2026-09-25 19:55:16.251637233 +0100
+@@ -39,6 +39,7 @@
+ #endif
+ 
+ #include <stdio.h>
++#include <stdlib.h>
+ 
+ /* Comment out all this code if we are using the GNU C Library, and are not
+    actually compiling the library itself.  This code is part of the GNU C
+@@ -201,7 +202,7 @@
+ /* Avoid depending on library functions or files
+    whose names are inconsistent.  */
+ 
+-#ifndef getenv
++#if !defined STDC_HEADERS && !defined getenv
+ extern char *getenv ();
+ #endif
+ 
+--- a/src/getopt.h	2023-01-01 15:06:01.000000000 +0000
++++ b/src/getopt.h	2026-09-25 19:54:21.529884237 +0100
+@@ -102,7 +102,7 @@
+    errors, only prototype getopt for the GNU C library.  */
+ extern int getopt (int argc, char *const *argv, const char *shortopts);
+ #else /* not __GNU_LIBRARY__ */
+-extern int getopt ();
++extern int getopt (int argc, char *const *argv, const char *shortopts);
+ #endif /* __GNU_LIBRARY__ */
+ extern int getopt_long (int argc, char *const *argv, const char *shortopts,
+ 		        const struct option *longopts, int *longind);
+--- a/src/implicit.c	2023-02-19 06:25:57.000000000 +0000
++++ b/src/implicit.c	2026-10-07 08:12:04.538251672 +0100
+@@ -214,6 +214,9 @@
+   /* Filename we are searching for a rule for.  */
+   const char *filename = archive ? strchr (file->name, '(') : file->name;
+ 
++  if (!filename)
++    return 0;
++
+   /* Length of FILENAME.  */
+   size_t namelen = strlen (filename);
+ 
+--- a/src/makeint.h	2023-02-19 13:51:55.000000000 +0000
++++ b/src/makeint.h	2026-10-07 08:12:04.542251653 +0100
+@@ -485,7 +485,7 @@
+ #endif
+ 
+ /* We can't run setrlimit when using posix_spawn.  */
+-#if defined(HAVE_SYS_RESOURCE_H) && defined(HAVE_GETRLIMIT) && defined(HAVE_SETRLIMIT) && !defined(USE_POSIX_SPAWN)
++#if defined(HAVE_SYS_RESOURCE_H) && defined(HAVE_GETRLIMIT) && defined(HAVE_SETRLIMIT) && !defined(USE_POSIX_SPAWN) && !defined(__myemulator2__)
+ # define SET_STACK_SIZE
+ #endif
+ #ifdef SET_STACK_SIZE

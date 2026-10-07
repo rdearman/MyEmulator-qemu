@@ -1,0 +1,237 @@
+cc = @CC@
+root = ../../..
+
+rule cc
+  command = mkdir -p $directory && $cc $flags -c $in -o $out
+  description = CC $in
+rule archive
+  command = ar rcs $out $in
+  description = AR $out
+rule link
+  command = mkdir -p ../native/bin && ld -r -T $root/bootstrap/rem-reloc.ld -o $out.partial.o $in && $cc -o $out $out.partial.o $libraries
+  description = LINK $out
+
+build lib/libgzip_a-openat-proc.o: cc ../lib/openat-proc.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-basename-lgpl.o: cc ../lib/basename-lgpl.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-chdir-long.o: cc ../lib/chdir-long.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-cloexec.o: cc ../lib/cloexec.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-opendir-safer.o: cc ../lib/opendir-safer.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-dirname-lgpl.o: cc ../lib/dirname-lgpl.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-stripslash.o: cc ../lib/stripslash.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-error.o: cc ../lib/error.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-exitfail.o: cc ../lib/exitfail.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-fclose.o: cc ../lib/fclose.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-fcntl.o: cc ../lib/fcntl.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-creat-safer.o: cc ../lib/creat-safer.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-open-safer.o: cc ../lib/open-safer.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-fd-hook.o: cc ../lib/fd-hook.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-fd-safer-flag.o: cc ../lib/fd-safer-flag.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-dup-safer-flag.o: cc ../lib/dup-safer-flag.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-fflush.o: cc ../lib/fflush.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-filenamecat-lgpl.o: cc ../lib/filenamecat-lgpl.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-freading.o: cc ../lib/freading.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-free.o: cc ../lib/free.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-fseek.o: cc ../lib/fseek.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-fseeko.o: cc ../lib/fseeko.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-getopt.o: cc ../lib/getopt.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-getopt1.o: cc ../lib/getopt1.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-getprogname.o: cc ../lib/getprogname.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-gettime.o: cc ../lib/gettime.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-ialloc.o: cc ../lib/ialloc.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-malloca.o: cc ../lib/malloca.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-math.o: cc ../lib/math.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-mbszero.o: cc ../lib/mbszero.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-memchr.o: cc ../lib/memchr.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-openat-die.o: cc ../lib/openat-die.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-openat-safer.o: cc ../lib/openat-safer.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-printf-frexp.o: cc ../lib/printf-frexp.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-printf-frexpl.o: cc ../lib/printf-frexpl.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-reallocarray.o: cc ../lib/reallocarray.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-save-cwd.o: cc ../lib/save-cwd.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-savedir.o: cc ../lib/savedir.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-sig-handler.o: cc ../lib/sig-handler.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-stat-time.o: cc ../lib/stat-time.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-timespec.o: cc ../lib/timespec.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-unistd.o: cc ../lib/unistd.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-dup-safer.o: cc ../lib/dup-safer.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-fd-safer.o: cc ../lib/fd-safer.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-pipe-safer.o: cc ../lib/pipe-safer.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-utimens.o: cc ../lib/utimens.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-xmalloc.o: cc ../lib/xmalloc.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-xalloc-die.o: cc ../lib/xalloc-die.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-xsize.o: cc ../lib/xsize.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/libgzip_a-yesno.o: cc ../lib/yesno.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/asnprintf.o: cc ../lib/asnprintf.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/calloc.o: cc ../lib/calloc.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/fopen.o: cc ../lib/fopen.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/fprintf.o: cc ../lib/fprintf.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/malloc.o: cc ../lib/malloc.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/printf.o: cc ../lib/printf.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/printf-args.o: cc ../lib/printf-args.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/printf-parse.o: cc ../lib/printf-parse.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/realloc.o: cc ../lib/realloc.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/vasnprintf.o: cc ../lib/vasnprintf.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build lib/vfprintf.o: cc ../lib/vfprintf.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = lib
+  flags = -DHAVE_CONFIG_H -Ilib -I../lib -O0
+build bits.o: cc ../bits.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = .
+  flags = -DHAVE_CONFIG_H -I. -I.. -Ilib -I../lib -O0
+build deflate.o: cc ../deflate.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = .
+  flags = -DHAVE_CONFIG_H -I. -I.. -Ilib -I../lib -O0
+build gzip.o: cc ../gzip.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = .
+  flags = -DHAVE_CONFIG_H -I. -I.. -Ilib -I../lib -O0
+build inflate.o: cc ../inflate.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = .
+  flags = -DHAVE_CONFIG_H -I. -I.. -Ilib -I../lib -O0
+build trees.o: cc ../trees.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = .
+  flags = -DHAVE_CONFIG_H -I. -I.. -Ilib -I../lib -O0
+build unlzh.o: cc ../unlzh.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = .
+  flags = -DHAVE_CONFIG_H -I. -I.. -Ilib -I../lib -O0
+build unlzw.o: cc ../unlzw.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = .
+  flags = -DHAVE_CONFIG_H -I. -I.. -Ilib -I../lib -O0
+build unpack.o: cc ../unpack.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = .
+  flags = -DHAVE_CONFIG_H -I. -I.. -Ilib -I../lib -O0
+build unzip.o: cc ../unzip.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = .
+  flags = -DHAVE_CONFIG_H -I. -I.. -Ilib -I../lib -O0
+build util.o: cc ../util.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = .
+  flags = -DHAVE_CONFIG_H -I. -I.. -Ilib -I../lib -O0
+build zip.o: cc ../zip.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = .
+  flags = -DHAVE_CONFIG_H -I. -I.. -Ilib -I../lib -O0
+build version.o: cc version.c | version.h lib/stdio.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/wchar.h lib/stddef.h lib/utime.h lib/fcntl.h lib/stdckdint.h lib/math.h lib/stdint.h lib/config.h lib/inttypes.h lib/string.h lib/getopt.h lib/limits.h lib/dirent.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h
+  directory = .
+  flags = -DHAVE_CONFIG_H -I. -I.. -Ilib -I../lib -O0
+build lib/libgzip.a: archive lib/libgzip_a-openat-proc.o lib/libgzip_a-basename-lgpl.o lib/libgzip_a-chdir-long.o lib/libgzip_a-cloexec.o lib/libgzip_a-opendir-safer.o lib/libgzip_a-dirname-lgpl.o lib/libgzip_a-stripslash.o lib/libgzip_a-error.o lib/libgzip_a-exitfail.o lib/libgzip_a-fclose.o lib/libgzip_a-fcntl.o lib/libgzip_a-creat-safer.o lib/libgzip_a-open-safer.o lib/libgzip_a-fd-hook.o lib/libgzip_a-fd-safer-flag.o lib/libgzip_a-dup-safer-flag.o lib/libgzip_a-fflush.o lib/libgzip_a-filenamecat-lgpl.o lib/libgzip_a-freading.o lib/libgzip_a-free.o lib/libgzip_a-fseek.o lib/libgzip_a-fseeko.o lib/libgzip_a-getopt.o lib/libgzip_a-getopt1.o lib/libgzip_a-getprogname.o lib/libgzip_a-gettime.o lib/libgzip_a-ialloc.o lib/libgzip_a-malloca.o lib/libgzip_a-math.o lib/libgzip_a-mbszero.o lib/libgzip_a-memchr.o lib/libgzip_a-openat-die.o lib/libgzip_a-openat-safer.o lib/libgzip_a-printf-frexp.o lib/libgzip_a-printf-frexpl.o lib/libgzip_a-reallocarray.o lib/libgzip_a-save-cwd.o lib/libgzip_a-savedir.o lib/libgzip_a-sig-handler.o lib/libgzip_a-stat-time.o lib/libgzip_a-timespec.o lib/libgzip_a-unistd.o lib/libgzip_a-dup-safer.o lib/libgzip_a-fd-safer.o lib/libgzip_a-pipe-safer.o lib/libgzip_a-utimens.o lib/libgzip_a-xmalloc.o lib/libgzip_a-xalloc-die.o lib/libgzip_a-xsize.o lib/libgzip_a-yesno.o lib/asnprintf.o lib/calloc.o lib/fopen.o lib/fprintf.o lib/malloc.o lib/printf.o lib/printf-args.o lib/printf-parse.o lib/realloc.o lib/vasnprintf.o lib/vfprintf.o
+build libver.a: archive version.o
+build ../native/bin/gzip: link bits.o deflate.o gzip.o inflate.o trees.o unlzh.o unlzw.o unpack.o unzip.o util.o zip.o libver.a lib/libgzip.a
+  libraries = 
+default lib/libgzip.a libver.a ../native/bin/gzip

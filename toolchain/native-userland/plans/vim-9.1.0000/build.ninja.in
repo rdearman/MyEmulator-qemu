@@ -1,0 +1,388 @@
+cc = @CC@
+root = ../../..
+
+rule cc
+  command = mkdir -p $directory && $cc $flags -c $in -o $out
+  description = CC $in
+rule archive
+  command = ar rcs $out $in
+  description = AR $out
+rule link
+  command = mkdir -p ../native/bin && ld -r -T $root/bootstrap/rem-reloc.ld -o $out.partial.o $in && $cc -o $out $out.partial.o $libraries
+  description = LINK $out
+
+build objects/alloc.o: cc ../src/alloc.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/arabic.o: cc ../src/arabic.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/arglist.o: cc ../src/arglist.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/autocmd.o: cc ../src/autocmd.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/beval.o: cc ../src/beval.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/buffer.o: cc ../src/buffer.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/change.o: cc ../src/change.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/blob.o: cc ../src/blob.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/blowfish.o: cc ../src/blowfish.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/cindent.o: cc ../src/cindent.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/clientserver.o: cc ../src/clientserver.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/clipboard.o: cc ../src/clipboard.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/cmdexpand.o: cc ../src/cmdexpand.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/cmdhist.o: cc ../src/cmdhist.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/crypt.o: cc ../src/crypt.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/crypt_zip.o: cc ../src/crypt_zip.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/debugger.o: cc ../src/debugger.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/dict.o: cc ../src/dict.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/diff.o: cc ../src/diff.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/digraph.o: cc ../src/digraph.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/drawline.o: cc ../src/drawline.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/drawscreen.o: cc ../src/drawscreen.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/edit.o: cc ../src/edit.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/eval.o: cc ../src/eval.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/evalbuffer.o: cc ../src/evalbuffer.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/evalfunc.o: cc ../src/evalfunc.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/evalvars.o: cc ../src/evalvars.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/evalwindow.o: cc ../src/evalwindow.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/ex_cmds.o: cc ../src/ex_cmds.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/ex_cmds2.o: cc ../src/ex_cmds2.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/ex_docmd.o: cc ../src/ex_docmd.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/ex_eval.o: cc ../src/ex_eval.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/ex_getln.o: cc ../src/ex_getln.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/fileio.o: cc ../src/fileio.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/filepath.o: cc ../src/filepath.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/findfile.o: cc ../src/findfile.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/float.o: cc ../src/float.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/fold.o: cc ../src/fold.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/getchar.o: cc ../src/getchar.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/gui_xim.o: cc ../src/gui_xim.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/hardcopy.o: cc ../src/hardcopy.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/hashtab.o: cc ../src/hashtab.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/help.o: cc ../src/help.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/highlight.o: cc ../src/highlight.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/if_cscope.o: cc ../src/if_cscope.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/if_xcmdsrv.o: cc ../src/if_xcmdsrv.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/indent.o: cc ../src/indent.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/insexpand.o: cc ../src/insexpand.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/list.o: cc ../src/list.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/locale.o: cc ../src/locale.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/logfile.o: cc ../src/logfile.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/map.o: cc ../src/map.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/mark.o: cc ../src/mark.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/match.o: cc ../src/match.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/mbyte.o: cc ../src/mbyte.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/memline.o: cc ../src/memline.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/menu.o: cc ../src/menu.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/misc1.o: cc ../src/misc1.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/misc2.o: cc ../src/misc2.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/mouse.o: cc ../src/mouse.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/move.o: cc ../src/move.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/normal.o: cc ../src/normal.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/ops.o: cc ../src/ops.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/option.o: cc ../src/option.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/optionstr.o: cc ../src/optionstr.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/os_unix.o: cc ../src/os_unix.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/pathdef.o: cc auto/pathdef.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/popupmenu.o: cc ../src/popupmenu.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/popupwin.o: cc ../src/popupwin.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/profiler.o: cc ../src/profiler.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/pty.o: cc ../src/pty.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/quickfix.o: cc ../src/quickfix.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/regexp.o: cc ../src/regexp.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/register.o: cc ../src/register.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/screen.o: cc ../src/screen.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/scriptfile.o: cc ../src/scriptfile.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/search.o: cc ../src/search.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/session.o: cc ../src/session.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/sha256.o: cc ../src/sha256.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/sign.o: cc ../src/sign.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/sound.o: cc ../src/sound.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/spell.o: cc ../src/spell.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/spellfile.o: cc ../src/spellfile.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/spellsuggest.o: cc ../src/spellsuggest.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/strings.o: cc ../src/strings.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/syntax.o: cc ../src/syntax.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/tag.o: cc ../src/tag.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/term.o: cc ../src/term.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/terminal.o: cc ../src/terminal.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/testing.o: cc ../src/testing.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/textformat.o: cc ../src/textformat.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/textobject.o: cc ../src/textobject.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/textprop.o: cc ../src/textprop.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/time.o: cc ../src/time.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/typval.o: cc ../src/typval.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/ui.o: cc ../src/ui.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/undo.o: cc ../src/undo.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/usercmd.o: cc ../src/usercmd.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/userfunc.o: cc ../src/userfunc.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/version.o: cc ../src/version.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/vim9class.o: cc ../src/vim9class.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/vim9cmds.o: cc ../src/vim9cmds.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/vim9compile.o: cc ../src/vim9compile.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/vim9execute.o: cc ../src/vim9execute.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/vim9expr.o: cc ../src/vim9expr.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/vim9instr.o: cc ../src/vim9instr.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/vim9script.o: cc ../src/vim9script.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/vim9type.o: cc ../src/vim9type.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/viminfo.o: cc ../src/viminfo.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/window.o: cc ../src/window.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/bufwrite.o: cc ../src/bufwrite.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/job.o: cc ../src/job.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/channel.o: cc ../src/channel.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/xdiffi.o: cc ../src/xdiff/xdiffi.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/xemit.o: cc ../src/xdiff/xemit.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/xprepare.o: cc ../src/xdiff/xprepare.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/xutils.o: cc ../src/xdiff/xutils.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/xhistogram.o: cc ../src/xdiff/xhistogram.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/xpatience.o: cc ../src/xdiff/xpatience.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/charset.o: cc ../src/charset.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/json.o: cc ../src/json.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/main.o: cc ../src/main.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/memfile.o: cc ../src/memfile.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build objects/message.o: cc ../src/message.c | auto/osdef.h auto/config.h
+  directory = objects
+  flags = -I../src -I../src/proto -DHAVE_CONFIG_H -I@REM_DEPS@/include -I. -O0 -D_REENTRANT
+build ../native/bin/vim: link objects/alloc.o objects/arabic.o objects/arglist.o objects/autocmd.o objects/beval.o objects/buffer.o objects/change.o objects/blob.o objects/blowfish.o objects/cindent.o objects/clientserver.o objects/clipboard.o objects/cmdexpand.o objects/cmdhist.o objects/crypt.o objects/crypt_zip.o objects/debugger.o objects/dict.o objects/diff.o objects/digraph.o objects/drawline.o objects/drawscreen.o objects/edit.o objects/eval.o objects/evalbuffer.o objects/evalfunc.o objects/evalvars.o objects/evalwindow.o objects/ex_cmds.o objects/ex_cmds2.o objects/ex_docmd.o objects/ex_eval.o objects/ex_getln.o objects/fileio.o objects/filepath.o objects/findfile.o objects/float.o objects/fold.o objects/getchar.o objects/gui_xim.o objects/hardcopy.o objects/hashtab.o objects/help.o objects/highlight.o objects/if_cscope.o objects/if_xcmdsrv.o objects/indent.o objects/insexpand.o objects/list.o objects/locale.o objects/logfile.o objects/map.o objects/mark.o objects/match.o objects/mbyte.o objects/memline.o objects/menu.o objects/misc1.o objects/misc2.o objects/mouse.o objects/move.o objects/normal.o objects/ops.o objects/option.o objects/optionstr.o objects/os_unix.o objects/pathdef.o objects/popupmenu.o objects/popupwin.o objects/profiler.o objects/pty.o objects/quickfix.o objects/regexp.o objects/register.o objects/screen.o objects/scriptfile.o objects/search.o objects/session.o objects/sha256.o objects/sign.o objects/sound.o objects/spell.o objects/spellfile.o objects/spellsuggest.o objects/strings.o objects/syntax.o objects/tag.o objects/term.o objects/terminal.o objects/testing.o objects/textformat.o objects/textobject.o objects/textprop.o objects/time.o objects/typval.o objects/ui.o objects/undo.o objects/usercmd.o objects/userfunc.o objects/version.o objects/vim9class.o objects/vim9cmds.o objects/vim9compile.o objects/vim9execute.o objects/vim9expr.o objects/vim9instr.o objects/vim9script.o objects/vim9type.o objects/viminfo.o objects/window.o objects/bufwrite.o objects/job.o objects/channel.o objects/xdiffi.o objects/xemit.o objects/xprepare.o objects/xutils.o objects/xhistogram.o objects/xpatience.o objects/charset.o objects/json.o objects/main.o objects/memfile.o objects/message.o
+  libraries = -L@REM_DEPS@/lib -lm -lncurses
+default ../native/bin/vim

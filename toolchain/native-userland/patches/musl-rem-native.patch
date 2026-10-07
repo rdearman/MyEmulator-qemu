@@ -1,0 +1,3043 @@
+--- a/arch/myemulator2/README.md	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/README.md	2026-09-20 16:29:18.861194240 +0100
+@@ -0,0 +1,26 @@
++# MyEmulator2 musl port
++
++This directory is the tracked architecture overlay consumed by
++`toolchain/scripts/build-musl.sh`.  It deliberately starts separately from
++the reusable `toolchain/userspace/minilibc` runtime: the latter is a small
++freestanding test library, while musl supplies the architecture-independent
++libc implementation.
++
++The port must implement the MyEmulator2 ABI rather than copy RISC-V or ARM
++assembly.  The first required pieces are:
++
++- `syscall_arch.h`: syscall number in `r1`, arguments in `r2`--`r7`, result in
++  `r1`, entered with `syscall 0`;
++- `crt_arch.h`: receive the initial, kernel-aligned stack in `r13` and pass it
++  in `r1` to musl's `_start_c`. It must not use `andi` to align the pointer:
++  MyEmulator2 logical immediates are zero-extended, so that would discard the
++  upper 20 address bits. Linux supplies the required 16-byte alignment.
++- `pthread_arch.h`: read the architectural TP special register;
++- `atomic_arch.h`: implement the required compare-and-swap and barriers with
++  MyEmulator2 atomics;
++- `bits/`: exact Linux/MyEmulator2 stat, signal, setjmp, syscall and type
++  layouts.
++
++No generated musl source, archive, build directory or installed library is
++stored in this repository.  The overlay is intentionally incomplete until
++each ABI definition has a corresponding QEMU/Linux runtime test.
+--- a/arch/myemulator2/arch.mak	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/arch.mak	2026-09-20 15:58:28.431065491 +0100
+@@ -0,0 +1,4 @@
++# Initial static-only port.  The ABI and syscall definitions are supplied by
++# the MyEmulator2 overlay; dynamic linking is intentionally deferred.  The
++# upstream Makefile already adds arch/$(ARCH) to CFLAGS_ALL; do not define
++# ARCH_INCLUDES here because that name is also used for exported headers.
+--- a/arch/myemulator2/atomic_arch.h	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/atomic_arch.h	2026-10-06 22:03:16.087162250 +0100
+@@ -0,0 +1,20 @@
++#ifdef __chibicc__
++void __rem_a_barrier(void);
++int __rem_a_cas(volatile int *, int, int);
++#define a_barrier __rem_a_barrier
++#define a_cas __rem_a_cas
++#else
++#define a_barrier a_barrier
++static inline void a_barrier(void)
++{
++	__asm__ __volatile__("" ::: "memory");
++}
++
++#define a_cas a_cas
++static inline int a_cas(volatile int *p, int t, int s)
++{
++	__asm__ __volatile__("cas %0, %1, 0(%2)"
++		: "+r"(t) : "r"(s), "r"(p) : "memory");
++	return t;
++}
++#endif
+--- a/arch/myemulator2/bits/alltypes.h.in	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/bits/alltypes.h.in	2026-09-20 16:41:00.672164831 +0100
+@@ -0,0 +1,16 @@
++#define _Addr int
++#define _Int64 long long
++#define _Reg int
++
++#define __BYTE_ORDER 1234
++#define __LONG_MAX 0x7fffffffL
++
++#ifndef __cplusplus
++TYPEDEF unsigned int wchar_t;
++#endif
++
++TYPEDEF int blksize_t;
++TYPEDEF unsigned int nlink_t;
++TYPEDEF float float_t;
++TYPEDEF double double_t;
++TYPEDEF double max_align_t;
+--- a/arch/myemulator2/bits/fenv.h	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/bits/fenv.h	2026-09-20 14:30:06.809874100 +0100
+@@ -0,0 +1,13 @@
++#define FE_INVALID 16
++#define FE_DIVBYZERO 8
++#define FE_OVERFLOW 4
++#define FE_UNDERFLOW 2
++#define FE_INEXACT 1
++#define FE_ALL_EXCEPT 31
++#define FE_TONEAREST 0
++#define FE_DOWNWARD 2
++#define FE_UPWARD 3
++#define FE_TOWARDZERO 1
++typedef unsigned int fexcept_t;
++typedef unsigned int fenv_t;
++#define FE_DFL_ENV ((const fenv_t *)-1)
+--- a/arch/myemulator2/bits/float.h	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/bits/float.h	2026-10-06 22:39:08.079169574 +0100
+@@ -0,0 +1,18 @@
++#ifdef __FLT_EVAL_METHOD__
++#define FLT_EVAL_METHOD __FLT_EVAL_METHOD__
++#else
++#define FLT_EVAL_METHOD 0
++#endif
++
++/* GCC implements MyEmulator2 long double as IEEE binary64. */
++#define LDBL_TRUE_MIN 0x1p-1074L
++#define LDBL_MIN 0x1p-1022L
++#define LDBL_MAX 0x1.fffffffffffffp+1023L
++#define LDBL_EPSILON 0x1p-52L
++#define LDBL_MANT_DIG 53
++#define LDBL_MIN_EXP (-1021)
++#define LDBL_MAX_EXP 1024
++#define LDBL_DIG 15
++#define LDBL_MIN_10_EXP (-307)
++#define LDBL_MAX_10_EXP 308
++#define DECIMAL_DIG 17
+--- a/arch/myemulator2/bits/posix.h	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/bits/posix.h	2026-09-20 14:34:04.868824712 +0100
+@@ -0,0 +1,2 @@
++#define _POSIX_V6_ILP32_OFFBIG 1
++#define _POSIX_V7_ILP32_OFFBIG 1
+--- a/arch/myemulator2/bits/setjmp.h	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/bits/setjmp.h	2026-09-20 14:30:07.024873156 +0100
+@@ -0,0 +1 @@
++typedef unsigned long long __jmp_buf[16];
+--- a/arch/myemulator2/bits/signal.h	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/bits/signal.h	2026-09-20 15:46:41.612287676 +0100
+@@ -0,0 +1,94 @@
++#if defined(_POSIX_SOURCE) || defined(_POSIX_C_SOURCE) \
++ || defined(_XOPEN_SOURCE) || defined(_GNU_SOURCE) || defined(_BSD_SOURCE)
++
++#if defined(_XOPEN_SOURCE) || defined(_GNU_SOURCE) || defined(_BSD_SOURCE)
++#define MINSIGSTKSZ 2048
++#define SIGSTKSZ 8192
++#endif
++
++/* The kernel signal frame contains the complete 16-register CPU state,
++ * followed by the saved PC and status/cause information.  MyEmulator2 has
++ * no floating-point state, so mcontext_t is deliberately just this GPR
++ * context plus the architectural exception state. */
++typedef unsigned long myemulator2_gregset_t[21];
++
++typedef struct {
++	myemulator2_gregset_t __gregs;
++} mcontext_t;
++
++/* musl's cancellation machinery names the saved instruction pointer
++ * through MC_PC.  The kernel signal frame stores the sixteen GPRs first,
++ * followed by PC, SR, Cause and Info. */
++#define MC_PC __gregs[16]
++
++#if defined(_GNU_SOURCE) || defined(_BSD_SOURCE)
++typedef unsigned long greg_t;
++typedef myemulator2_gregset_t gregset_t;
++typedef void *fpregset_t;
++struct sigcontext {
++	gregset_t gregs;
++	fpregset_t fpregs;
++};
++#endif
++
++struct sigaltstack {
++	void *ss_sp;
++	int ss_flags;
++	size_t ss_size;
++};
++
++typedef struct __ucontext {
++	unsigned long uc_flags;
++	struct __ucontext *uc_link;
++	stack_t uc_stack;
++	sigset_t uc_sigmask;
++	mcontext_t uc_mcontext;
++} ucontext_t;
++
++#define SA_NOCLDSTOP 1
++#define SA_NOCLDWAIT 2
++#define SA_SIGINFO 4
++#define SA_ONSTACK 0x08000000
++#define SA_RESTART 0x10000000
++#define SA_NODEFER 0x40000000
++#define SA_RESETHAND 0x80000000
++#define SA_RESTORER 0x04000000
++
++#endif
++
++#define SIGHUP 1
++#define SIGINT 2
++#define SIGQUIT 3
++#define SIGILL 4
++#define SIGTRAP 5
++#define SIGABRT 6
++#define SIGIOT SIGABRT
++#define SIGBUS 7
++#define SIGFPE 8
++#define SIGKILL 9
++#define SIGUSR1 10
++#define SIGSEGV 11
++#define SIGUSR2 12
++#define SIGPIPE 13
++#define SIGALRM 14
++#define SIGTERM 15
++#define SIGSTKFLT 16
++#define SIGCHLD 17
++#define SIGCONT 18
++#define SIGSTOP 19
++#define SIGTSTP 20
++#define SIGTTIN 21
++#define SIGTTOU 22
++#define SIGURG 23
++#define SIGXCPU 24
++#define SIGXFSZ 25
++#define SIGVTALRM 26
++#define SIGPROF 27
++#define SIGWINCH 28
++#define SIGIO 29
++#define SIGPOLL SIGIO
++#define SIGPWR 30
++#define SIGSYS 31
++#define SIGUNUSED SIGSYS
++
++#define _NSIG 65
+--- a/arch/myemulator2/bits/stat.h	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/bits/stat.h	2026-09-20 15:02:26.472268953 +0100
+@@ -0,0 +1,19 @@
++/* Linux 32-bit stat layout used by the MyEmulator2 architecture port. */
++struct stat {
++	dev_t st_dev;
++	ino_t st_ino;
++	mode_t st_mode;
++	nlink_t st_nlink;
++	uid_t st_uid;
++	gid_t st_gid;
++	dev_t st_rdev;
++	unsigned long long __pad;
++	off_t st_size;
++	blksize_t st_blksize;
++	int __pad2;
++	blkcnt_t st_blocks;
++	struct timespec st_atim;
++	struct timespec st_mtim;
++	struct timespec st_ctim;
++	unsigned __unused[2];
++};
+--- a/arch/myemulator2/bits/stdint.h	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/bits/stdint.h	2026-09-20 14:30:06.583875092 +0100
+@@ -0,0 +1,17 @@
++typedef int32_t int_fast16_t;
++typedef int32_t int_fast32_t;
++typedef uint32_t uint_fast16_t;
++typedef uint32_t uint_fast32_t;
++#define INT_FAST16_MIN INT32_MIN
++#define INT_FAST32_MIN INT32_MIN
++#define INT_FAST16_MAX INT32_MAX
++#define INT_FAST32_MAX INT32_MAX
++#define UINT_FAST16_MAX UINT32_MAX
++#define UINT_FAST32_MAX UINT32_MAX
++#define INTPTR_MIN INT32_MIN
++#define INTPTR_MAX INT32_MAX
++#define UINTPTR_MIN 0
++#define UINTPTR_MAX UINT32_MAX
++#define PTRDIFF_MIN INT32_MIN
++#define PTRDIFF_MAX INT32_MAX
++#define SIZE_MAX UINT32_MAX
+--- a/arch/myemulator2/bits/syscall.h.in	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/bits/syscall.h.in	2026-09-20 15:57:00.403381386 +0100
+@@ -0,0 +1,263 @@
++#define __NR_read 63
++#define __NR_write 64
++#define __NR_openat 56
++#define __NR_close 57
++#define __NR_vhangup 58
++#define __NR_epoll_create1 20
++#define __NR_epoll_ctl 21
++#define __NR_epoll_pwait 22
++#define __NR_flock 32
++#define __NR_inotify_init1 26
++#define __NR_inotify_add_watch 27
++#define __NR_inotify_rm_watch 28
++#define __NR_mknodat 33
++#define __NR_umount2 39
++#define __NR_mount 40
++#define __NR_pivot_root 41
++#define __NR_quotactl 60
++#define __NR_statfs 43
++#define __NR_fstatfs 44
++#define __NR_utimensat 88
++#define __NR_utimensat_time64 412
++#define __NR_eventfd2 19
++#define __NR_capget 90
++#define __NR_capset 91
++#define __NR_lseek 62
++#define __NR_fstatat 79
++#define __NR_fstat 80
++#define __NR_newfstatat 79
++#define __NR_newfstat 80
++#define __NR_getdents64 61
++#define __NR_ioctl 29
++#define __NR_dup 23
++#define __NR_dup3 24
++#define __NR_pipe2 59
++#define __NR_brk 214
++#define __NR_mmap 222
++#define __NR_munmap 215
++#define __NR_mprotect 226
++#define __NR_madvise 233
++#define __NR_exit 93
++#define __NR_exit_group 94
++#define __NR_clone 220
++#define __NR_execve 221
++#define __NR_wait4 260
++#define __NR_waitid 95
++#define __NR_getpid 172
++#define __NR_getppid 173
++#define __NR_sched_yield 124
++#define __NR_sched_getaffinity 123
++#define __NR_sched_setaffinity 122
++#define __NR_sched_get_priority_max 125
++#define __NR_sched_get_priority_min 126
++#define __NR_sched_getparam 121
++#define __NR_sched_getscheduler 120
++#define __NR_sched_setparam 118
++#define __NR_sched_setscheduler 119
++#define __NR_sched_rr_get_interval 127
++#define __NR_sched_rr_get_interval_time64 423
++#define __NR_nanosleep 101
++#define __NR_clock_gettime 403
++#define __NR_clock_gettime64 403
++#define __NR_clock_settime64 404
++#define __NR_clock_getres 406
++#define __NR_clock_getres_time64 406
++#define __NR_timer_create 107
++#define __NR_timer_getoverrun 109
++#define __NR_timer_delete 111
++#define __NR_timer_gettime 408
++#define __NR_timer_gettime64 408
++#define __NR_timer_settime 409
++#define __NR_timer_settime64 409
++#define __NR_times 153
++#define __NR_acct 89
++#define __NR_geteuid 175
++#define __NR_getegid 177
++#define __NR_faccessat2 439
++#define __NR_sync 81
++#define __NR_fdatasync 83
++#define __NR_getpgid 155
++#define __NR_getsid 156
++#define __NR_symlinkat 36
++#define __NR_linkat 37
++#define __NR_truncate 45
++#define __NR_clock_adjtime 266
++#define __NR_clock_adjtime64 405
++#define __NR_gettimeofday 169
++#define __NR_uname 160
++#define __NR_getcwd 17
++#define __NR_setxattr 5
++#define __NR_lsetxattr 6
++#define __NR_fsetxattr 7
++#define __NR_getxattr 8
++#define __NR_lgetxattr 9
++#define __NR_fgetxattr 10
++#define __NR_listxattr 11
++#define __NR_llistxattr 12
++#define __NR_flistxattr 13
++#define __NR_removexattr 14
++#define __NR_lremovexattr 15
++#define __NR_fremovexattr 16
++#define __NR__llseek 62
++#define __NR_readv 65
++#define __NR_writev 66
++#define __NR_pread64 67
++#define __NR_pwrite64 68
++#define __NR_preadv 69
++#define __NR_pwritev 70
++#define __NR_pselect6 72
++#define __NR_chroot 51
++#define __NR_sethostname 161
++#define __NR_setdomainname 162
++#define __NR_unshare 97
++#define __NR_sysinfo 179
++#define __NR_getrusage 165
++#define __NR_umask 166
++#define __NR_getcpu 168
++#define __NR_getitimer 102
++#define __NR_setitimer 103
++#define __NR_mq_open 180
++#define __NR_mq_unlink 181
++#define __NR_mq_timedsend 182
++#define __NR_mq_timedreceive 183
++#define __NR_mq_notify 184
++#define __NR_mq_getsetattr 185
++#define __NR_timerfd_create 85
++#define __NR_timerfd_settime 86
++#define __NR_timerfd_gettime 87
++#define __NR_timerfd_gettime64 410
++#define __NR_timerfd_settime64 411
++#define __NR_getgroups 158
++#define __NR_setgroups 159
++#define __NR_prctl 167
++#define __NR_syslog 116
++#define __NR_ptrace 117
++#define __NR_getpriority 141
++#define __NR_setpriority 140
++#define __NR_setregid 143
++#define __NR_setgid 144
++#define __NR_setreuid 145
++#define __NR_setuid 146
++#define __NR_setresuid 147
++#define __NR_getresuid 148
++#define __NR_setresgid 149
++#define __NR_getresgid 150
++#define __NR_setpgid 154
++#define __NR_setsid 157
++#define __NR_getuid 174
++#define __NR_getgid 176
++#define __NR_fchdir 50
++#define __NR_fchmod 52
++#define __NR_fchmodat 53
++#define __NR_fchmodat2 452
++#define __NR_fchownat 54
++#define __NR_fchown 55
++#define __NR_init_module 105
++#define __NR_delete_module 106
++#define __NR_copy_file_range 285
++#define __NR_preadv2 286
++#define __NR_pwritev2 287
++#define __NR_sendfile 71
++#define __NR_signalfd4 74
++#define __NR_vmsplice 75
++#define __NR_splice 76
++#define __NR_tee 77
++#define __NR_fanotify_init 262
++#define __NR_fanotify_mark 263
++#define __NR_name_to_handle_at 264
++#define __NR_prlimit64 261
++#define __NR_open_by_handle_at 265
++#define __NR_setns 268
++#define __NR_process_vm_readv 270
++#define __NR_process_vm_writev 271
++#define __NR_recvmmsg 243
++#define __NR_recvmmsg_time64 417
++#define __NR_sendmmsg 269
++#define __NR_kcmp 272
++#define __NR_seccomp 277
++#define __NR_syncfs 306
++#define __NR_getrandom 278
++#define __NR_membarrier 283
++#define __NR_memfd_create 279
++#define __NR_execveat 281
++#define __NR_mlock2 284
++#define __NR_mincore 232
++#define __NR_mremap 216
++#define __NR_mlock 228
++#define __NR_munlock 229
++#define __NR_mlockall 230
++#define __NR_munlockall 231
++#define __NR_pkey_mprotect 288
++#define __NR_pkey_alloc 289
++#define __NR_pkey_free 290
++#define __NR_statx 291
++#define __NR_accept4 242
++#define __NR_getsockname 204
++#define __NR_getpeername 205
++#define __NR_sendmsg 211
++#define __NR_recvmsg 212
++#define __NR_chdir 49
++#define __NR_mkdirat 34
++#define __NR_unlinkat 35
++#define __NR_renameat 38
++#define __NR_fcntl 25
++#define __NR_fsync 82
++#define __NR_fadvise 223
++#define __NR_swapon 224
++#define __NR_swapoff 225
++#define __NR_readahead 213
++#define __NR_remap_file_pages 234
++#define __NR_ftruncate 46
++#define __NR_fallocate 47
++#define __NR_mmap2 222
++#define __NR_msync 227
++#define __NR_madvise 233
++#define __NR_readlinkat 78
++#define __NR_access 21
++#define __NR_faccessat 48
++#define __NR_set_tid_address 96
++#define __NR_gettid 178
++#define __NR_set_robust_list 99
++#define __NR_get_robust_list 100
++#define __NR_rt_sigaction 134
++#define __NR_rt_sigprocmask 135
++#define __NR_rt_sigreturn 139
++#define __NR_rt_sigsuspend 133
++#define __NR_rt_sigpending 136
++#define __NR_rt_sigtimedwait 137
++#define __NR_reboot 142
++#define __NR_setfsuid 151
++#define __NR_setfsgid 152
++#define __NR_rt_sigqueueinfo 138
++#define __NR_sigaltstack 132
++#define __NR_kill 129
++#define __NR_tkill 130
++#define __NR_tgkill 131
++#define __NR_socket 198
++#define __NR_connect 203
++#define __NR_bind 200
++#define __NR_listen 201
++#define __NR_accept 202
++#define __NR_sendto 206
++#define __NR_recvfrom 207
++#define __NR_shutdown 210
++#define __NR_setsockopt 208
++#define __NR_getsockopt 209
++#define __NR_socketpair 199
++#define __NR_msgget 186
++#define __NR_msgctl 187
++#define __NR_msgrcv 188
++#define __NR_msgsnd 189
++#define __NR_semget 190
++#define __NR_semctl 191
++#define __NR_semtimedop 192
++#define __NR_semop 193
++#define __NR_shmget 194
++#define __NR_shmctl 195
++#define __NR_shmat 196
++#define __NR_shmdt 197
++#define __NR_futex_time64 422
++#define __NR_futex 422
++#define __NR_clock_nanosleep_time64 407
++#define __NR_ppoll 73
++#define __NR_ppoll_time64 414
+--- a/arch/myemulator2/crt_arch.h	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/crt_arch.h	2026-09-20 16:29:18.669195089 +0100
+@@ -0,0 +1,8 @@
++__asm__(
++".section .text\n"
++".global " START "\n"
++".type " START ",%function\n"
++START ":\n"
++"add r1, r13, r0\n"
++"j " START "_c\n"
++);
+--- a/arch/myemulator2/kstat.h	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/kstat.h	2026-09-20 15:33:02.587149725 +0100
+@@ -0,0 +1,21 @@
++struct kstat {
++	dev_t st_dev;
++	int __st_dev_padding;
++	long __st_ino_truncated;
++	mode_t st_mode;
++	nlink_t st_nlink;
++	uid_t st_uid;
++	gid_t st_gid;
++	dev_t st_rdev;
++	int __st_rdev_padding;
++	off_t st_size;
++	blksize_t st_blksize;
++	blkcnt_t st_blocks;
++	long st_atime_sec;
++	long st_atime_nsec;
++	long st_mtime_sec;
++	long st_mtime_nsec;
++	long st_ctime_sec;
++	long st_ctime_nsec;
++	ino_t st_ino;
++};
+--- a/arch/myemulator2/pthread_arch.h	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/pthread_arch.h	2026-10-06 22:03:04.273215971 +0100
+@@ -0,0 +1,15 @@
++#ifdef __chibicc__
++uintptr_t __rem_get_tp(void);
++#define __get_tp __rem_get_tp
++#else
++static inline uintptr_t __get_tp(void)
++{
++	uintptr_t tp;
++	__asm__ __volatile__("mfsr %0, tp" : "=r"(tp));
++	return tp;
++}
++#endif
++
++#define TLS_ABOVE_TP
++#define GAP_ABOVE_TP 0
++#define DTP_OFFSET 0
+--- a/arch/myemulator2/reloc.h	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/reloc.h	2026-09-20 14:30:30.144771649 +0100
+@@ -0,0 +1,13 @@
++#define LDSO_ARCH "myemulator2"
++#define TPOFF_K 0
++
++/* Values from the MyEmulator2 ELF psABI; musl's generic loader only needs
++ * the absolute/relative word relocation during the first static port. */
++#define R_MYEMULATOR2_32 1
++
++#define REL_SYMBOLIC R_MYEMULATOR2_32
++#define REL_RELATIVE R_MYEMULATOR2_32
++
++#define CRTJMP(pc, sp) __asm__ __volatile__( \
++	"add r13, %1, r0\n" \
++	"jr %0" : : "r"(pc), "r"(sp) : "memory")
+--- a/arch/myemulator2/src/native_syscall.S	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/src/native_syscall.S	2026-10-06 22:03:04.275215963 +0100
+@@ -0,0 +1,73 @@
++	.text
++	.globl __syscall0
++	.globl __syscall1
++	.globl __syscall2
++	.globl __syscall3
++	.type __syscall0,@function
++__syscall0:
++__syscall1:
++__syscall2:
++__syscall3:
++	syscall 0
++	jr r14
++
++	.globl __syscall4
++	.type __syscall4,@function
++__syscall4:
++	subi sp,sp,16
++	sw r5,0(sp)
++	lw r5,48(sp)
++	syscall 0
++	lw r5,0(sp)
++	addi sp,sp,16
++	jr r14
++
++	.globl __rem_get_tp
++	.type __rem_get_tp,@function
++__rem_get_tp:
++	mfsr r1,tp
++	jr r14
++
++	.globl __rem_a_cas
++	.type __rem_a_cas,@function
++__rem_a_cas:
++	cas r2,r3,0(r1)
++	add r1,r2,r0
++	jr r14
++
++	.globl __rem_a_barrier
++	.type __rem_a_barrier,@function
++__rem_a_barrier:
++	jr r14
++
++	.globl __syscall5
++	.type __syscall5,@function
++__syscall5:
++	subi sp,sp,16
++	sw r5,0(sp)
++	sw r6,4(sp)
++	lw r5,48(sp)
++	lw r6,52(sp)
++	syscall 0
++	lw r5,0(sp)
++	lw r6,4(sp)
++	addi sp,sp,16
++	jr r14
++
++	.globl __syscall6
++	.type __syscall6,@function
++__syscall6:
++	subi sp,sp,16
++	sw r5,0(sp)
++	sw r6,4(sp)
++	sw r7,8(sp)
++	lw r5,48(sp)
++	lw r6,52(sp)
++	lw r7,56(sp)
++	syscall 0
++	lw r5,0(sp)
++	lw r6,4(sp)
++	lw r7,8(sp)
++	addi sp,sp,16
++	jr r14
++	.section .note.GNU-stack,"",@progbits
+--- a/arch/myemulator2/src/setjmp/myemulator2/longjmp.S	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/src/setjmp/myemulator2/longjmp.S	2026-09-20 22:45:45.592590499 +0100
+@@ -0,0 +1,26 @@
++	.section .text
++	.global __longjmp
++	.global _longjmp
++	.global longjmp
++	.type __longjmp,@function
++	.type _longjmp,@function
++	.type longjmp,@function
++__longjmp:
++_longjmp:
++longjmp:
++	lw r5, 0(r1)
++	lw r6, 4(r1)
++	lw r7, 8(r1)
++	lw r8, 12(r1)
++	lw r9, 16(r1)
++	lw r10, 20(r1)
++	lw r11, 24(r1)
++	lw r12, 28(r1)
++	lw r13, 32(r1)
++	lw r14, 36(r1)
++	lw r15, 40(r1)
++	lw r3, 44(r1)
++	mtsr tp, r3
++	seq r1, r2, r0
++	add r1, r1, r2
++	jr r14
+--- a/arch/myemulator2/src/setjmp/myemulator2/setjmp.S	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/src/setjmp/myemulator2/setjmp.S	2026-09-20 23:30:01.739963006 +0100
+@@ -0,0 +1,25 @@
++	.section .text
++	.global __setjmp
++	.global _setjmp
++	.global setjmp
++	.type __setjmp,@function
++	.type _setjmp,@function
++	.type setjmp,@function
++__setjmp:
++_setjmp:
++setjmp:
++	sw r5, 0(r1)
++	sw r6, 4(r1)
++	sw r7, 8(r1)
++	sw r8, 12(r1)
++	sw r9, 16(r1)
++	sw r10, 20(r1)
++	sw r11, 24(r1)
++	sw r12, 28(r1)
++	sw r13, 32(r1)
++	sw r14, 36(r1)
++	sw r15, 40(r1)
++	mfsr r3, tp
++	sw r3, 44(r1)
++	addi r1, r0, 0
++	jr r14
+--- a/arch/myemulator2/src/thread/myemulator2/__set_thread_area.S	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/src/thread/myemulator2/__set_thread_area.S	2026-09-20 16:02:30.771166062 +0100
+@@ -0,0 +1,7 @@
++.global __set_thread_area
++.hidden __set_thread_area
++.type __set_thread_area,@function
++__set_thread_area:
++	mtsr tp, r1
++	addi r1, r0, 0
++	jr r14
+--- a/arch/myemulator2/src/thread/myemulator2/clone.S	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/src/thread/myemulator2/clone.S	2026-09-28 11:02:54.402247550 +0100
+@@ -0,0 +1,87 @@
++/* __clone(func, stack, flags, arg, ptid, tls, ctid)
++ *
++ * C arguments are passed in r1-r7.  The Linux clone syscall receives
++ * flags,newsp,parent_tid,child_tid,tls in r2-r6 after r1 is loaded with the
++ * syscall number.  The child starts with r13=newsp, so its trampoline record
++ * must be written to the aligned top of the caller-supplied stack.
++ */
++.section .text
++.global __clone
++.hidden __clone
++.type __clone,@function
++__clone:
++	/* posix_spawn may supply a temporary child stack in the caller's own
++	 * frame while the parent is suspended by vfork.  Keep our saved parent
++	 * registers well below that record so the child cannot overwrite them. */
++	subi r13, r13, 128
++	sw r1, 0(r13)
++	sw r2, 4(r13)
++	sw r3, 8(r13)
++	sw r4, 12(r13)
++	sw r5, 16(r13)
++	sw r6, 20(r13)
++	sw r7, 24(r13)
++	sw r14, 28(r13)
++	sw r15, 32(r13)
++	sw r8, 36(r13)
++	sw r9, 40(r13)
++	sw r10, 44(r13)
++	sw r11, 48(r13)
++	sw r12, 52(r13)
++
++	/* Keep the caller-supplied child stack unchanged.  The vfork child
++	 * shares the parent's address space and musl deliberately points this
++	 * at a temporary stack in the posix_spawn frame.  Writing a trampoline
++	 * record below it can overwrite the suspended parent's frame.  Preserve
++	 * the function and argument in registers instead; copy_thread() copies
++	 * those registers into the child, while the parent path restores them
++	 * from our save area. */
++	lw r2, 4(r13)
++	/* REM's compiler reserves a 4092-byte positive-offset area in each
++	 * frame before its ordinary local frame.  A vfork child receives the
++	 * caller's temporary stack base, so move the child SP below that area;
++	 * otherwise the child's first prologue writes into the suspended
++	 * parent's posix_spawn frame. */
++	lui r11, 1
++	sub r3, r2, r11
++	lw r12, 0(r13)
++	lw r7, 12(r13)
++
++	/* clone(flags, newsp, parent_tid, child_tid, tls). */
++	lw r2, 8(r13)
++	lw r4, 16(r13)
++	lw r5, 20(r13)
++	lw r6, 24(r13)
++	li r1, 220
++	syscall 0
++	bne r1, r0, 1f
++
++	/* Child: kernel switched r13 to newsp and preserved r12/r7. */
++	add r1, r7, r0
++	jalr r12
++	add r2, r1, r0
++	li r1, 93
++	syscall 0
++	j 2f
++
++1:
++	/* Restore the caller's argument registers and stack. */
++	lw r1, 0(r13)
++	lw r2, 4(r13)
++	lw r3, 8(r13)
++	lw r4, 12(r13)
++	lw r5, 16(r13)
++	lw r6, 20(r13)
++	lw r7, 24(r13)
++	lw r14, 28(r13)
++	lw r15, 32(r13)
++	lw r8, 36(r13)
++	lw r9, 40(r13)
++	lw r10, 44(r13)
++	lw r11, 48(r13)
++	lw r12, 52(r13)
++	addi r13, r13, 128
++	jr r14
++
++2:
++	j 2b
+--- a/arch/myemulator2/syscall_arch.h	1970-01-01 01:00:00.000000000 +0100
++++ b/arch/myemulator2/syscall_arch.h	2026-10-06 13:49:49.245867375 +0100
+@@ -0,0 +1,75 @@
++#define __SYSCALL_LL_E(x) \
++((union { long long ll; long l[2]; }){ .ll = x }).l[0], \
++((union { long long ll; long l[2]; }){ .ll = x }).l[1]
++#define __SYSCALL_LL_O(x) __SYSCALL_LL_E((x))
++
++#ifdef __chibicc__
++long __syscall0(long);
++long __syscall1(long, long);
++long __syscall2(long, long, long);
++long __syscall3(long, long, long, long);
++long __syscall4(long, long, long, long, long);
++long __syscall5(long, long, long, long, long, long);
++long __syscall6(long, long, long, long, long, long, long);
++#else
++/* MyEmulator2 syscall ABI: r1 is the syscall number/result and r2-r7 are
++ * the six Linux arguments.  Fixed-register variables preserve that ABI while
++ * allowing musl's architecture-independent syscall wrappers to be reused. */
++#define __MYEMU_SYSCALL __asm__ volatile ("syscall 0" : "+r"(r1) : \
++    "r"(r2), "r"(r3), "r"(r4), "r"(r5), "r"(r6), "r"(r7) : "memory")
++
++static inline long __syscall0(long n)
++{
++	register long r1 __asm__("r1") = n;
++	register long r2 __asm__("r2");
++	register long r3 __asm__("r3");
++	register long r4 __asm__("r4");
++	register long r5 __asm__("r5");
++	register long r6 __asm__("r6");
++	register long r7 __asm__("r7");
++	__MYEMU_SYSCALL;
++	return r1;
++}
++
++#define __MYEMU_SYSCALL_N(N) \
++static inline long __syscall##N(long n, \
++    long a, long b, long c, long d, long e, long f) \
++{ \
++    register long r1 __asm__("r1") = n; \
++    register long r2 __asm__("r2") = a; \
++    register long r3 __asm__("r3") = b; \
++    register long r4 __asm__("r4") = c; \
++    register long r5 __asm__("r5") = d; \
++    register long r6 __asm__("r6") = e; \
++    register long r7 __asm__("r7") = f; \
++    __MYEMU_SYSCALL; \
++    return r1; \
++}
++
++static inline long __syscall6(long, long, long, long, long, long, long);
++
++static inline long __syscall1(long n, long a)
++{
++	return __syscall6(n, a, 0, 0, 0, 0, 0);
++}
++static inline long __syscall2(long n, long a, long b)
++{
++	return __syscall6(n, a, b, 0, 0, 0, 0);
++}
++static inline long __syscall3(long n, long a, long b, long c)
++{
++	return __syscall6(n, a, b, c, 0, 0, 0);
++}
++static inline long __syscall4(long n, long a, long b, long c, long d)
++{
++	return __syscall6(n, a, b, c, d, 0, 0);
++}
++static inline long __syscall5(long n, long a, long b, long c, long d, long e)
++{
++	return __syscall6(n, a, b, c, d, e, 0);
++}
++
++__MYEMU_SYSCALL_N(6)
++#undef __MYEMU_SYSCALL_N
++#undef __MYEMU_SYSCALL
++#endif
+--- a/build-native.sh	1970-01-01 01:00:00.000000000 +0100
++++ b/build-native.sh	2026-10-06 23:17:00.693168529 +0100
+@@ -0,0 +1,37 @@
++#!/bin/bash
++set -eu
++case $0 in */*) cd "${0%/*}" ;; esac
++CC=${CC:-chibicc}
++mkdir -p native
++objects=
++case ${1:-full} in
++seed) files="internal/floatscan stdlib/strtod" ;;
++full) files="\
++    crypt/crypt_blowfish crypt/crypt_sha512 internal/floatscan \
++    legacy/cuserid locale/catopen math/__rem_pio2_large misc/nftw \
++    misc/realpath misc/syslog multibyte/mbsnrtowcs \
++    network/getaddrinfo network/gethostbyname2_r network/getnameinfo \
++    network/lookup_name network/lookup_serv network/netlink \
++    network/res_send network/resolvconf process/posix_spawn process/system \
++    regex/glob signal/sigset stdio/fputws stdio/tempnam stdio/vfprintf \
++    stdlib/fcvt stdlib/strtod string/memmem string/strstr thread/sem_open \
++    time/timer_create time/wcsftime unistd/faccessat" ;;
++*) echo "Usage: build-native.sh [seed|full]" >&2; exit 1 ;;
++esac
++for file in $files; do
++    name=${file##*/}
++    echo "CC musl $file.c"
++    "$CC" -D_XOPEN_SOURCE=700 -Iarch/myemulator2 -Iarch/generic \
++        -Isrc/include -Isrc/internal -Inative-headers -Iinclude \
++        -c "src/$file.c" -o "native/$name.o"
++    objects="$objects native/$name.o"
++done
++as -o native/native_syscall.o arch/myemulator2/src/native_syscall.S
++ar rcs native/librem-runtime.a $objects native/native_syscall.o
++cp /usr/lib/libc.a native/libc.a
++ar rcs native/libc.a $objects native/native_syscall.o
++ld -r -T ../rem-reloc.ld -o native/rem-runtime.o $objects native/native_syscall.o
++case ${1:-full} in
++seed) echo "Temporary source-built strtod seed ready; remaining libc repairs are not yet built." ;;
++full) echo "All 32 audited libc members rebuilt, with strtod and REM ABI support." ;;
++esac
+--- a/configure	2024-03-01 02:07:33.000000000 +0000
++++ b/configure	2026-09-24 20:20:56.208835722 +0100
+@@ -338,6 +338,7 @@
+ powerpc*|ppc*) ARCH=powerpc ;;
+ riscv64*) ARCH=riscv64 ;;
+ riscv32*) ARCH=riscv32 ;;
++myemulator2*) ARCH=myemulator2 ;;
+ sh[1-9bel-]*|sh|superh*) ARCH=sh ;;
+ s390x*) ARCH=s390x ;;
+ unknown) fail "$0: unable to detect target arch; try $0 --target=..." ;;
+--- a/native-headers/bits/alltypes.h	1970-01-01 01:00:00.000000000 +0100
++++ b/native-headers/bits/alltypes.h	2026-10-06 22:03:24.097125806 +0100
+@@ -0,0 +1,411 @@
++#define _Addr int
++#define _Int64 long long
++#define _Reg int
++
++#define __BYTE_ORDER 1234
++#define __LONG_MAX 0x7fffffffL
++
++#ifndef __cplusplus
++#if defined(__NEED_wchar_t) && !defined(__DEFINED_wchar_t)
++typedef unsigned int wchar_t;
++#define __DEFINED_wchar_t
++#endif
++
++#endif
++
++#if defined(__NEED_blksize_t) && !defined(__DEFINED_blksize_t)
++typedef int blksize_t;
++#define __DEFINED_blksize_t
++#endif
++
++#if defined(__NEED_nlink_t) && !defined(__DEFINED_nlink_t)
++typedef unsigned int nlink_t;
++#define __DEFINED_nlink_t
++#endif
++
++#if defined(__NEED_float_t) && !defined(__DEFINED_float_t)
++typedef float float_t;
++#define __DEFINED_float_t
++#endif
++
++#if defined(__NEED_double_t) && !defined(__DEFINED_double_t)
++typedef double double_t;
++#define __DEFINED_double_t
++#endif
++
++#if defined(__NEED_max_align_t) && !defined(__DEFINED_max_align_t)
++typedef double max_align_t;
++#define __DEFINED_max_align_t
++#endif
++
++#define __LITTLE_ENDIAN 1234
++#define __BIG_ENDIAN 4321
++#define __USE_TIME_BITS64 1
++
++#if defined(__NEED_size_t) && !defined(__DEFINED_size_t)
++typedef unsigned _Addr size_t;
++#define __DEFINED_size_t
++#endif
++
++#if defined(__NEED_uintptr_t) && !defined(__DEFINED_uintptr_t)
++typedef unsigned _Addr uintptr_t;
++#define __DEFINED_uintptr_t
++#endif
++
++#if defined(__NEED_ptrdiff_t) && !defined(__DEFINED_ptrdiff_t)
++typedef _Addr ptrdiff_t;
++#define __DEFINED_ptrdiff_t
++#endif
++
++#if defined(__NEED_ssize_t) && !defined(__DEFINED_ssize_t)
++typedef _Addr ssize_t;
++#define __DEFINED_ssize_t
++#endif
++
++#if defined(__NEED_intptr_t) && !defined(__DEFINED_intptr_t)
++typedef _Addr intptr_t;
++#define __DEFINED_intptr_t
++#endif
++
++#if defined(__NEED_regoff_t) && !defined(__DEFINED_regoff_t)
++typedef _Addr regoff_t;
++#define __DEFINED_regoff_t
++#endif
++
++#if defined(__NEED_register_t) && !defined(__DEFINED_register_t)
++typedef _Reg register_t;
++#define __DEFINED_register_t
++#endif
++
++#if defined(__NEED_time_t) && !defined(__DEFINED_time_t)
++typedef _Int64 time_t;
++#define __DEFINED_time_t
++#endif
++
++#if defined(__NEED_suseconds_t) && !defined(__DEFINED_suseconds_t)
++typedef _Int64 suseconds_t;
++#define __DEFINED_suseconds_t
++#endif
++
++
++#if defined(__NEED_int8_t) && !defined(__DEFINED_int8_t)
++typedef signed char     int8_t;
++#define __DEFINED_int8_t
++#endif
++
++#if defined(__NEED_int16_t) && !defined(__DEFINED_int16_t)
++typedef signed short    int16_t;
++#define __DEFINED_int16_t
++#endif
++
++#if defined(__NEED_int32_t) && !defined(__DEFINED_int32_t)
++typedef signed int      int32_t;
++#define __DEFINED_int32_t
++#endif
++
++#if defined(__NEED_int64_t) && !defined(__DEFINED_int64_t)
++typedef signed _Int64   int64_t;
++#define __DEFINED_int64_t
++#endif
++
++#if defined(__NEED_intmax_t) && !defined(__DEFINED_intmax_t)
++typedef signed _Int64   intmax_t;
++#define __DEFINED_intmax_t
++#endif
++
++#if defined(__NEED_uint8_t) && !defined(__DEFINED_uint8_t)
++typedef unsigned char   uint8_t;
++#define __DEFINED_uint8_t
++#endif
++
++#if defined(__NEED_uint16_t) && !defined(__DEFINED_uint16_t)
++typedef unsigned short  uint16_t;
++#define __DEFINED_uint16_t
++#endif
++
++#if defined(__NEED_uint32_t) && !defined(__DEFINED_uint32_t)
++typedef unsigned int    uint32_t;
++#define __DEFINED_uint32_t
++#endif
++
++#if defined(__NEED_uint64_t) && !defined(__DEFINED_uint64_t)
++typedef unsigned _Int64 uint64_t;
++#define __DEFINED_uint64_t
++#endif
++
++#if defined(__NEED_u_int64_t) && !defined(__DEFINED_u_int64_t)
++typedef unsigned _Int64 u_int64_t;
++#define __DEFINED_u_int64_t
++#endif
++
++#if defined(__NEED_uintmax_t) && !defined(__DEFINED_uintmax_t)
++typedef unsigned _Int64 uintmax_t;
++#define __DEFINED_uintmax_t
++#endif
++
++
++#if defined(__NEED_mode_t) && !defined(__DEFINED_mode_t)
++typedef unsigned mode_t;
++#define __DEFINED_mode_t
++#endif
++
++#if defined(__NEED_nlink_t) && !defined(__DEFINED_nlink_t)
++typedef unsigned _Reg nlink_t;
++#define __DEFINED_nlink_t
++#endif
++
++#if defined(__NEED_off_t) && !defined(__DEFINED_off_t)
++typedef _Int64 off_t;
++#define __DEFINED_off_t
++#endif
++
++#if defined(__NEED_ino_t) && !defined(__DEFINED_ino_t)
++typedef unsigned _Int64 ino_t;
++#define __DEFINED_ino_t
++#endif
++
++#if defined(__NEED_dev_t) && !defined(__DEFINED_dev_t)
++typedef unsigned _Int64 dev_t;
++#define __DEFINED_dev_t
++#endif
++
++#if defined(__NEED_blksize_t) && !defined(__DEFINED_blksize_t)
++typedef long blksize_t;
++#define __DEFINED_blksize_t
++#endif
++
++#if defined(__NEED_blkcnt_t) && !defined(__DEFINED_blkcnt_t)
++typedef _Int64 blkcnt_t;
++#define __DEFINED_blkcnt_t
++#endif
++
++#if defined(__NEED_fsblkcnt_t) && !defined(__DEFINED_fsblkcnt_t)
++typedef unsigned _Int64 fsblkcnt_t;
++#define __DEFINED_fsblkcnt_t
++#endif
++
++#if defined(__NEED_fsfilcnt_t) && !defined(__DEFINED_fsfilcnt_t)
++typedef unsigned _Int64 fsfilcnt_t;
++#define __DEFINED_fsfilcnt_t
++#endif
++
++
++#if defined(__NEED_wint_t) && !defined(__DEFINED_wint_t)
++typedef unsigned wint_t;
++#define __DEFINED_wint_t
++#endif
++
++#if defined(__NEED_wctype_t) && !defined(__DEFINED_wctype_t)
++typedef unsigned long wctype_t;
++#define __DEFINED_wctype_t
++#endif
++
++
++#if defined(__NEED_timer_t) && !defined(__DEFINED_timer_t)
++typedef void * timer_t;
++#define __DEFINED_timer_t
++#endif
++
++#if defined(__NEED_clockid_t) && !defined(__DEFINED_clockid_t)
++typedef int clockid_t;
++#define __DEFINED_clockid_t
++#endif
++
++#if defined(__NEED_clock_t) && !defined(__DEFINED_clock_t)
++typedef long clock_t;
++#define __DEFINED_clock_t
++#endif
++
++#if defined(__NEED_struct_timeval) && !defined(__DEFINED_struct_timeval)
++struct timeval { time_t tv_sec; suseconds_t tv_usec; };
++#define __DEFINED_struct_timeval
++#endif
++
++#if defined(__NEED_struct_timespec) && !defined(__DEFINED_struct_timespec)
++struct timespec { time_t tv_sec; int :8*(sizeof(time_t)-sizeof(long))*(__BYTE_ORDER==4321); long tv_nsec; int :8*(sizeof(time_t)-sizeof(long))*(__BYTE_ORDER!=4321); };
++#define __DEFINED_struct_timespec
++#endif
++
++
++#if defined(__NEED_pid_t) && !defined(__DEFINED_pid_t)
++typedef int pid_t;
++#define __DEFINED_pid_t
++#endif
++
++#if defined(__NEED_id_t) && !defined(__DEFINED_id_t)
++typedef unsigned id_t;
++#define __DEFINED_id_t
++#endif
++
++#if defined(__NEED_uid_t) && !defined(__DEFINED_uid_t)
++typedef unsigned uid_t;
++#define __DEFINED_uid_t
++#endif
++
++#if defined(__NEED_gid_t) && !defined(__DEFINED_gid_t)
++typedef unsigned gid_t;
++#define __DEFINED_gid_t
++#endif
++
++#if defined(__NEED_key_t) && !defined(__DEFINED_key_t)
++typedef int key_t;
++#define __DEFINED_key_t
++#endif
++
++#if defined(__NEED_useconds_t) && !defined(__DEFINED_useconds_t)
++typedef unsigned useconds_t;
++#define __DEFINED_useconds_t
++#endif
++
++
++#ifdef __cplusplus
++#if defined(__NEED_pthread_t) && !defined(__DEFINED_pthread_t)
++typedef unsigned long pthread_t;
++#define __DEFINED_pthread_t
++#endif
++
++#else
++#if defined(__NEED_pthread_t) && !defined(__DEFINED_pthread_t)
++typedef struct __pthread * pthread_t;
++#define __DEFINED_pthread_t
++#endif
++
++#endif
++#if defined(__NEED_pthread_once_t) && !defined(__DEFINED_pthread_once_t)
++typedef int pthread_once_t;
++#define __DEFINED_pthread_once_t
++#endif
++
++#if defined(__NEED_pthread_key_t) && !defined(__DEFINED_pthread_key_t)
++typedef unsigned pthread_key_t;
++#define __DEFINED_pthread_key_t
++#endif
++
++#if defined(__NEED_pthread_spinlock_t) && !defined(__DEFINED_pthread_spinlock_t)
++typedef int pthread_spinlock_t;
++#define __DEFINED_pthread_spinlock_t
++#endif
++
++#if defined(__NEED_pthread_mutexattr_t) && !defined(__DEFINED_pthread_mutexattr_t)
++typedef struct { unsigned __attr; } pthread_mutexattr_t;
++#define __DEFINED_pthread_mutexattr_t
++#endif
++
++#if defined(__NEED_pthread_condattr_t) && !defined(__DEFINED_pthread_condattr_t)
++typedef struct { unsigned __attr; } pthread_condattr_t;
++#define __DEFINED_pthread_condattr_t
++#endif
++
++#if defined(__NEED_pthread_barrierattr_t) && !defined(__DEFINED_pthread_barrierattr_t)
++typedef struct { unsigned __attr; } pthread_barrierattr_t;
++#define __DEFINED_pthread_barrierattr_t
++#endif
++
++#if defined(__NEED_pthread_rwlockattr_t) && !defined(__DEFINED_pthread_rwlockattr_t)
++typedef struct { unsigned __attr[2]; } pthread_rwlockattr_t;
++#define __DEFINED_pthread_rwlockattr_t
++#endif
++
++
++#if defined(__NEED_struct__IO_FILE) && !defined(__DEFINED_struct__IO_FILE)
++struct _IO_FILE { char __x; };
++#define __DEFINED_struct__IO_FILE
++#endif
++
++#if defined(__NEED_FILE) && !defined(__DEFINED_FILE)
++typedef struct _IO_FILE FILE;
++#define __DEFINED_FILE
++#endif
++
++
++#if defined(__NEED_va_list) && !defined(__DEFINED_va_list)
++typedef __builtin_va_list va_list;
++#define __DEFINED_va_list
++#endif
++
++#if defined(__NEED___isoc_va_list) && !defined(__DEFINED___isoc_va_list)
++typedef __builtin_va_list __isoc_va_list;
++#define __DEFINED___isoc_va_list
++#endif
++
++
++#if defined(__NEED_mbstate_t) && !defined(__DEFINED_mbstate_t)
++typedef struct __mbstate_t { unsigned __opaque1, __opaque2; } mbstate_t;
++#define __DEFINED_mbstate_t
++#endif
++
++
++#if defined(__NEED_locale_t) && !defined(__DEFINED_locale_t)
++typedef struct __locale_struct * locale_t;
++#define __DEFINED_locale_t
++#endif
++
++
++#if defined(__NEED_sigset_t) && !defined(__DEFINED_sigset_t)
++typedef struct __sigset_t { unsigned long __bits[128/sizeof(long)]; } sigset_t;
++#define __DEFINED_sigset_t
++#endif
++
++
++#if defined(__NEED_struct_iovec) && !defined(__DEFINED_struct_iovec)
++struct iovec { void *iov_base; size_t iov_len; };
++#define __DEFINED_struct_iovec
++#endif
++
++
++#if defined(__NEED_struct_winsize) && !defined(__DEFINED_struct_winsize)
++struct winsize { unsigned short ws_row, ws_col, ws_xpixel, ws_ypixel; };
++#define __DEFINED_struct_winsize
++#endif
++
++
++#if defined(__NEED_socklen_t) && !defined(__DEFINED_socklen_t)
++typedef unsigned socklen_t;
++#define __DEFINED_socklen_t
++#endif
++
++#if defined(__NEED_sa_family_t) && !defined(__DEFINED_sa_family_t)
++typedef unsigned short sa_family_t;
++#define __DEFINED_sa_family_t
++#endif
++
++
++#if defined(__NEED_pthread_attr_t) && !defined(__DEFINED_pthread_attr_t)
++typedef struct { union { int __i[sizeof(long)==8?14:9]; volatile int __vi[sizeof(long)==8?14:9]; unsigned long __s[sizeof(long)==8?7:9]; } __u; } pthread_attr_t;
++#define __DEFINED_pthread_attr_t
++#endif
++
++#if defined(__NEED_pthread_mutex_t) && !defined(__DEFINED_pthread_mutex_t)
++typedef struct { union { int __i[sizeof(long)==8?10:6]; volatile int __vi[sizeof(long)==8?10:6]; volatile void *volatile __p[sizeof(long)==8?5:6]; } __u; } pthread_mutex_t;
++#define __DEFINED_pthread_mutex_t
++#endif
++
++#if defined(__NEED_mtx_t) && !defined(__DEFINED_mtx_t)
++typedef struct { union { int __i[sizeof(long)==8?10:6]; volatile int __vi[sizeof(long)==8?10:6]; volatile void *volatile __p[sizeof(long)==8?5:6]; } __u; } mtx_t;
++#define __DEFINED_mtx_t
++#endif
++
++#if defined(__NEED_pthread_cond_t) && !defined(__DEFINED_pthread_cond_t)
++typedef struct { union { int __i[12]; volatile int __vi[12]; void *__p[12*sizeof(int)/sizeof(void*)]; } __u; } pthread_cond_t;
++#define __DEFINED_pthread_cond_t
++#endif
++
++#if defined(__NEED_cnd_t) && !defined(__DEFINED_cnd_t)
++typedef struct { union { int __i[12]; volatile int __vi[12]; void *__p[12*sizeof(int)/sizeof(void*)]; } __u; } cnd_t;
++#define __DEFINED_cnd_t
++#endif
++
++#if defined(__NEED_pthread_rwlock_t) && !defined(__DEFINED_pthread_rwlock_t)
++typedef struct { union { int __i[sizeof(long)==8?14:8]; volatile int __vi[sizeof(long)==8?14:8]; void *__p[sizeof(long)==8?7:8]; } __u; } pthread_rwlock_t;
++#define __DEFINED_pthread_rwlock_t
++#endif
++
++#if defined(__NEED_pthread_barrier_t) && !defined(__DEFINED_pthread_barrier_t)
++typedef struct { union { int __i[sizeof(long)==8?8:5]; volatile int __vi[sizeof(long)==8?8:5]; void *__p[sizeof(long)==8?4:5]; } __u; } pthread_barrier_t;
++#define __DEFINED_pthread_barrier_t
++#endif
++
++
++#undef _Addr
++#undef _Int64
++#undef _Reg
+--- a/native-headers/bits/syscall.h	1970-01-01 01:00:00.000000000 +0100
++++ b/native-headers/bits/syscall.h	2026-10-06 22:03:24.097125806 +0100
+@@ -0,0 +1,526 @@
++#define __NR_read 63
++#define __NR_write 64
++#define __NR_openat 56
++#define __NR_close 57
++#define __NR_vhangup 58
++#define __NR_epoll_create1 20
++#define __NR_epoll_ctl 21
++#define __NR_epoll_pwait 22
++#define __NR_flock 32
++#define __NR_inotify_init1 26
++#define __NR_inotify_add_watch 27
++#define __NR_inotify_rm_watch 28
++#define __NR_mknodat 33
++#define __NR_umount2 39
++#define __NR_mount 40
++#define __NR_pivot_root 41
++#define __NR_quotactl 60
++#define __NR_statfs 43
++#define __NR_fstatfs 44
++#define __NR_utimensat 88
++#define __NR_utimensat_time64 412
++#define __NR_eventfd2 19
++#define __NR_capget 90
++#define __NR_capset 91
++#define __NR_lseek 62
++#define __NR_fstatat 79
++#define __NR_fstat 80
++#define __NR_newfstatat 79
++#define __NR_newfstat 80
++#define __NR_getdents64 61
++#define __NR_ioctl 29
++#define __NR_dup 23
++#define __NR_dup3 24
++#define __NR_pipe2 59
++#define __NR_brk 214
++#define __NR_mmap 222
++#define __NR_munmap 215
++#define __NR_mprotect 226
++#define __NR_madvise 233
++#define __NR_exit 93
++#define __NR_exit_group 94
++#define __NR_clone 220
++#define __NR_execve 221
++#define __NR_wait4 260
++#define __NR_waitid 95
++#define __NR_getpid 172
++#define __NR_getppid 173
++#define __NR_sched_yield 124
++#define __NR_sched_getaffinity 123
++#define __NR_sched_setaffinity 122
++#define __NR_sched_get_priority_max 125
++#define __NR_sched_get_priority_min 126
++#define __NR_sched_getparam 121
++#define __NR_sched_getscheduler 120
++#define __NR_sched_setparam 118
++#define __NR_sched_setscheduler 119
++#define __NR_sched_rr_get_interval 127
++#define __NR_sched_rr_get_interval_time64 423
++#define __NR_nanosleep 101
++#define __NR_clock_gettime 403
++#define __NR_clock_gettime64 403
++#define __NR_clock_settime64 404
++#define __NR_clock_getres 406
++#define __NR_clock_getres_time64 406
++#define __NR_timer_create 107
++#define __NR_timer_getoverrun 109
++#define __NR_timer_delete 111
++#define __NR_timer_gettime 408
++#define __NR_timer_gettime64 408
++#define __NR_timer_settime 409
++#define __NR_timer_settime64 409
++#define __NR_times 153
++#define __NR_acct 89
++#define __NR_geteuid 175
++#define __NR_getegid 177
++#define __NR_faccessat2 439
++#define __NR_sync 81
++#define __NR_fdatasync 83
++#define __NR_getpgid 155
++#define __NR_getsid 156
++#define __NR_symlinkat 36
++#define __NR_linkat 37
++#define __NR_truncate 45
++#define __NR_clock_adjtime 266
++#define __NR_clock_adjtime64 405
++#define __NR_gettimeofday 169
++#define __NR_uname 160
++#define __NR_getcwd 17
++#define __NR_setxattr 5
++#define __NR_lsetxattr 6
++#define __NR_fsetxattr 7
++#define __NR_getxattr 8
++#define __NR_lgetxattr 9
++#define __NR_fgetxattr 10
++#define __NR_listxattr 11
++#define __NR_llistxattr 12
++#define __NR_flistxattr 13
++#define __NR_removexattr 14
++#define __NR_lremovexattr 15
++#define __NR_fremovexattr 16
++#define __NR__llseek 62
++#define __NR_readv 65
++#define __NR_writev 66
++#define __NR_pread64 67
++#define __NR_pwrite64 68
++#define __NR_preadv 69
++#define __NR_pwritev 70
++#define __NR_pselect6 72
++#define __NR_chroot 51
++#define __NR_sethostname 161
++#define __NR_setdomainname 162
++#define __NR_unshare 97
++#define __NR_sysinfo 179
++#define __NR_getrusage 165
++#define __NR_umask 166
++#define __NR_getcpu 168
++#define __NR_getitimer 102
++#define __NR_setitimer 103
++#define __NR_mq_open 180
++#define __NR_mq_unlink 181
++#define __NR_mq_timedsend 182
++#define __NR_mq_timedreceive 183
++#define __NR_mq_notify 184
++#define __NR_mq_getsetattr 185
++#define __NR_timerfd_create 85
++#define __NR_timerfd_settime 86
++#define __NR_timerfd_gettime 87
++#define __NR_timerfd_gettime64 410
++#define __NR_timerfd_settime64 411
++#define __NR_getgroups 158
++#define __NR_setgroups 159
++#define __NR_prctl 167
++#define __NR_syslog 116
++#define __NR_ptrace 117
++#define __NR_getpriority 141
++#define __NR_setpriority 140
++#define __NR_setregid 143
++#define __NR_setgid 144
++#define __NR_setreuid 145
++#define __NR_setuid 146
++#define __NR_setresuid 147
++#define __NR_getresuid 148
++#define __NR_setresgid 149
++#define __NR_getresgid 150
++#define __NR_setpgid 154
++#define __NR_setsid 157
++#define __NR_getuid 174
++#define __NR_getgid 176
++#define __NR_fchdir 50
++#define __NR_fchmod 52
++#define __NR_fchmodat 53
++#define __NR_fchmodat2 452
++#define __NR_fchownat 54
++#define __NR_fchown 55
++#define __NR_init_module 105
++#define __NR_delete_module 106
++#define __NR_copy_file_range 285
++#define __NR_preadv2 286
++#define __NR_pwritev2 287
++#define __NR_sendfile 71
++#define __NR_signalfd4 74
++#define __NR_vmsplice 75
++#define __NR_splice 76
++#define __NR_tee 77
++#define __NR_fanotify_init 262
++#define __NR_fanotify_mark 263
++#define __NR_name_to_handle_at 264
++#define __NR_prlimit64 261
++#define __NR_open_by_handle_at 265
++#define __NR_setns 268
++#define __NR_process_vm_readv 270
++#define __NR_process_vm_writev 271
++#define __NR_recvmmsg 243
++#define __NR_recvmmsg_time64 417
++#define __NR_sendmmsg 269
++#define __NR_kcmp 272
++#define __NR_seccomp 277
++#define __NR_syncfs 306
++#define __NR_getrandom 278
++#define __NR_membarrier 283
++#define __NR_memfd_create 279
++#define __NR_execveat 281
++#define __NR_mlock2 284
++#define __NR_mincore 232
++#define __NR_mremap 216
++#define __NR_mlock 228
++#define __NR_munlock 229
++#define __NR_mlockall 230
++#define __NR_munlockall 231
++#define __NR_pkey_mprotect 288
++#define __NR_pkey_alloc 289
++#define __NR_pkey_free 290
++#define __NR_statx 291
++#define __NR_accept4 242
++#define __NR_getsockname 204
++#define __NR_getpeername 205
++#define __NR_sendmsg 211
++#define __NR_recvmsg 212
++#define __NR_chdir 49
++#define __NR_mkdirat 34
++#define __NR_unlinkat 35
++#define __NR_renameat 38
++#define __NR_fcntl 25
++#define __NR_fsync 82
++#define __NR_fadvise 223
++#define __NR_swapon 224
++#define __NR_swapoff 225
++#define __NR_readahead 213
++#define __NR_remap_file_pages 234
++#define __NR_ftruncate 46
++#define __NR_fallocate 47
++#define __NR_mmap2 222
++#define __NR_msync 227
++#define __NR_madvise 233
++#define __NR_readlinkat 78
++#define __NR_access 21
++#define __NR_faccessat 48
++#define __NR_set_tid_address 96
++#define __NR_gettid 178
++#define __NR_set_robust_list 99
++#define __NR_get_robust_list 100
++#define __NR_rt_sigaction 134
++#define __NR_rt_sigprocmask 135
++#define __NR_rt_sigreturn 139
++#define __NR_rt_sigsuspend 133
++#define __NR_rt_sigpending 136
++#define __NR_rt_sigtimedwait 137
++#define __NR_reboot 142
++#define __NR_setfsuid 151
++#define __NR_setfsgid 152
++#define __NR_rt_sigqueueinfo 138
++#define __NR_sigaltstack 132
++#define __NR_kill 129
++#define __NR_tkill 130
++#define __NR_tgkill 131
++#define __NR_socket 198
++#define __NR_connect 203
++#define __NR_bind 200
++#define __NR_listen 201
++#define __NR_accept 202
++#define __NR_sendto 206
++#define __NR_recvfrom 207
++#define __NR_shutdown 210
++#define __NR_setsockopt 208
++#define __NR_getsockopt 209
++#define __NR_socketpair 199
++#define __NR_msgget 186
++#define __NR_msgctl 187
++#define __NR_msgrcv 188
++#define __NR_msgsnd 189
++#define __NR_semget 190
++#define __NR_semctl 191
++#define __NR_semtimedop 192
++#define __NR_semop 193
++#define __NR_shmget 194
++#define __NR_shmctl 195
++#define __NR_shmat 196
++#define __NR_shmdt 197
++#define __NR_futex_time64 422
++#define __NR_futex 422
++#define __NR_clock_nanosleep_time64 407
++#define __NR_ppoll 73
++#define __NR_ppoll_time64 414
++#define SYS_read 63
++#define SYS_write 64
++#define SYS_openat 56
++#define SYS_close 57
++#define SYS_vhangup 58
++#define SYS_epoll_create1 20
++#define SYS_epoll_ctl 21
++#define SYS_epoll_pwait 22
++#define SYS_flock 32
++#define SYS_inotify_init1 26
++#define SYS_inotify_add_watch 27
++#define SYS_inotify_rm_watch 28
++#define SYS_mknodat 33
++#define SYS_umount2 39
++#define SYS_mount 40
++#define SYS_pivot_root 41
++#define SYS_quotactl 60
++#define SYS_statfs 43
++#define SYS_fstatfs 44
++#define SYS_utimensat 88
++#define SYS_utimensat_time64 412
++#define SYS_eventfd2 19
++#define SYS_capget 90
++#define SYS_capset 91
++#define SYS_lseek 62
++#define SYS_fstatat 79
++#define SYS_fstat 80
++#define SYS_newfstatat 79
++#define SYS_newfstat 80
++#define SYS_getdents64 61
++#define SYS_ioctl 29
++#define SYS_dup 23
++#define SYS_dup3 24
++#define SYS_pipe2 59
++#define SYS_brk 214
++#define SYS_mmap 222
++#define SYS_munmap 215
++#define SYS_mprotect 226
++#define SYS_madvise 233
++#define SYS_exit 93
++#define SYS_exit_group 94
++#define SYS_clone 220
++#define SYS_execve 221
++#define SYS_wait4 260
++#define SYS_waitid 95
++#define SYS_getpid 172
++#define SYS_getppid 173
++#define SYS_sched_yield 124
++#define SYS_sched_getaffinity 123
++#define SYS_sched_setaffinity 122
++#define SYS_sched_get_priority_max 125
++#define SYS_sched_get_priority_min 126
++#define SYS_sched_getparam 121
++#define SYS_sched_getscheduler 120
++#define SYS_sched_setparam 118
++#define SYS_sched_setscheduler 119
++#define SYS_sched_rr_get_interval 127
++#define SYS_sched_rr_get_interval_time64 423
++#define SYS_nanosleep 101
++#define SYS_clock_gettime 403
++#define SYS_clock_gettime64 403
++#define SYS_clock_settime64 404
++#define SYS_clock_getres 406
++#define SYS_clock_getres_time64 406
++#define SYS_timer_create 107
++#define SYS_timer_getoverrun 109
++#define SYS_timer_delete 111
++#define SYS_timer_gettime 408
++#define SYS_timer_gettime64 408
++#define SYS_timer_settime 409
++#define SYS_timer_settime64 409
++#define SYS_times 153
++#define SYS_acct 89
++#define SYS_geteuid 175
++#define SYS_getegid 177
++#define SYS_faccessat2 439
++#define SYS_sync 81
++#define SYS_fdatasync 83
++#define SYS_getpgid 155
++#define SYS_getsid 156
++#define SYS_symlinkat 36
++#define SYS_linkat 37
++#define SYS_truncate 45
++#define SYS_clock_adjtime 266
++#define SYS_clock_adjtime64 405
++#define SYS_gettimeofday 169
++#define SYS_uname 160
++#define SYS_getcwd 17
++#define SYS_setxattr 5
++#define SYS_lsetxattr 6
++#define SYS_fsetxattr 7
++#define SYS_getxattr 8
++#define SYS_lgetxattr 9
++#define SYS_fgetxattr 10
++#define SYS_listxattr 11
++#define SYS_llistxattr 12
++#define SYS_flistxattr 13
++#define SYS_removexattr 14
++#define SYS_lremovexattr 15
++#define SYS_fremovexattr 16
++#define SYS__llseek 62
++#define SYS_readv 65
++#define SYS_writev 66
++#define SYS_pread64 67
++#define SYS_pwrite64 68
++#define SYS_preadv 69
++#define SYS_pwritev 70
++#define SYS_pselect6 72
++#define SYS_chroot 51
++#define SYS_sethostname 161
++#define SYS_setdomainname 162
++#define SYS_unshare 97
++#define SYS_sysinfo 179
++#define SYS_getrusage 165
++#define SYS_umask 166
++#define SYS_getcpu 168
++#define SYS_getitimer 102
++#define SYS_setitimer 103
++#define SYS_mq_open 180
++#define SYS_mq_unlink 181
++#define SYS_mq_timedsend 182
++#define SYS_mq_timedreceive 183
++#define SYS_mq_notify 184
++#define SYS_mq_getsetattr 185
++#define SYS_timerfd_create 85
++#define SYS_timerfd_settime 86
++#define SYS_timerfd_gettime 87
++#define SYS_timerfd_gettime64 410
++#define SYS_timerfd_settime64 411
++#define SYS_getgroups 158
++#define SYS_setgroups 159
++#define SYS_prctl 167
++#define SYS_syslog 116
++#define SYS_ptrace 117
++#define SYS_getpriority 141
++#define SYS_setpriority 140
++#define SYS_setregid 143
++#define SYS_setgid 144
++#define SYS_setreuid 145
++#define SYS_setuid 146
++#define SYS_setresuid 147
++#define SYS_getresuid 148
++#define SYS_setresgid 149
++#define SYS_getresgid 150
++#define SYS_setpgid 154
++#define SYS_setsid 157
++#define SYS_getuid 174
++#define SYS_getgid 176
++#define SYS_fchdir 50
++#define SYS_fchmod 52
++#define SYS_fchmodat 53
++#define SYS_fchmodat2 452
++#define SYS_fchownat 54
++#define SYS_fchown 55
++#define SYS_init_module 105
++#define SYS_delete_module 106
++#define SYS_copy_file_range 285
++#define SYS_preadv2 286
++#define SYS_pwritev2 287
++#define SYS_sendfile 71
++#define SYS_signalfd4 74
++#define SYS_vmsplice 75
++#define SYS_splice 76
++#define SYS_tee 77
++#define SYS_fanotify_init 262
++#define SYS_fanotify_mark 263
++#define SYS_name_to_handle_at 264
++#define SYS_prlimit64 261
++#define SYS_open_by_handle_at 265
++#define SYS_setns 268
++#define SYS_process_vm_readv 270
++#define SYS_process_vm_writev 271
++#define SYS_recvmmsg 243
++#define SYS_recvmmsg_time64 417
++#define SYS_sendmmsg 269
++#define SYS_kcmp 272
++#define SYS_seccomp 277
++#define SYS_syncfs 306
++#define SYS_getrandom 278
++#define SYS_membarrier 283
++#define SYS_memfd_create 279
++#define SYS_execveat 281
++#define SYS_mlock2 284
++#define SYS_mincore 232
++#define SYS_mremap 216
++#define SYS_mlock 228
++#define SYS_munlock 229
++#define SYS_mlockall 230
++#define SYS_munlockall 231
++#define SYS_pkey_mprotect 288
++#define SYS_pkey_alloc 289
++#define SYS_pkey_free 290
++#define SYS_statx 291
++#define SYS_accept4 242
++#define SYS_getsockname 204
++#define SYS_getpeername 205
++#define SYS_sendmsg 211
++#define SYS_recvmsg 212
++#define SYS_chdir 49
++#define SYS_mkdirat 34
++#define SYS_unlinkat 35
++#define SYS_renameat 38
++#define SYS_fcntl 25
++#define SYS_fsync 82
++#define SYS_fadvise 223
++#define SYS_swapon 224
++#define SYS_swapoff 225
++#define SYS_readahead 213
++#define SYS_remap_file_pages 234
++#define SYS_ftruncate 46
++#define SYS_fallocate 47
++#define SYS_mmap2 222
++#define SYS_msync 227
++#define SYS_madvise 233
++#define SYS_readlinkat 78
++#define SYS_access 21
++#define SYS_faccessat 48
++#define SYS_set_tid_address 96
++#define SYS_gettid 178
++#define SYS_set_robust_list 99
++#define SYS_get_robust_list 100
++#define SYS_rt_sigaction 134
++#define SYS_rt_sigprocmask 135
++#define SYS_rt_sigreturn 139
++#define SYS_rt_sigsuspend 133
++#define SYS_rt_sigpending 136
++#define SYS_rt_sigtimedwait 137
++#define SYS_reboot 142
++#define SYS_setfsuid 151
++#define SYS_setfsgid 152
++#define SYS_rt_sigqueueinfo 138
++#define SYS_sigaltstack 132
++#define SYS_kill 129
++#define SYS_tkill 130
++#define SYS_tgkill 131
++#define SYS_socket 198
++#define SYS_connect 203
++#define SYS_bind 200
++#define SYS_listen 201
++#define SYS_accept 202
++#define SYS_sendto 206
++#define SYS_recvfrom 207
++#define SYS_shutdown 210
++#define SYS_setsockopt 208
++#define SYS_getsockopt 209
++#define SYS_socketpair 199
++#define SYS_msgget 186
++#define SYS_msgctl 187
++#define SYS_msgrcv 188
++#define SYS_msgsnd 189
++#define SYS_semget 190
++#define SYS_semctl 191
++#define SYS_semtimedop 192
++#define SYS_semop 193
++#define SYS_shmget 194
++#define SYS_shmctl 195
++#define SYS_shmat 196
++#define SYS_shmdt 197
++#define SYS_futex_time64 422
++#define SYS_futex 422
++#define SYS_clock_nanosleep_time64 407
++#define SYS_ppoll 73
++#define SYS_ppoll_time64 414
+--- a/obj/include/bits/alltypes.h	1970-01-01 01:00:00.000000000 +0100
++++ b/obj/include/bits/alltypes.h	2026-10-06 22:03:24.086125856 +0100
+@@ -0,0 +1,411 @@
++#define _Addr int
++#define _Int64 long long
++#define _Reg int
++
++#define __BYTE_ORDER 1234
++#define __LONG_MAX 0x7fffffffL
++
++#ifndef __cplusplus
++#if defined(__NEED_wchar_t) && !defined(__DEFINED_wchar_t)
++typedef unsigned int wchar_t;
++#define __DEFINED_wchar_t
++#endif
++
++#endif
++
++#if defined(__NEED_blksize_t) && !defined(__DEFINED_blksize_t)
++typedef int blksize_t;
++#define __DEFINED_blksize_t
++#endif
++
++#if defined(__NEED_nlink_t) && !defined(__DEFINED_nlink_t)
++typedef unsigned int nlink_t;
++#define __DEFINED_nlink_t
++#endif
++
++#if defined(__NEED_float_t) && !defined(__DEFINED_float_t)
++typedef float float_t;
++#define __DEFINED_float_t
++#endif
++
++#if defined(__NEED_double_t) && !defined(__DEFINED_double_t)
++typedef double double_t;
++#define __DEFINED_double_t
++#endif
++
++#if defined(__NEED_max_align_t) && !defined(__DEFINED_max_align_t)
++typedef double max_align_t;
++#define __DEFINED_max_align_t
++#endif
++
++#define __LITTLE_ENDIAN 1234
++#define __BIG_ENDIAN 4321
++#define __USE_TIME_BITS64 1
++
++#if defined(__NEED_size_t) && !defined(__DEFINED_size_t)
++typedef unsigned _Addr size_t;
++#define __DEFINED_size_t
++#endif
++
++#if defined(__NEED_uintptr_t) && !defined(__DEFINED_uintptr_t)
++typedef unsigned _Addr uintptr_t;
++#define __DEFINED_uintptr_t
++#endif
++
++#if defined(__NEED_ptrdiff_t) && !defined(__DEFINED_ptrdiff_t)
++typedef _Addr ptrdiff_t;
++#define __DEFINED_ptrdiff_t
++#endif
++
++#if defined(__NEED_ssize_t) && !defined(__DEFINED_ssize_t)
++typedef _Addr ssize_t;
++#define __DEFINED_ssize_t
++#endif
++
++#if defined(__NEED_intptr_t) && !defined(__DEFINED_intptr_t)
++typedef _Addr intptr_t;
++#define __DEFINED_intptr_t
++#endif
++
++#if defined(__NEED_regoff_t) && !defined(__DEFINED_regoff_t)
++typedef _Addr regoff_t;
++#define __DEFINED_regoff_t
++#endif
++
++#if defined(__NEED_register_t) && !defined(__DEFINED_register_t)
++typedef _Reg register_t;
++#define __DEFINED_register_t
++#endif
++
++#if defined(__NEED_time_t) && !defined(__DEFINED_time_t)
++typedef _Int64 time_t;
++#define __DEFINED_time_t
++#endif
++
++#if defined(__NEED_suseconds_t) && !defined(__DEFINED_suseconds_t)
++typedef _Int64 suseconds_t;
++#define __DEFINED_suseconds_t
++#endif
++
++
++#if defined(__NEED_int8_t) && !defined(__DEFINED_int8_t)
++typedef signed char     int8_t;
++#define __DEFINED_int8_t
++#endif
++
++#if defined(__NEED_int16_t) && !defined(__DEFINED_int16_t)
++typedef signed short    int16_t;
++#define __DEFINED_int16_t
++#endif
++
++#if defined(__NEED_int32_t) && !defined(__DEFINED_int32_t)
++typedef signed int      int32_t;
++#define __DEFINED_int32_t
++#endif
++
++#if defined(__NEED_int64_t) && !defined(__DEFINED_int64_t)
++typedef signed _Int64   int64_t;
++#define __DEFINED_int64_t
++#endif
++
++#if defined(__NEED_intmax_t) && !defined(__DEFINED_intmax_t)
++typedef signed _Int64   intmax_t;
++#define __DEFINED_intmax_t
++#endif
++
++#if defined(__NEED_uint8_t) && !defined(__DEFINED_uint8_t)
++typedef unsigned char   uint8_t;
++#define __DEFINED_uint8_t
++#endif
++
++#if defined(__NEED_uint16_t) && !defined(__DEFINED_uint16_t)
++typedef unsigned short  uint16_t;
++#define __DEFINED_uint16_t
++#endif
++
++#if defined(__NEED_uint32_t) && !defined(__DEFINED_uint32_t)
++typedef unsigned int    uint32_t;
++#define __DEFINED_uint32_t
++#endif
++
++#if defined(__NEED_uint64_t) && !defined(__DEFINED_uint64_t)
++typedef unsigned _Int64 uint64_t;
++#define __DEFINED_uint64_t
++#endif
++
++#if defined(__NEED_u_int64_t) && !defined(__DEFINED_u_int64_t)
++typedef unsigned _Int64 u_int64_t;
++#define __DEFINED_u_int64_t
++#endif
++
++#if defined(__NEED_uintmax_t) && !defined(__DEFINED_uintmax_t)
++typedef unsigned _Int64 uintmax_t;
++#define __DEFINED_uintmax_t
++#endif
++
++
++#if defined(__NEED_mode_t) && !defined(__DEFINED_mode_t)
++typedef unsigned mode_t;
++#define __DEFINED_mode_t
++#endif
++
++#if defined(__NEED_nlink_t) && !defined(__DEFINED_nlink_t)
++typedef unsigned _Reg nlink_t;
++#define __DEFINED_nlink_t
++#endif
++
++#if defined(__NEED_off_t) && !defined(__DEFINED_off_t)
++typedef _Int64 off_t;
++#define __DEFINED_off_t
++#endif
++
++#if defined(__NEED_ino_t) && !defined(__DEFINED_ino_t)
++typedef unsigned _Int64 ino_t;
++#define __DEFINED_ino_t
++#endif
++
++#if defined(__NEED_dev_t) && !defined(__DEFINED_dev_t)
++typedef unsigned _Int64 dev_t;
++#define __DEFINED_dev_t
++#endif
++
++#if defined(__NEED_blksize_t) && !defined(__DEFINED_blksize_t)
++typedef long blksize_t;
++#define __DEFINED_blksize_t
++#endif
++
++#if defined(__NEED_blkcnt_t) && !defined(__DEFINED_blkcnt_t)
++typedef _Int64 blkcnt_t;
++#define __DEFINED_blkcnt_t
++#endif
++
++#if defined(__NEED_fsblkcnt_t) && !defined(__DEFINED_fsblkcnt_t)
++typedef unsigned _Int64 fsblkcnt_t;
++#define __DEFINED_fsblkcnt_t
++#endif
++
++#if defined(__NEED_fsfilcnt_t) && !defined(__DEFINED_fsfilcnt_t)
++typedef unsigned _Int64 fsfilcnt_t;
++#define __DEFINED_fsfilcnt_t
++#endif
++
++
++#if defined(__NEED_wint_t) && !defined(__DEFINED_wint_t)
++typedef unsigned wint_t;
++#define __DEFINED_wint_t
++#endif
++
++#if defined(__NEED_wctype_t) && !defined(__DEFINED_wctype_t)
++typedef unsigned long wctype_t;
++#define __DEFINED_wctype_t
++#endif
++
++
++#if defined(__NEED_timer_t) && !defined(__DEFINED_timer_t)
++typedef void * timer_t;
++#define __DEFINED_timer_t
++#endif
++
++#if defined(__NEED_clockid_t) && !defined(__DEFINED_clockid_t)
++typedef int clockid_t;
++#define __DEFINED_clockid_t
++#endif
++
++#if defined(__NEED_clock_t) && !defined(__DEFINED_clock_t)
++typedef long clock_t;
++#define __DEFINED_clock_t
++#endif
++
++#if defined(__NEED_struct_timeval) && !defined(__DEFINED_struct_timeval)
++struct timeval { time_t tv_sec; suseconds_t tv_usec; };
++#define __DEFINED_struct_timeval
++#endif
++
++#if defined(__NEED_struct_timespec) && !defined(__DEFINED_struct_timespec)
++struct timespec { time_t tv_sec; int :8*(sizeof(time_t)-sizeof(long))*(__BYTE_ORDER==4321); long tv_nsec; int :8*(sizeof(time_t)-sizeof(long))*(__BYTE_ORDER!=4321); };
++#define __DEFINED_struct_timespec
++#endif
++
++
++#if defined(__NEED_pid_t) && !defined(__DEFINED_pid_t)
++typedef int pid_t;
++#define __DEFINED_pid_t
++#endif
++
++#if defined(__NEED_id_t) && !defined(__DEFINED_id_t)
++typedef unsigned id_t;
++#define __DEFINED_id_t
++#endif
++
++#if defined(__NEED_uid_t) && !defined(__DEFINED_uid_t)
++typedef unsigned uid_t;
++#define __DEFINED_uid_t
++#endif
++
++#if defined(__NEED_gid_t) && !defined(__DEFINED_gid_t)
++typedef unsigned gid_t;
++#define __DEFINED_gid_t
++#endif
++
++#if defined(__NEED_key_t) && !defined(__DEFINED_key_t)
++typedef int key_t;
++#define __DEFINED_key_t
++#endif
++
++#if defined(__NEED_useconds_t) && !defined(__DEFINED_useconds_t)
++typedef unsigned useconds_t;
++#define __DEFINED_useconds_t
++#endif
++
++
++#ifdef __cplusplus
++#if defined(__NEED_pthread_t) && !defined(__DEFINED_pthread_t)
++typedef unsigned long pthread_t;
++#define __DEFINED_pthread_t
++#endif
++
++#else
++#if defined(__NEED_pthread_t) && !defined(__DEFINED_pthread_t)
++typedef struct __pthread * pthread_t;
++#define __DEFINED_pthread_t
++#endif
++
++#endif
++#if defined(__NEED_pthread_once_t) && !defined(__DEFINED_pthread_once_t)
++typedef int pthread_once_t;
++#define __DEFINED_pthread_once_t
++#endif
++
++#if defined(__NEED_pthread_key_t) && !defined(__DEFINED_pthread_key_t)
++typedef unsigned pthread_key_t;
++#define __DEFINED_pthread_key_t
++#endif
++
++#if defined(__NEED_pthread_spinlock_t) && !defined(__DEFINED_pthread_spinlock_t)
++typedef int pthread_spinlock_t;
++#define __DEFINED_pthread_spinlock_t
++#endif
++
++#if defined(__NEED_pthread_mutexattr_t) && !defined(__DEFINED_pthread_mutexattr_t)
++typedef struct { unsigned __attr; } pthread_mutexattr_t;
++#define __DEFINED_pthread_mutexattr_t
++#endif
++
++#if defined(__NEED_pthread_condattr_t) && !defined(__DEFINED_pthread_condattr_t)
++typedef struct { unsigned __attr; } pthread_condattr_t;
++#define __DEFINED_pthread_condattr_t
++#endif
++
++#if defined(__NEED_pthread_barrierattr_t) && !defined(__DEFINED_pthread_barrierattr_t)
++typedef struct { unsigned __attr; } pthread_barrierattr_t;
++#define __DEFINED_pthread_barrierattr_t
++#endif
++
++#if defined(__NEED_pthread_rwlockattr_t) && !defined(__DEFINED_pthread_rwlockattr_t)
++typedef struct { unsigned __attr[2]; } pthread_rwlockattr_t;
++#define __DEFINED_pthread_rwlockattr_t
++#endif
++
++
++#if defined(__NEED_struct__IO_FILE) && !defined(__DEFINED_struct__IO_FILE)
++struct _IO_FILE { char __x; };
++#define __DEFINED_struct__IO_FILE
++#endif
++
++#if defined(__NEED_FILE) && !defined(__DEFINED_FILE)
++typedef struct _IO_FILE FILE;
++#define __DEFINED_FILE
++#endif
++
++
++#if defined(__NEED_va_list) && !defined(__DEFINED_va_list)
++typedef __builtin_va_list va_list;
++#define __DEFINED_va_list
++#endif
++
++#if defined(__NEED___isoc_va_list) && !defined(__DEFINED___isoc_va_list)
++typedef __builtin_va_list __isoc_va_list;
++#define __DEFINED___isoc_va_list
++#endif
++
++
++#if defined(__NEED_mbstate_t) && !defined(__DEFINED_mbstate_t)
++typedef struct __mbstate_t { unsigned __opaque1, __opaque2; } mbstate_t;
++#define __DEFINED_mbstate_t
++#endif
++
++
++#if defined(__NEED_locale_t) && !defined(__DEFINED_locale_t)
++typedef struct __locale_struct * locale_t;
++#define __DEFINED_locale_t
++#endif
++
++
++#if defined(__NEED_sigset_t) && !defined(__DEFINED_sigset_t)
++typedef struct __sigset_t { unsigned long __bits[128/sizeof(long)]; } sigset_t;
++#define __DEFINED_sigset_t
++#endif
++
++
++#if defined(__NEED_struct_iovec) && !defined(__DEFINED_struct_iovec)
++struct iovec { void *iov_base; size_t iov_len; };
++#define __DEFINED_struct_iovec
++#endif
++
++
++#if defined(__NEED_struct_winsize) && !defined(__DEFINED_struct_winsize)
++struct winsize { unsigned short ws_row, ws_col, ws_xpixel, ws_ypixel; };
++#define __DEFINED_struct_winsize
++#endif
++
++
++#if defined(__NEED_socklen_t) && !defined(__DEFINED_socklen_t)
++typedef unsigned socklen_t;
++#define __DEFINED_socklen_t
++#endif
++
++#if defined(__NEED_sa_family_t) && !defined(__DEFINED_sa_family_t)
++typedef unsigned short sa_family_t;
++#define __DEFINED_sa_family_t
++#endif
++
++
++#if defined(__NEED_pthread_attr_t) && !defined(__DEFINED_pthread_attr_t)
++typedef struct { union { int __i[sizeof(long)==8?14:9]; volatile int __vi[sizeof(long)==8?14:9]; unsigned long __s[sizeof(long)==8?7:9]; } __u; } pthread_attr_t;
++#define __DEFINED_pthread_attr_t
++#endif
++
++#if defined(__NEED_pthread_mutex_t) && !defined(__DEFINED_pthread_mutex_t)
++typedef struct { union { int __i[sizeof(long)==8?10:6]; volatile int __vi[sizeof(long)==8?10:6]; volatile void *volatile __p[sizeof(long)==8?5:6]; } __u; } pthread_mutex_t;
++#define __DEFINED_pthread_mutex_t
++#endif
++
++#if defined(__NEED_mtx_t) && !defined(__DEFINED_mtx_t)
++typedef struct { union { int __i[sizeof(long)==8?10:6]; volatile int __vi[sizeof(long)==8?10:6]; volatile void *volatile __p[sizeof(long)==8?5:6]; } __u; } mtx_t;
++#define __DEFINED_mtx_t
++#endif
++
++#if defined(__NEED_pthread_cond_t) && !defined(__DEFINED_pthread_cond_t)
++typedef struct { union { int __i[12]; volatile int __vi[12]; void *__p[12*sizeof(int)/sizeof(void*)]; } __u; } pthread_cond_t;
++#define __DEFINED_pthread_cond_t
++#endif
++
++#if defined(__NEED_cnd_t) && !defined(__DEFINED_cnd_t)
++typedef struct { union { int __i[12]; volatile int __vi[12]; void *__p[12*sizeof(int)/sizeof(void*)]; } __u; } cnd_t;
++#define __DEFINED_cnd_t
++#endif
++
++#if defined(__NEED_pthread_rwlock_t) && !defined(__DEFINED_pthread_rwlock_t)
++typedef struct { union { int __i[sizeof(long)==8?14:8]; volatile int __vi[sizeof(long)==8?14:8]; void *__p[sizeof(long)==8?7:8]; } __u; } pthread_rwlock_t;
++#define __DEFINED_pthread_rwlock_t
++#endif
++
++#if defined(__NEED_pthread_barrier_t) && !defined(__DEFINED_pthread_barrier_t)
++typedef struct { union { int __i[sizeof(long)==8?8:5]; volatile int __vi[sizeof(long)==8?8:5]; void *__p[sizeof(long)==8?4:5]; } __u; } pthread_barrier_t;
++#define __DEFINED_pthread_barrier_t
++#endif
++
++
++#undef _Addr
++#undef _Int64
++#undef _Reg
+--- a/obj/include/bits/syscall.h	1970-01-01 01:00:00.000000000 +0100
++++ b/obj/include/bits/syscall.h	2026-10-06 22:03:24.091125833 +0100
+@@ -0,0 +1,526 @@
++#define __NR_read 63
++#define __NR_write 64
++#define __NR_openat 56
++#define __NR_close 57
++#define __NR_vhangup 58
++#define __NR_epoll_create1 20
++#define __NR_epoll_ctl 21
++#define __NR_epoll_pwait 22
++#define __NR_flock 32
++#define __NR_inotify_init1 26
++#define __NR_inotify_add_watch 27
++#define __NR_inotify_rm_watch 28
++#define __NR_mknodat 33
++#define __NR_umount2 39
++#define __NR_mount 40
++#define __NR_pivot_root 41
++#define __NR_quotactl 60
++#define __NR_statfs 43
++#define __NR_fstatfs 44
++#define __NR_utimensat 88
++#define __NR_utimensat_time64 412
++#define __NR_eventfd2 19
++#define __NR_capget 90
++#define __NR_capset 91
++#define __NR_lseek 62
++#define __NR_fstatat 79
++#define __NR_fstat 80
++#define __NR_newfstatat 79
++#define __NR_newfstat 80
++#define __NR_getdents64 61
++#define __NR_ioctl 29
++#define __NR_dup 23
++#define __NR_dup3 24
++#define __NR_pipe2 59
++#define __NR_brk 214
++#define __NR_mmap 222
++#define __NR_munmap 215
++#define __NR_mprotect 226
++#define __NR_madvise 233
++#define __NR_exit 93
++#define __NR_exit_group 94
++#define __NR_clone 220
++#define __NR_execve 221
++#define __NR_wait4 260
++#define __NR_waitid 95
++#define __NR_getpid 172
++#define __NR_getppid 173
++#define __NR_sched_yield 124
++#define __NR_sched_getaffinity 123
++#define __NR_sched_setaffinity 122
++#define __NR_sched_get_priority_max 125
++#define __NR_sched_get_priority_min 126
++#define __NR_sched_getparam 121
++#define __NR_sched_getscheduler 120
++#define __NR_sched_setparam 118
++#define __NR_sched_setscheduler 119
++#define __NR_sched_rr_get_interval 127
++#define __NR_sched_rr_get_interval_time64 423
++#define __NR_nanosleep 101
++#define __NR_clock_gettime 403
++#define __NR_clock_gettime64 403
++#define __NR_clock_settime64 404
++#define __NR_clock_getres 406
++#define __NR_clock_getres_time64 406
++#define __NR_timer_create 107
++#define __NR_timer_getoverrun 109
++#define __NR_timer_delete 111
++#define __NR_timer_gettime 408
++#define __NR_timer_gettime64 408
++#define __NR_timer_settime 409
++#define __NR_timer_settime64 409
++#define __NR_times 153
++#define __NR_acct 89
++#define __NR_geteuid 175
++#define __NR_getegid 177
++#define __NR_faccessat2 439
++#define __NR_sync 81
++#define __NR_fdatasync 83
++#define __NR_getpgid 155
++#define __NR_getsid 156
++#define __NR_symlinkat 36
++#define __NR_linkat 37
++#define __NR_truncate 45
++#define __NR_clock_adjtime 266
++#define __NR_clock_adjtime64 405
++#define __NR_gettimeofday 169
++#define __NR_uname 160
++#define __NR_getcwd 17
++#define __NR_setxattr 5
++#define __NR_lsetxattr 6
++#define __NR_fsetxattr 7
++#define __NR_getxattr 8
++#define __NR_lgetxattr 9
++#define __NR_fgetxattr 10
++#define __NR_listxattr 11
++#define __NR_llistxattr 12
++#define __NR_flistxattr 13
++#define __NR_removexattr 14
++#define __NR_lremovexattr 15
++#define __NR_fremovexattr 16
++#define __NR__llseek 62
++#define __NR_readv 65
++#define __NR_writev 66
++#define __NR_pread64 67
++#define __NR_pwrite64 68
++#define __NR_preadv 69
++#define __NR_pwritev 70
++#define __NR_pselect6 72
++#define __NR_chroot 51
++#define __NR_sethostname 161
++#define __NR_setdomainname 162
++#define __NR_unshare 97
++#define __NR_sysinfo 179
++#define __NR_getrusage 165
++#define __NR_umask 166
++#define __NR_getcpu 168
++#define __NR_getitimer 102
++#define __NR_setitimer 103
++#define __NR_mq_open 180
++#define __NR_mq_unlink 181
++#define __NR_mq_timedsend 182
++#define __NR_mq_timedreceive 183
++#define __NR_mq_notify 184
++#define __NR_mq_getsetattr 185
++#define __NR_timerfd_create 85
++#define __NR_timerfd_settime 86
++#define __NR_timerfd_gettime 87
++#define __NR_timerfd_gettime64 410
++#define __NR_timerfd_settime64 411
++#define __NR_getgroups 158
++#define __NR_setgroups 159
++#define __NR_prctl 167
++#define __NR_syslog 116
++#define __NR_ptrace 117
++#define __NR_getpriority 141
++#define __NR_setpriority 140
++#define __NR_setregid 143
++#define __NR_setgid 144
++#define __NR_setreuid 145
++#define __NR_setuid 146
++#define __NR_setresuid 147
++#define __NR_getresuid 148
++#define __NR_setresgid 149
++#define __NR_getresgid 150
++#define __NR_setpgid 154
++#define __NR_setsid 157
++#define __NR_getuid 174
++#define __NR_getgid 176
++#define __NR_fchdir 50
++#define __NR_fchmod 52
++#define __NR_fchmodat 53
++#define __NR_fchmodat2 452
++#define __NR_fchownat 54
++#define __NR_fchown 55
++#define __NR_init_module 105
++#define __NR_delete_module 106
++#define __NR_copy_file_range 285
++#define __NR_preadv2 286
++#define __NR_pwritev2 287
++#define __NR_sendfile 71
++#define __NR_signalfd4 74
++#define __NR_vmsplice 75
++#define __NR_splice 76
++#define __NR_tee 77
++#define __NR_fanotify_init 262
++#define __NR_fanotify_mark 263
++#define __NR_name_to_handle_at 264
++#define __NR_prlimit64 261
++#define __NR_open_by_handle_at 265
++#define __NR_setns 268
++#define __NR_process_vm_readv 270
++#define __NR_process_vm_writev 271
++#define __NR_recvmmsg 243
++#define __NR_recvmmsg_time64 417
++#define __NR_sendmmsg 269
++#define __NR_kcmp 272
++#define __NR_seccomp 277
++#define __NR_syncfs 306
++#define __NR_getrandom 278
++#define __NR_membarrier 283
++#define __NR_memfd_create 279
++#define __NR_execveat 281
++#define __NR_mlock2 284
++#define __NR_mincore 232
++#define __NR_mremap 216
++#define __NR_mlock 228
++#define __NR_munlock 229
++#define __NR_mlockall 230
++#define __NR_munlockall 231
++#define __NR_pkey_mprotect 288
++#define __NR_pkey_alloc 289
++#define __NR_pkey_free 290
++#define __NR_statx 291
++#define __NR_accept4 242
++#define __NR_getsockname 204
++#define __NR_getpeername 205
++#define __NR_sendmsg 211
++#define __NR_recvmsg 212
++#define __NR_chdir 49
++#define __NR_mkdirat 34
++#define __NR_unlinkat 35
++#define __NR_renameat 38
++#define __NR_fcntl 25
++#define __NR_fsync 82
++#define __NR_fadvise 223
++#define __NR_swapon 224
++#define __NR_swapoff 225
++#define __NR_readahead 213
++#define __NR_remap_file_pages 234
++#define __NR_ftruncate 46
++#define __NR_fallocate 47
++#define __NR_mmap2 222
++#define __NR_msync 227
++#define __NR_madvise 233
++#define __NR_readlinkat 78
++#define __NR_access 21
++#define __NR_faccessat 48
++#define __NR_set_tid_address 96
++#define __NR_gettid 178
++#define __NR_set_robust_list 99
++#define __NR_get_robust_list 100
++#define __NR_rt_sigaction 134
++#define __NR_rt_sigprocmask 135
++#define __NR_rt_sigreturn 139
++#define __NR_rt_sigsuspend 133
++#define __NR_rt_sigpending 136
++#define __NR_rt_sigtimedwait 137
++#define __NR_reboot 142
++#define __NR_setfsuid 151
++#define __NR_setfsgid 152
++#define __NR_rt_sigqueueinfo 138
++#define __NR_sigaltstack 132
++#define __NR_kill 129
++#define __NR_tkill 130
++#define __NR_tgkill 131
++#define __NR_socket 198
++#define __NR_connect 203
++#define __NR_bind 200
++#define __NR_listen 201
++#define __NR_accept 202
++#define __NR_sendto 206
++#define __NR_recvfrom 207
++#define __NR_shutdown 210
++#define __NR_setsockopt 208
++#define __NR_getsockopt 209
++#define __NR_socketpair 199
++#define __NR_msgget 186
++#define __NR_msgctl 187
++#define __NR_msgrcv 188
++#define __NR_msgsnd 189
++#define __NR_semget 190
++#define __NR_semctl 191
++#define __NR_semtimedop 192
++#define __NR_semop 193
++#define __NR_shmget 194
++#define __NR_shmctl 195
++#define __NR_shmat 196
++#define __NR_shmdt 197
++#define __NR_futex_time64 422
++#define __NR_futex 422
++#define __NR_clock_nanosleep_time64 407
++#define __NR_ppoll 73
++#define __NR_ppoll_time64 414
++#define SYS_read 63
++#define SYS_write 64
++#define SYS_openat 56
++#define SYS_close 57
++#define SYS_vhangup 58
++#define SYS_epoll_create1 20
++#define SYS_epoll_ctl 21
++#define SYS_epoll_pwait 22
++#define SYS_flock 32
++#define SYS_inotify_init1 26
++#define SYS_inotify_add_watch 27
++#define SYS_inotify_rm_watch 28
++#define SYS_mknodat 33
++#define SYS_umount2 39
++#define SYS_mount 40
++#define SYS_pivot_root 41
++#define SYS_quotactl 60
++#define SYS_statfs 43
++#define SYS_fstatfs 44
++#define SYS_utimensat 88
++#define SYS_utimensat_time64 412
++#define SYS_eventfd2 19
++#define SYS_capget 90
++#define SYS_capset 91
++#define SYS_lseek 62
++#define SYS_fstatat 79
++#define SYS_fstat 80
++#define SYS_newfstatat 79
++#define SYS_newfstat 80
++#define SYS_getdents64 61
++#define SYS_ioctl 29
++#define SYS_dup 23
++#define SYS_dup3 24
++#define SYS_pipe2 59
++#define SYS_brk 214
++#define SYS_mmap 222
++#define SYS_munmap 215
++#define SYS_mprotect 226
++#define SYS_madvise 233
++#define SYS_exit 93
++#define SYS_exit_group 94
++#define SYS_clone 220
++#define SYS_execve 221
++#define SYS_wait4 260
++#define SYS_waitid 95
++#define SYS_getpid 172
++#define SYS_getppid 173
++#define SYS_sched_yield 124
++#define SYS_sched_getaffinity 123
++#define SYS_sched_setaffinity 122
++#define SYS_sched_get_priority_max 125
++#define SYS_sched_get_priority_min 126
++#define SYS_sched_getparam 121
++#define SYS_sched_getscheduler 120
++#define SYS_sched_setparam 118
++#define SYS_sched_setscheduler 119
++#define SYS_sched_rr_get_interval 127
++#define SYS_sched_rr_get_interval_time64 423
++#define SYS_nanosleep 101
++#define SYS_clock_gettime 403
++#define SYS_clock_gettime64 403
++#define SYS_clock_settime64 404
++#define SYS_clock_getres 406
++#define SYS_clock_getres_time64 406
++#define SYS_timer_create 107
++#define SYS_timer_getoverrun 109
++#define SYS_timer_delete 111
++#define SYS_timer_gettime 408
++#define SYS_timer_gettime64 408
++#define SYS_timer_settime 409
++#define SYS_timer_settime64 409
++#define SYS_times 153
++#define SYS_acct 89
++#define SYS_geteuid 175
++#define SYS_getegid 177
++#define SYS_faccessat2 439
++#define SYS_sync 81
++#define SYS_fdatasync 83
++#define SYS_getpgid 155
++#define SYS_getsid 156
++#define SYS_symlinkat 36
++#define SYS_linkat 37
++#define SYS_truncate 45
++#define SYS_clock_adjtime 266
++#define SYS_clock_adjtime64 405
++#define SYS_gettimeofday 169
++#define SYS_uname 160
++#define SYS_getcwd 17
++#define SYS_setxattr 5
++#define SYS_lsetxattr 6
++#define SYS_fsetxattr 7
++#define SYS_getxattr 8
++#define SYS_lgetxattr 9
++#define SYS_fgetxattr 10
++#define SYS_listxattr 11
++#define SYS_llistxattr 12
++#define SYS_flistxattr 13
++#define SYS_removexattr 14
++#define SYS_lremovexattr 15
++#define SYS_fremovexattr 16
++#define SYS__llseek 62
++#define SYS_readv 65
++#define SYS_writev 66
++#define SYS_pread64 67
++#define SYS_pwrite64 68
++#define SYS_preadv 69
++#define SYS_pwritev 70
++#define SYS_pselect6 72
++#define SYS_chroot 51
++#define SYS_sethostname 161
++#define SYS_setdomainname 162
++#define SYS_unshare 97
++#define SYS_sysinfo 179
++#define SYS_getrusage 165
++#define SYS_umask 166
++#define SYS_getcpu 168
++#define SYS_getitimer 102
++#define SYS_setitimer 103
++#define SYS_mq_open 180
++#define SYS_mq_unlink 181
++#define SYS_mq_timedsend 182
++#define SYS_mq_timedreceive 183
++#define SYS_mq_notify 184
++#define SYS_mq_getsetattr 185
++#define SYS_timerfd_create 85
++#define SYS_timerfd_settime 86
++#define SYS_timerfd_gettime 87
++#define SYS_timerfd_gettime64 410
++#define SYS_timerfd_settime64 411
++#define SYS_getgroups 158
++#define SYS_setgroups 159
++#define SYS_prctl 167
++#define SYS_syslog 116
++#define SYS_ptrace 117
++#define SYS_getpriority 141
++#define SYS_setpriority 140
++#define SYS_setregid 143
++#define SYS_setgid 144
++#define SYS_setreuid 145
++#define SYS_setuid 146
++#define SYS_setresuid 147
++#define SYS_getresuid 148
++#define SYS_setresgid 149
++#define SYS_getresgid 150
++#define SYS_setpgid 154
++#define SYS_setsid 157
++#define SYS_getuid 174
++#define SYS_getgid 176
++#define SYS_fchdir 50
++#define SYS_fchmod 52
++#define SYS_fchmodat 53
++#define SYS_fchmodat2 452
++#define SYS_fchownat 54
++#define SYS_fchown 55
++#define SYS_init_module 105
++#define SYS_delete_module 106
++#define SYS_copy_file_range 285
++#define SYS_preadv2 286
++#define SYS_pwritev2 287
++#define SYS_sendfile 71
++#define SYS_signalfd4 74
++#define SYS_vmsplice 75
++#define SYS_splice 76
++#define SYS_tee 77
++#define SYS_fanotify_init 262
++#define SYS_fanotify_mark 263
++#define SYS_name_to_handle_at 264
++#define SYS_prlimit64 261
++#define SYS_open_by_handle_at 265
++#define SYS_setns 268
++#define SYS_process_vm_readv 270
++#define SYS_process_vm_writev 271
++#define SYS_recvmmsg 243
++#define SYS_recvmmsg_time64 417
++#define SYS_sendmmsg 269
++#define SYS_kcmp 272
++#define SYS_seccomp 277
++#define SYS_syncfs 306
++#define SYS_getrandom 278
++#define SYS_membarrier 283
++#define SYS_memfd_create 279
++#define SYS_execveat 281
++#define SYS_mlock2 284
++#define SYS_mincore 232
++#define SYS_mremap 216
++#define SYS_mlock 228
++#define SYS_munlock 229
++#define SYS_mlockall 230
++#define SYS_munlockall 231
++#define SYS_pkey_mprotect 288
++#define SYS_pkey_alloc 289
++#define SYS_pkey_free 290
++#define SYS_statx 291
++#define SYS_accept4 242
++#define SYS_getsockname 204
++#define SYS_getpeername 205
++#define SYS_sendmsg 211
++#define SYS_recvmsg 212
++#define SYS_chdir 49
++#define SYS_mkdirat 34
++#define SYS_unlinkat 35
++#define SYS_renameat 38
++#define SYS_fcntl 25
++#define SYS_fsync 82
++#define SYS_fadvise 223
++#define SYS_swapon 224
++#define SYS_swapoff 225
++#define SYS_readahead 213
++#define SYS_remap_file_pages 234
++#define SYS_ftruncate 46
++#define SYS_fallocate 47
++#define SYS_mmap2 222
++#define SYS_msync 227
++#define SYS_madvise 233
++#define SYS_readlinkat 78
++#define SYS_access 21
++#define SYS_faccessat 48
++#define SYS_set_tid_address 96
++#define SYS_gettid 178
++#define SYS_set_robust_list 99
++#define SYS_get_robust_list 100
++#define SYS_rt_sigaction 134
++#define SYS_rt_sigprocmask 135
++#define SYS_rt_sigreturn 139
++#define SYS_rt_sigsuspend 133
++#define SYS_rt_sigpending 136
++#define SYS_rt_sigtimedwait 137
++#define SYS_reboot 142
++#define SYS_setfsuid 151
++#define SYS_setfsgid 152
++#define SYS_rt_sigqueueinfo 138
++#define SYS_sigaltstack 132
++#define SYS_kill 129
++#define SYS_tkill 130
++#define SYS_tgkill 131
++#define SYS_socket 198
++#define SYS_connect 203
++#define SYS_bind 200
++#define SYS_listen 201
++#define SYS_accept 202
++#define SYS_sendto 206
++#define SYS_recvfrom 207
++#define SYS_shutdown 210
++#define SYS_setsockopt 208
++#define SYS_getsockopt 209
++#define SYS_socketpair 199
++#define SYS_msgget 186
++#define SYS_msgctl 187
++#define SYS_msgrcv 188
++#define SYS_msgsnd 189
++#define SYS_semget 190
++#define SYS_semctl 191
++#define SYS_semtimedop 192
++#define SYS_semop 193
++#define SYS_shmget 194
++#define SYS_shmctl 195
++#define SYS_shmat 196
++#define SYS_shmdt 197
++#define SYS_futex_time64 422
++#define SYS_futex 422
++#define SYS_clock_nanosleep_time64 407
++#define SYS_ppoll 73
++#define SYS_ppoll_time64 414
+--- a/src/malloc/free.c	2024-03-01 02:07:33.000000000 +0000
++++ b/src/malloc/free.c	2026-09-24 22:10:00.974058979 +0100
+@@ -1,4 +1,6 @@
+ #include <stdlib.h>
++#include <stdint.h>
++#include "../internal/syscall.h"
+ 
+ void free(void *p)
+ {
+--- a/src/malloc/mallocng/free.c	2024-03-01 02:07:33.000000000 +0000
++++ b/src/malloc/mallocng/free.c	2026-09-24 22:10:01.044058766 +0100
+@@ -1,6 +1,8 @@
+ #define _BSD_SOURCE
+ #include <stdlib.h>
+ #include <sys/mman.h>
++#include <stdint.h>
++
+ 
+ #include "meta.h"
+ 
+@@ -101,7 +103,6 @@
+ void free(void *p)
+ {
+ 	if (!p) return;
+-
+ 	struct meta *g = get_meta(p);
+ 	int idx = get_slot_index(p);
+ 	size_t stride = get_stride(g);
+--- a/src/setjmp/myemulator2/longjmp.S	1970-01-01 01:00:00.000000000 +0100
++++ b/src/setjmp/myemulator2/longjmp.S	2026-09-20 22:45:45.592590499 +0100
+@@ -0,0 +1,26 @@
++	.section .text
++	.global __longjmp
++	.global _longjmp
++	.global longjmp
++	.type __longjmp,@function
++	.type _longjmp,@function
++	.type longjmp,@function
++__longjmp:
++_longjmp:
++longjmp:
++	lw r5, 0(r1)
++	lw r6, 4(r1)
++	lw r7, 8(r1)
++	lw r8, 12(r1)
++	lw r9, 16(r1)
++	lw r10, 20(r1)
++	lw r11, 24(r1)
++	lw r12, 28(r1)
++	lw r13, 32(r1)
++	lw r14, 36(r1)
++	lw r15, 40(r1)
++	lw r3, 44(r1)
++	mtsr tp, r3
++	seq r1, r2, r0
++	add r1, r1, r2
++	jr r14
+--- a/src/setjmp/myemulator2/setjmp.S	1970-01-01 01:00:00.000000000 +0100
++++ b/src/setjmp/myemulator2/setjmp.S	2026-09-20 23:30:01.739963006 +0100
+@@ -0,0 +1,25 @@
++	.section .text
++	.global __setjmp
++	.global _setjmp
++	.global setjmp
++	.type __setjmp,@function
++	.type _setjmp,@function
++	.type setjmp,@function
++__setjmp:
++_setjmp:
++setjmp:
++	sw r5, 0(r1)
++	sw r6, 4(r1)
++	sw r7, 8(r1)
++	sw r8, 12(r1)
++	sw r9, 16(r1)
++	sw r10, 20(r1)
++	sw r11, 24(r1)
++	sw r12, 28(r1)
++	sw r13, 32(r1)
++	sw r14, 36(r1)
++	sw r15, 40(r1)
++	mfsr r3, tp
++	sw r3, 44(r1)
++	addi r1, r0, 0
++	jr r14
+--- a/src/stdio/vfprintf.c	2024-03-01 02:07:33.000000000 +0000
++++ b/src/stdio/vfprintf.c	2026-10-07 03:10:08.497215136 +0100
+@@ -557,6 +557,7 @@
+ 			}
+ 			continue;
+ 		case 'p':
++			arg.i = (uintptr_t)arg.p;
+ 			p = MAX(p, 2*sizeof(void*));
+ 			t = 'x';
+ 			fl |= ALT_FORM;
+--- a/src/thread/myemulator2/__set_thread_area.S	1970-01-01 01:00:00.000000000 +0100
++++ b/src/thread/myemulator2/__set_thread_area.S	2026-09-20 16:02:30.771166062 +0100
+@@ -0,0 +1,7 @@
++.global __set_thread_area
++.hidden __set_thread_area
++.type __set_thread_area,@function
++__set_thread_area:
++	mtsr tp, r1
++	addi r1, r0, 0
++	jr r14
+--- a/src/thread/myemulator2/clone.S	1970-01-01 01:00:00.000000000 +0100
++++ b/src/thread/myemulator2/clone.S	2026-09-28 13:37:19.883852438 +0100
+@@ -0,0 +1,90 @@
++/* __clone(func, stack, flags, arg, ptid, tls, ctid)
++ *
++ * C arguments are passed in r1-r7.  The Linux clone syscall receives
++ * flags,newsp,parent_tid,child_tid,tls in r2-r6 after r1 is loaded with the
++ * syscall number.  The child starts with r13=newsp, so its trampoline record
++ * must be written to the aligned top of the caller-supplied stack.
++ */
++.section .text
++.global __clone
++.hidden __clone
++.type __clone,@function
++__clone:
++	/* posix_spawn may supply a temporary child stack in the caller's own
++	 * frame while the parent is suspended by vfork.  Keep our saved parent
++	 * registers well below that record so the child cannot overwrite them. */
++	subi r13, r13, 128
++	sw r1, 0(r13)
++	sw r2, 4(r13)
++	sw r3, 8(r13)
++	sw r4, 12(r13)
++	sw r5, 16(r13)
++	sw r6, 20(r13)
++	sw r7, 24(r13)
++	sw r14, 28(r13)
++	sw r15, 32(r13)
++	sw r8, 36(r13)
++	sw r9, 40(r13)
++	sw r10, 44(r13)
++	sw r11, 48(r13)
++	sw r12, 52(r13)
++
++	/* Keep the caller-supplied child stack unchanged.  The vfork child
++	 * shares the parent's address space and musl deliberately points this
++	 * at a temporary stack in the posix_spawn frame.  Writing a trampoline
++	 * record below it can overwrite the suspended parent's frame.  Preserve
++	 * the function and argument in registers instead; copy_thread() copies
++	 * those registers into the child, while the parent path restores them
++	 * from our save area. */
++	lw r2, 4(r13)
++	/* REM's compiler reserves a 4092-byte positive-offset area in each
++	 * frame before its ordinary local frame.  A vfork child receives the
++	 * caller's temporary stack base, so move the child SP below that area;
++	 * otherwise the child's first prologue writes into the suspended
++	 * parent's posix_spawn frame. */
++	lui r11, 1
++	sub r3, r2, r11
++	lw r12, 0(r13)
++	lw r7, 12(r13)
++
++	/* clone(flags, newsp, parent_tid, child_tid, tls). */
++	lw r2, 8(r13)
++	lw r4, 16(r13)
++	lw r5, 20(r13)
++	lw r6, 24(r13)
++	li r1, 220
++	syscall 0
++	bne r1, r0, 1f
++
++	/* Child: kernel switched r13 to newsp and preserved r12/r7. */
++	add r1, r7, r0
++	jalr r12
++	add r2, r1, r0
++	li r1, 93
++	syscall 0
++	j 2f
++
++1:
++	/* Restore the caller's argument registers and stack. */
++	/* Keep r1 as the kernel's child PID return value.  The syscall number
++	 * saved at 0(r13) is not part of the caller-visible result; restoring it
++	 * here made vfork/posix_spawn pass the child function address or 220 to
++	 * wait4 instead of the actual PID. */
++	lw r2, 4(r13)
++	lw r3, 8(r13)
++	lw r4, 12(r13)
++	lw r5, 16(r13)
++	lw r6, 20(r13)
++	lw r7, 24(r13)
++	lw r14, 28(r13)
++	lw r15, 32(r13)
++	lw r8, 36(r13)
++	lw r9, 40(r13)
++	lw r10, 44(r13)
++	lw r11, 48(r13)
++	lw r12, 52(r13)
++	addi r13, r13, 128
++	jr r14
++
++2:
++	j 2b

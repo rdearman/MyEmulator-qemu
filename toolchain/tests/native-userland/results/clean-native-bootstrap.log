@@ -1,0 +1,172 @@
+CC codegen.c
+CC hashmap.c
+CC main.c
+CC parse.c
+CC preprocess.c
+CC strings.c
+CC tokenize.c
+CC type.c
+CC unicode.c
+CC rem_float.c
+/usr/bin/ld: warning: _clzsi2.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: error in /usr/lib/libgcc.a(_divdi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_moddi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_udivdi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_umoddi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: warning: chibicc-native has a LOAD segment with RWX permissions
+-rwxr-xr-x    1    709840 chibicc-native
+To try it:   ./chibicc-native -g hello.c -o hello   (uses ./include next to the binary)
+To install:  cp ~/.local/bin/chibicc ~/.local/bin/chibicc.orig; cp chibicc-native ~/.local/bin/chibicc
+CC IEEE runtime addsf3.c
+CC IEEE runtime adddf3.c
+CC IEEE runtime subsf3.c
+CC IEEE runtime subdf3.c
+CC IEEE runtime mulsf3.c
+CC IEEE runtime muldf3.c
+CC IEEE runtime divsf3.c
+CC IEEE runtime divdf3.c
+CC IEEE runtime comparesf2.c
+CC IEEE runtime comparedf2.c
+CC IEEE runtime extendsfdf2.c
+CC IEEE runtime truncdfsf2.c
+CC IEEE runtime fixsfsi.c
+CC IEEE runtime fixdfsi.c
+CC IEEE runtime fixunssfsi.c
+CC IEEE runtime fixunsdfsi.c
+CC IEEE runtime fixsfdi.c
+CC IEEE runtime fixdfdi.c
+CC IEEE runtime fixunssfdi.c
+CC IEEE runtime fixunsdfdi.c
+CC IEEE runtime floatsisf.c
+CC IEEE runtime floatsidf.c
+CC IEEE runtime floatdisf.c
+CC IEEE runtime floatdidf.c
+CC IEEE runtime floatunsisf.c
+CC IEEE runtime floatunsidf.c
+CC IEEE runtime floatundisf.c
+CC IEEE runtime floatundidf.c
+CC IEEE runtime fp_mode.c
+IEEE runtime built; link native/ieee-runtime.o before libc and libgcc.
+CC codegen.c
+CC hashmap.c
+CC main.c
+CC parse.c
+CC preprocess.c
+CC strings.c
+CC tokenize.c
+CC type.c
+CC unicode.c
+CC rem_float.c
+/usr/bin/ld: warning: _clz.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: error in /usr/lib/libgcc.a(_divdi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_moddi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_udivdi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_umoddi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: warning: chibicc-native has a LOAD segment with RWX permissions
+-rwxr-xr-x    1    966444 chibicc-native
+To try it:   ./chibicc-native -g hello.c -o hello   (uses ./include next to the binary)
+To install:  cp ~/.local/bin/chibicc ~/.local/bin/chibicc.orig; cp chibicc-native ~/.local/bin/chibicc
+CC musl internal/floatscan.c
+CC musl stdlib/strtod.c
+ld: warning: native/strtod.o: missing .note.GNU-stack section implies executable stack
+ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+Temporary source-built strtod seed ready; remaining libc repairs are not yet built.
+CC codegen.c
+CC hashmap.c
+CC main.c
+CC parse.c
+CC preprocess.c
+CC strings.c
+CC tokenize.c
+CC type.c
+CC unicode.c
+CC rem_float.c
+/usr/bin/ld: warning: _clz.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: error in /usr/lib/libgcc.a(_divdi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_moddi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_udivdi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_umoddi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: warning: chibicc-native has a LOAD segment with RWX permissions
+-rwxr-xr-x    1    991772 chibicc-native
+To try it:   ./chibicc-native -g hello.c -o hello   (uses ./include next to the binary)
+To install:  cp ~/.local/bin/chibicc ~/.local/bin/chibicc.orig; cp chibicc-native ~/.local/bin/chibicc
+CC musl crypt/crypt_blowfish.c
+CC musl crypt/crypt_sha512.c
+CC musl internal/floatscan.c
+CC musl legacy/cuserid.c
+CC musl locale/catopen.c
+CC musl math/__rem_pio2_large.c
+CC musl misc/nftw.c
+CC musl misc/realpath.c
+CC musl misc/syslog.c
+CC musl multibyte/mbsnrtowcs.c
+CC musl network/getaddrinfo.c
+CC musl network/gethostbyname2_r.c
+CC musl network/getnameinfo.c
+CC musl network/lookup_name.c
+CC musl network/lookup_serv.c
+CC musl network/netlink.c
+CC musl network/res_send.c
+CC musl network/resolvconf.c
+CC musl process/posix_spawn.c
+CC musl process/system.c
+CC musl regex/glob.c
+CC musl signal/sigset.c
+CC musl stdio/fputws.c
+CC musl stdio/tempnam.c
+CC musl stdio/vfprintf.c
+CC musl stdlib/fcvt.c
+CC musl stdlib/strtod.c
+CC musl string/memmem.c
+CC musl string/strstr.c
+CC musl thread/sem_open.c
+CC musl time/timer_create.c
+CC musl time/wcsftime.c
+CC musl unistd/faccessat.c
+ld: warning: native/faccessat.o: missing .note.GNU-stack section implies executable stack
+ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+All 32 audited libc members rebuilt, with strtod and REM ABI support.
+CC codegen.c
+CC hashmap.c
+CC main.c
+CC parse.c
+CC preprocess.c
+CC strings.c
+CC tokenize.c
+CC type.c
+CC unicode.c
+CC rem_float.c
+/usr/bin/ld: warning: _clz.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: error in /usr/lib/libgcc.a(_divdi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_moddi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_udivdi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_umoddi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: warning: chibicc-native has a LOAD segment with RWX permissions
+-rwxr-xr-x    1   1077068 chibicc-native
+To try it:   ./chibicc-native -g hello.c -o hello   (uses ./include next to the binary)
+To install:  cp ~/.local/bin/chibicc ~/.local/bin/chibicc.orig; cp chibicc-native ~/.local/bin/chibicc
+CC codegen.c
+CC hashmap.c
+CC main.c
+CC parse.c
+CC preprocess.c
+CC strings.c
+CC tokenize.c
+CC type.c
+CC unicode.c
+CC rem_float.c
+/usr/bin/ld: warning: _clz.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: error in /usr/lib/libgcc.a(_divdi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_moddi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_udivdi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_umoddi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: warning: chibicc-native has a LOAD segment with RWX permissions
+-rwxr-xr-x    1   1077068 chibicc-native
+To try it:   ./chibicc-native -g hello.c -o hello   (uses ./include next to the binary)
+To install:  cp ~/.local/bin/chibicc ~/.local/bin/chibicc.orig; cp chibicc-native ~/.local/bin/chibicc
+Compiler rebuilt itself against the private repaired libc; regression tests still required.
