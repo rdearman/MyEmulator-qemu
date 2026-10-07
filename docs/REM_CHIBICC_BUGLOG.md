@@ -45,6 +45,19 @@ optional stack-limit hook, disabled POSIX spawn and vfork-to-fork mapping.
 The new Make bootstrap itself is still being qualified. No kernel/QEMU
 investigation or modification is authorized or performed.
 
+The Make source bootstrap currently stops at Automake's source timestamp
+sanity check (`Check your system clock`), including a retry after touching
+its configure file. The disposable guest reports January 1970. Normal
+privileged `date -s` returns `ENOSYS`; an ordinary C probe compiled with the
+new self-built compiler and repaired runtime also receives `ENOSYS` from
+`SYS_clock_settime64` when run through sudo (requests 210--211;
+`tests/clock-settime-abi.c`). This establishes a missing platform interface,
+not a new chibicc code-generation defect. Timestamp ordering and the old
+bootstrap utility behavior remain blockers to the Make bootstrap.
+Certificate-validity/HTTPS acceptance has not run and must not be inferred
+from DNS success. No certificate verification bypass or clock substitution
+was introduced.
+
 | ID | Defect / minimal C reproducer | Classification and current evidence |
 |---|---|---|
 | NU-01 | Floating arithmetic: `float-arithmetic.c` | REM backend dispatches double arithmetic to integer pair operations. Native `1.5+2.25==3.75` probe actually returned failure (42 in initial probe). Soft-float helper lowering staged; native fix verification pending. |
