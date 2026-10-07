@@ -112,7 +112,8 @@ for the first character, instead of using its existing string initializer
 for the complete array. The staged source-kit repair routes a brace-enclosed
 string through that existing path when its element type matches the string
 type, preserving ordinary arrays of string pointers and accepting the
-optional trailing comma. Native repaired-runtime verification is pending.
+optional trailing comma. Native request 067 passes the repaired brace-string reducer and hexadecimal
+formatter, followed by a complete compiler self-rebuild.
 This is a genuinely architecture-independent upstream frontend defect,
 not a REM frame-pointer defect. No upstream contact or submission occurred.
 
@@ -130,7 +131,8 @@ therefore sign-extended to -1 instead of yielding the required Boolean 1.
 Curl's `BIT` state fields directly require correct Boolean bitfield support.
 The staged REM lowering selects logical extraction for `TY_BOOL`, separately
 from restoring the entirely missing REM bitfield load/merge lowering.
-Native repaired verification is pending. No upstream report was submitted.
+Native request 069 passes both separate bitfield reducers and rebuilds the
+complete compiler natively. No upstream report was submitted.
 
 ## 1. Executive Summary
 
