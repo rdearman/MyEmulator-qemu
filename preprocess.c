@@ -69,6 +69,8 @@ static HashMap macros;
 static CondIncl *cond_incl;
 static HashMap pragma_once;
 static int include_next_idx;
+static bool pp_trace;
+static long pp_trace_events;
 
 static Token *preprocess2(Token *tok);
 static Macro *find_macro(Token *tok);
@@ -277,7 +279,11 @@ static Token *read_const_expr(Token **rest, Token *tok) {
 }
 
 // Read and evaluate a constant expression.
-static long eval_const_expr(Token **rest, Token *tok) {
+/* Preprocessor conditional expressions must retain the full width of integer
+ * constants even when the compiler host uses ILP32.  Returning `long` here
+ * truncates UINT64_MAX to 0xffffffff on REM32 and makes UINTPTR_MAX appear
+ * equal to UINT64_MAX, selecting the wrong PRId64 format in musl headers. */
+static int64_t eval_const_expr(Token **rest, Token *tok) {
   Token *start = tok;
   Token *expr = read_const_expr(rest, tok->next);
   expr = preprocess2(expr);
@@ -301,7 +307,7 @@ static long eval_const_expr(Token **rest, Token *tok) {
   convert_pp_tokens(expr);
 
   Token *rest2;
-  long val = const_expr(&rest2, expr);
+  int64_t val = const_expr(&rest2, expr);
   if (rest2->kind != TK_EOF)
     error_tok(rest2, "extra token");
   return val;
@@ -628,6 +634,9 @@ static Token *subst(Token *tok, MacroArg *args) {
 // If tok is a macro, expand it and return true.
 // Otherwise, do nothing and return false.
 static bool expand_macro(Token **rest, Token *tok) {
+  if (pp_trace && (++pp_trace_events % 1000) == 0)
+    fprintf(stderr, "TRACE macro events=%ld %s:%d token=%.*s\n", pp_trace_events, tok->file ? tok->file->name : "?",
+            tok->line_no, tok->len, tok->loc);
   if (hideset_contains(tok->hideset, tok->loc, tok->len))
     return false;
 
@@ -793,6 +802,10 @@ static char *detect_include_guard(Token *tok) {
 }
 
 static Token *include_file(Token *tok, char *path, Token *filename_tok) {
+  static bool trace = false;
+  static bool trace_init = false;
+  if (!trace_init) { trace = getenv("CHIBICC_TRACE_PP") != NULL; trace_init = true; }
+  if (trace) fprintf(stderr, "TRACE include begin %s\n", path);
   // Check for "#pragma once"
   if (hashmap_get(&pragma_once, path))
     return tok;
@@ -809,11 +822,14 @@ static Token *include_file(Token *tok, char *path, Token *filename_tok) {
   if (!tok2)
     error_tok(filename_tok, "%s: cannot open file: %s", path, strerror(errno));
 
+  if (trace) fprintf(stderr, "TRACE include tokenized %s\n", path);
   guard_name = detect_include_guard(tok2);
   if (guard_name)
     hashmap_put(&include_guards, path, guard_name);
 
-  return append(tok2, tok);
+  Token *ret = append(tok2, tok);
+  if (trace) fprintf(stderr, "TRACE include appended %s\n", path);
+  return ret;
 }
 
 // Read #line arguments
@@ -839,8 +855,15 @@ static void read_line_marker(Token **rest, Token *tok) {
 static Token *preprocess2(Token *tok) {
   Token head = {};
   Token *cur = &head;
+  static bool trace = false;
+  static bool trace_init = false;
+  long count = 0;
+  if (!trace_init) { trace = getenv("CHIBICC_TRACE_PP") != NULL; trace_init = true; pp_trace = trace; }
 
   while (tok->kind != TK_EOF) {
+    if (trace && (++count % 1000) == 0)
+      fprintf(stderr, "TRACE pp tokens=%ld file=%s line=%d\n", count,
+              tok->file ? tok->file->name : "?", tok->line_no);
     // If it is a macro, expand it.
     if (expand_macro(&tok, tok))
       continue;
@@ -1059,21 +1082,23 @@ static char *format_time(struct tm *tm) {
 
 void init_macros(void) {
   // Define predefined macros
-  define_macro("_LP64", "1");
+  // REM is an ILP32 target: long, pointers and size_t are 32 bits even
+  // though long long remains 64 bits.  Keep these target macros aligned with
+  // the type model in type.c; inheriting the host chibicc LP64 defaults makes
+  // libc headers select the wrong conditional declarations.
   define_macro("__C99_MACRO_WITH_VA_ARGS", "1");
   define_macro("__ELF__", "1");
-  define_macro("__LP64__", "1");
   define_macro("__SIZEOF_DOUBLE__", "8");
   define_macro("__SIZEOF_FLOAT__", "4");
   define_macro("__SIZEOF_INT__", "4");
   define_macro("__SIZEOF_LONG_DOUBLE__", "8");
   define_macro("__SIZEOF_LONG_LONG__", "8");
-  define_macro("__SIZEOF_LONG__", "8");
-  define_macro("__SIZEOF_POINTER__", "8");
-  define_macro("__SIZEOF_PTRDIFF_T__", "8");
+  define_macro("__SIZEOF_LONG__", "4");
+  define_macro("__SIZEOF_POINTER__", "4");
+  define_macro("__SIZEOF_PTRDIFF_T__", "4");
   define_macro("__SIZEOF_SHORT__", "2");
-  define_macro("__SIZEOF_SIZE_T__", "8");
-  define_macro("__SIZE_TYPE__", "unsigned long");
+  define_macro("__SIZEOF_SIZE_T__", "4");
+  define_macro("__SIZE_TYPE__", "unsigned int");
   define_macro("__STDC_HOSTED__", "1");
   define_macro("__STDC_NO_COMPLEX__", "1");
   define_macro("__STDC_UTF_16__", "1");
@@ -1082,8 +1107,6 @@ void init_macros(void) {
   define_macro("__STDC__", "1");
   define_macro("__USER_LABEL_PREFIX__", "");
   define_macro("__alignof__", "_Alignof");
-  define_macro("__amd64", "1");
-  define_macro("__amd64__", "1");
   define_macro("__chibicc__", "1");
   define_macro("__const__", "const");
   define_macro("__gnu_linux__", "1");
@@ -1095,8 +1118,7 @@ void init_macros(void) {
   define_macro("__unix", "1");
   define_macro("__unix__", "1");
   define_macro("__volatile__", "volatile");
-  define_macro("__x86_64", "1");
-  define_macro("__x86_64__", "1");
+  define_macro("__myemulator2__", "1");
   define_macro("linux", "1");
   define_macro("unix", "1");
 

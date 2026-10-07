@@ -108,6 +108,28 @@ static Obj *builtin_alloca;
 
 static bool is_typename(Token *tok);
 static Type *declspec(Token **rest, Token *tok, VarAttr *attr);
+
+/* Ignore GNU declaration attributes that do not affect REM code generation.
+ * Hosted applications commonly annotate unused parameters, format strings,
+ * and visibility.  These may follow a declarator, including a parameter
+ * declarator, so they must be consumed before the enclosing declaration is
+ * parsed. */
+static Token *skip_decl_attributes(Token *tok) {
+  while (equal(tok, "__attribute__")) {
+    tok = tok->next;
+    if (!equal(tok, "("))
+      continue;
+    int depth = 0;
+    do {
+      if (equal(tok, "("))
+        depth++;
+      else if (equal(tok, ")"))
+        depth--;
+      tok = tok->next;
+    } while (depth > 0 && tok);
+  }
+  return tok;
+}
 static Type *typename(Token **rest, Token *tok);
 static Type *enum_specifier(Token **rest, Token *tok);
 static Type *typeof_specifier(Token **rest, Token *tok);
@@ -598,7 +620,9 @@ static Type *declspec(Token **rest, Token *tok, VarAttr *attr) {
 static Type *func_params(Token **rest, Token *tok, Type *ty) {
   if (equal(tok, "void") && equal(tok->next, ")")) {
     *rest = tok->next->next;
-    return func_type(ty);
+    Type *fty = func_type(ty);
+    fty->has_prototype = true;
+    return fty;
   }
 
   Type head = {};
@@ -658,12 +682,14 @@ static Type *func_params(Token **rest, Token *tok, Type *ty) {
     cur = cur->next = copy_type(ty2);
   }
 
-  if (cur == &head)
-    is_variadic = true;
-
   ty = func_type(ty);
   ty->params = head.next;
   ty->is_variadic = is_variadic;
+  // `f()` is an old-style declaration with an unspecified parameter list,
+  // not a variadic function.  Treating it as variadic incorrectly emitted a
+  // register-save area in every such function and corrupted its caller's
+  // stack frame on REM.
+  ty->has_prototype = (cur != &head) || is_variadic;
   *rest = tok->next;
   return ty;
 }
@@ -735,6 +761,7 @@ static Type *declarator(Token **rest, Token *tok, Type *ty) {
   }
 
   ty = type_suffix(rest, tok, ty);
+  *rest = skip_decl_attributes(*rest);
   ty->name = name;
   ty->name_pos = name_pos;
   return ty;
@@ -2932,7 +2959,7 @@ static Node *funcall(Token **rest, Token *tok, Node *fn) {
     Node *arg = assign(&tok, tok);
     add_type(arg);
 
-    if (!param_ty && !ty->is_variadic)
+    if (!param_ty && !ty->is_variadic && ty->has_prototype)
       error_tok(tok, "too many arguments");
 
     if (param_ty) {

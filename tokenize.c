@@ -360,7 +360,10 @@ static bool convert_pp_int(Token *tok) {
     base = 8;
   }
 
-  int64_t val = strtoul(p, &p, base);
+  /* REM is ILP32: strtoul() truncates at 32 bits, even for LL/ULL
+   * literals.  That silently turned 64-bit constants into values such as
+   * -1 in stage-2 output and caused libgcc 64-bit paths to fault. */
+  int64_t val = (int64_t)strtoull(p, &p, base);
 
   // Read U, L or LL suffixes.
   bool l = false;
@@ -398,24 +401,27 @@ static bool convert_pp_int(Token *tok) {
     else if (ll)
       ty = ty_llong;
     else if (l && u)
-      ty = ty_ulong;
+      ty = (val >> 32) && ty_ulong->size < 8 ? ty_ullong : ty_ulong;
     else if (l)
-      ty = ty_long;
+      ty = (val >> 31) && ty_long->size < 8 ? ty_llong : ty_long;
     else if (u)
-      ty = (val >> 32) ? ty_ulong : ty_uint;
+      ty = (val >> 32) && ty_ulong->size < 8 ? ty_ullong :
+           ((val >> 32) ? ty_ulong : ty_uint);
     else
-      ty = (val >> 31) ? ty_long : ty_int;
+      ty = (val >> 31) && ty_long->size < 8 ? ty_llong :
+           ((val >> 31) ? ty_long : ty_int);
   } else {
     if (ll && u)
       ty = ty_ullong;
     else if (ll)
       ty = ty_llong;
     else if (l && u)
-      ty = ty_ulong;
+      ty = (val >> 32) && ty_ulong->size < 8 ? ty_ullong : ty_ulong;
     else if (l)
-      ty = (val >> 63) ? ty_ulong : ty_long;
+      ty = (val >> 63) ? ty_ulong : ((val >> 31) && ty_long->size < 8 ? ty_llong : ty_long);
     else if (u)
-      ty = (val >> 32) ? ty_ulong : ty_uint;
+      ty = (val >> 32) && ty_ulong->size < 8 ? ty_ullong :
+           ((val >> 32) ? ty_ulong : ty_uint);
     else if (val >> 63)
       ty = ty_ulong;
     else if (val >> 32)
@@ -818,9 +824,12 @@ static void convert_universal_chars(char *p) {
 }
 
 Token *tokenize_file(char *path) {
+  bool trace = getenv("CHIBICC_TRACE_PP") != NULL;
+  if (trace) fprintf(stderr, "TRACE tokenize_file begin %s\n", path);
   char *p = read_file(path);
   if (!p)
     return NULL;
+  if (trace) fprintf(stderr, "TRACE tokenize_file read %s\n", path);
 
   // UTF-8 texts may start with a 3-byte "BOM" marker sequence.
   // If exists, just skip them because they are useless bytes.
@@ -843,5 +852,7 @@ Token *tokenize_file(char *path) {
   input_files[file_no + 1] = NULL;
   file_no++;
 
-  return tokenize(file);
+  Token *ret = tokenize(file);
+  if (trace) fprintf(stderr, "TRACE tokenize_file done %s\n", path);
+  return ret;
 }

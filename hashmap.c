@@ -14,10 +14,13 @@
 // Represents a deleted hash entry
 #define TOMBSTONE ((void *)-1)
 
-static uint64_t fnv_hash(char *s, int len) {
-  uint64_t hash = 0xcbf29ce484222325;
+/* REM32 is an ILP32 target.  Keep preprocessor hash arithmetic in one
+ * target word: the 64-bit FNV form required multiword runtime operations and
+ * corrupted include-guard lookups in a native chibicc hosted build. */
+static uint32_t fnv_hash(char *s, int len) {
+  uint32_t hash = 0x811c9dc5u;
   for (int i = 0; i < len; i++) {
-    hash *= 0x100000001b3;
+    hash *= 0x01000193u;
     hash ^= (unsigned char)s[i];
   }
   return hash;
@@ -61,7 +64,7 @@ static HashEntry *get_entry(HashMap *map, char *key, int keylen) {
   if (!map->buckets)
     return NULL;
 
-  uint64_t hash = fnv_hash(key, keylen);
+  uint32_t hash = fnv_hash(key, keylen);
 
   for (int i = 0; i < map->capacity; i++) {
     HashEntry *ent = &map->buckets[(hash + i) % map->capacity];
@@ -81,7 +84,7 @@ static HashEntry *get_or_insert_entry(HashMap *map, char *key, int keylen) {
     rehash(map);
   }
 
-  uint64_t hash = fnv_hash(key, keylen);
+  uint32_t hash = fnv_hash(key, keylen);
 
   for (int i = 0; i < map->capacity; i++) {
     HashEntry *ent = &map->buckets[(hash + i) % map->capacity];

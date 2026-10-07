@@ -375,6 +375,11 @@ struct Type {
   Type *return_ty;
   Type *params;
   bool is_variadic;
+  // A function declared with an empty parameter list has an old-style
+  // unspecified parameter list; it is not a variadic function.  Keep this
+  // distinction so code generation does not create a va_list save area for
+  // ordinary definitions such as `int main()`.
+  bool has_prototype;
   Type *next;
 };
 

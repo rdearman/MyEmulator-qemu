@@ -8,6 +8,18 @@ static Obj *current_fn;
 static int labelseq;
 static int eval_depth;
 
+/* Keep the compiler itself within the C subset accepted by the native REM
+ * bootstrap.  This is only used to encode an alignment exponent. */
+static int rem_ctz(unsigned x) {
+  int n = 0;
+  if (!x) return 32;
+  while ((x & 1) == 0) {
+    x >>= 1;
+    n++;
+  }
+  return n;
+}
+
 __attribute__((format(printf, 1, 2)))
 static void println(char *fmt, ...) {
   va_list ap;
@@ -21,6 +33,43 @@ int align_to(int n, int align) { return (n + align - 1) / align * align; }
 
 static int count(void) { return ++labelseq; }
 static void unsupported(Node *n, char *s) { fprintf(stderr, "REM unsupported kind=%d: %s\n", n ? n->kind : -1, s); error_tok(n ? n->tok : NULL, "REM backend: %s", s); }
+
+/* REM immediate fields are signed 12-bit values.  Large local frames and
+ * arrays therefore need an explicit address calculation; allowing GAS to
+ * truncate an addi/subi silently turns (for example) a 4160-byte frame into
+ * a 64-byte frame and corrupts the compiler at runtime. */
+static bool fits_imm12(int n) { return n >= -2048 && n <= 2047; }
+static void emit_imm(int reg, int64_t value) {
+  if (value >= -2048 && value <= 2047) {
+    println("  li r%d, %ld", reg, (long)value);
+    return;
+  }
+  uint32_t u = (uint32_t)value;
+  /* LUI supplies bits 31:12 and ORI supplies the low 12 bits. */
+  println("  lui r%d, %u", reg, (unsigned)(u >> 12));
+  println("  ori r%d, r%d, %u", reg, reg, (unsigned)(u & 0xfff));
+}
+static void add_offset(int dst, int base, int off, int tmp) {
+  if (fits_imm12(off)) {
+    println("  addi r%d, r%d, %d", dst, base, off);
+    return;
+  }
+  emit_imm(tmp, off);
+  println("  add r%d, r%d, r%d", dst, base, tmp);
+}
+static void load_fp(int dst, int off) {
+  if (fits_imm12(off)) println("  lw r%d, %d(r5)", dst, off);
+  else { emit_imm(2, off); println("  add r2, r5, r2"); println("  lw r%d, 0(r2)", dst); }
+}
+static void store_fp(int src, int off) {
+  if (fits_imm12(off)) println("  sw r%d, %d(r5)", src, off);
+  else {
+    int tmp = src == 1 ? 2 : 1;
+    emit_imm(tmp, off);
+    println("  add r%d, r5, r%d", tmp, tmp);
+    println("  sw r%d, 0(r%d)", src, tmp);
+  }
+}
 
 static void push_reg(int r) {
   println("  subi r13, r13, 4");
@@ -78,7 +127,7 @@ static void store(Type *ty) {
   if (ty->kind == TY_STRUCT || ty->kind == TY_UNION || ty->kind == TY_ARRAY) {
     int n = count();
     println("  add r3, r1, r0");
-    println("  li r4, %d", ty->size);
+    emit_imm(4, ty->size);
     println(".Lcopy%d:", n);
     println("  beq r4, r0, .Lcopy_end%d", n);
     println("  lbu r1, 0(r3)");
@@ -125,6 +174,24 @@ static void pop_pair(int lo, int hi) {
   pop_reg(hi);
 }
 
+/* libgcc's 64-bit helpers are ordinary hosted ABI callees.  They may save
+ * incoming argument registers in the caller-provided home area, just like a
+ * libc function.  The stage-1 compiler happened to survive without this
+ * reservation because its own generated callers did not exercise the helper
+ * path; stage-2's 64-bit hashmap code exposed the missing area as a SIGBUS.
+ */
+static void call_wide_helper(char *name) {
+  /* Values left on the expression stack (notably an assignment
+   * destination) can leave SP four or eight bytes off the ABI boundary.
+   * Align before reserving the helper's register home area. */
+  int pad = (16 - (eval_depth * 4) % 16) & 15;
+  if (pad)
+    println("  subi r13, r13, %d", pad);
+  println("  subi r13, r13, 32");
+  println("  jal %s", name);
+  println("  addi r13, r13, %d", 32 + pad);
+}
+
 static void gen_wide_binary(Node *node) {
   gen_expr(node->lhs);
   push_pair();
@@ -154,22 +221,28 @@ static void gen_wide_binary(Node *node) {
     println("  or r1, r1, r2"); println("  li r2, 0"); return;
   case ND_LT:
   case ND_LE: {
-    int n = count();
-    println("  seq r6, r4, r2");
-    println("  %s r7, r4, r2", node->lhs->ty->is_unsigned ? "sltu" : "slt");
-    println("  %s r1, r3, r1", node->lhs->ty->is_unsigned ? "sltu" : "slt");
-    println("  and r1, r1, r6");
-    println("  or r1, r1, r7");
-    if (node->kind == ND_LE) println("  xori r1, r1, 1");
+    /* Compare the high word first.  A low-word comparison is relevant only
+     * when the high words are equal; ORing the two comparisons directly
+     * makes (high_lhs > high_rhs, low_lhs < low_rhs) incorrectly true. */
+    const char *cmp = node->lhs->ty->is_unsigned ? "sltu" : "slt";
+    println("  %s r6, r4, r2", cmp);       /* high_lhs < high_rhs */
+    println("  seq r7, r4, r2");           /* high words equal */
+    println("  %s r8, r3, r1", cmp);       /* low_lhs < low_rhs */
+    println("  and r8, r8, r7");
+    println("  or r1, r6, r8");
+    if (node->kind == ND_LE) {
+      println("  seq r9, r3, r1");         /* low words equal */
+      println("  and r9, r9, r7");
+      println("  or r1, r1, r9");
+    }
     println("  li r2, 0");
-    (void)n;
     return;
   }
   case ND_MUL:
     println("  add r6, r1, r0"); println("  add r7, r2, r0");
     println("  add r1, r3, r0"); println("  add r2, r4, r0");
     println("  add r3, r6, r0"); println("  add r4, r7, r0");
-    println("  jal __muldi3");
+    call_wide_helper("__muldi3");
     return;
   case ND_DIV:
   case ND_MOD:
@@ -177,20 +250,20 @@ static void gen_wide_binary(Node *node) {
     println("  add r1, r3, r0"); println("  add r2, r4, r0");
     println("  add r3, r6, r0"); println("  add r4, r7, r0");
     if (node->ty->is_unsigned)
-      println("  jal %s", node->kind == ND_DIV ? "__udivdi3" : "__umoddi3");
+      call_wide_helper(node->kind == ND_DIV ? "__udivdi3" : "__umoddi3");
     else
-      println("  jal %s", node->kind == ND_DIV ? "__divdi3" : "__moddi3");
+      call_wide_helper(node->kind == ND_DIV ? "__divdi3" : "__moddi3");
     return;
   case ND_SHL:
     println("  add r6, r1, r0");
     println("  add r1, r3, r0"); println("  add r2, r4, r0");
     println("  add r3, r6, r0");
-    println("  jal __ashldi3"); return;
+    call_wide_helper("__ashldi3"); return;
   case ND_SHR:
     println("  add r6, r1, r0");
     println("  add r1, r3, r0"); println("  add r2, r4, r0");
     println("  add r3, r6, r0");
-    println("  jal %s", node->lhs->ty->is_unsigned ? "__lshrdi3" : "__ashrdi3");
+    call_wide_helper(node->lhs->ty->is_unsigned ? "__lshrdi3" : "__ashrdi3");
     return;
   default:
     unsupported(node, "64-bit operator is not implemented yet");
@@ -201,7 +274,7 @@ static void gen_addr(Node *node) {
   switch (node->kind) {
   case ND_VAR:
     if (node->var->is_local) {
-      println("  addi r1, r5, %d", node->var->offset);
+      add_offset(1, 5, node->var->offset, 2);
       return;
     }
     println("  lui r1, %%hi(%s)", node->var->name);
@@ -214,10 +287,10 @@ static void gen_addr(Node *node) {
   case ND_MEMBER:
     gen_addr(node->lhs);
     if (node->member->offset)
-      println("  addi r1, r1, %d", node->member->offset);
+      add_offset(1, 1, node->member->offset, 2);
     return;
   case ND_VLA_PTR:
-    println("  addi r1, r5, %d", node->var->offset); return;
+    add_offset(1, 5, node->var->offset, 2); return;
   default: break;
   }
   unsupported(node, "expression is not an lvalue");
@@ -228,6 +301,7 @@ static void cmp_zero(void) { println("  sne r1, r1, r0"); }
 static void gen_call(Node *node) {
   int nargs = 0;
   for (Node *a = node->args; a; a = a->next) nargs++;
+  bool indirect = !(node->lhs->kind == ND_VAR && node->lhs->var->is_function);
   int nwords = 0;
   for (Node *a = node->args; a; a = a->next)
     nwords += arg_words(a->ty);
@@ -250,10 +324,17 @@ static void gen_call(Node *node) {
     }
   }
   int stackwords = nwords - regwords;
-  int call_pad = (16 - (stackwords * 4) % 16) & 15;
+  /* An indirect callee address is kept below outgoing stack arguments until
+     after the call.  Include that temporary word in alignment when needed. */
+  int tempwords = indirect && stackwords ? 1 : 0;
+  int call_pad = (16 - ((stackwords + tempwords) * 4) % 16) & 15;
   if (call_pad)
     println("  subi r13, r13, %d", call_pad);
   Node **args = calloc(nargs, sizeof(Node *));
+  if (indirect) {
+    gen_expr(node->lhs);
+    push_reg(1);
+  }
   int ai = 0;
   for (Node *a = node->args; a; a = a->next) args[ai++] = a;
   /* Evaluate right-to-left so that the first four values can be popped into
@@ -276,21 +357,34 @@ static void gen_call(Node *node) {
     } else break;
   }
   int extra = stackwords;
-  /* REM's GCC ABI does not reserve a caller home area for register-only
-     variadic calls.  The callee saves r1-r4 at old_sp+16..28, matching the
-     GCC-generated prologue. */
-  bool reserve_home = extra;
+  if (indirect) {
+    if (!extra) {
+      pop_reg(15);
+      eval_depth--;
+    } else {
+      /* Stack arguments are above the saved callee address. */
+      println("  lw r15, %d(r13)", extra * 4);
+    }
+  }
+  /* REM's hosted ABI gives every callee an outgoing register home area.
+     The musl/GCC prologue saves incoming r1-r4 at old-SP+16..28 even for
+     fixed-arity functions.  Omitting this area lets a callee overwrite its
+     caller's saved frame/link words; the corruption is especially visible
+     when a fixed-arity libc call is made from a helper function. */
+  bool reserve_home = true;
   if (reserve_home)
     println("  subi r13, r13, 32");
-  if (node->lhs->kind == ND_VAR && node->lhs->var->is_function)
+  if (!indirect)
     println("  jal %s", node->lhs->var->name);
-  else {
-    gen_expr(node->lhs);
-    println("  jalr r1");
-  }
+  else
+    println("  jalr r15");
   if (reserve_home) {
     println("  addi r13, r13, %d", 32 + extra * 4 + call_pad);
     eval_depth -= extra;
+    if (indirect && extra) {
+      println("  addi r13, r13, 4");
+      eval_depth--;
+    }
   } else if (call_pad)
     println("  addi r13, r13, %d", call_pad);
   free(args);
@@ -313,20 +407,27 @@ static void gen_expr(Node *node) {
         float f = (float)node->fval;
         uint32_t bits;
         memcpy(&bits, &f, sizeof(bits));
-        println("  li r1, %u", bits);
+        emit_imm(1, bits);
       } else {
         double d = (double)node->fval;
         uint64_t bits;
         memcpy(&bits, &d, sizeof(bits));
-        println("  li r1, %u", (uint32_t)bits);
-        println("  li r2, %u", (uint32_t)(bits >> 32));
+        emit_imm(1, (uint32_t)bits);
+        emit_imm(2, (uint32_t)(bits >> 32));
       }
       return;
     }
-    if (node->ty->size == 8) {
+    /* Integer literals used in 64-bit expressions can arrive here with a
+       narrower apparent type while still carrying a full-width value (for
+       example the FNV constants in hashmap.c).  Do not print such values
+       through the 32-bit immediate form: GAS quite correctly rejects the
+       resulting out-of-range literal, and a bootstrap compiler would emit
+       corrupt code.  Materialise both words whenever the value is outside
+       the signed 32-bit range. */
+    if (node->ty->size == 8 || node->val > INT32_MAX || node->val < INT32_MIN) {
       uint64_t v = (uint64_t)node->val;
-      println("  li r1, %u", (uint32_t)v);
-      println("  li r2, %u", (uint32_t)(v >> 32));
+      emit_imm(1, (uint32_t)v);
+      emit_imm(2, (uint32_t)(v >> 32));
     } else {
       println("  li r1, %ld", (long)node->val);
     }
@@ -358,7 +459,7 @@ static void gen_expr(Node *node) {
     gen_expr(node->lhs);
     if (node->ty->size == 8) {
       println("  sub r1, r0, r1");
-      println("  not r2, r0, r2");
+      println("  not r2, r2, r0");
       println("  addi r2, r2, 1");
       println("  seq r3, r1, r0");
       println("  sub r2, r2, r3");
@@ -366,8 +467,8 @@ static void gen_expr(Node *node) {
     return;
   case ND_BITNOT:
     gen_expr(node->lhs);
-    if (node->ty->size == 8) { println("  not r1, r0, r1"); println("  not r2, r0, r2"); }
-    else println("  not r1, r0, r1");
+    if (node->ty->size == 8) { println("  not r1, r1, r0"); println("  not r2, r2, r0"); }
+    else println("  not r1, r1, r0");
     return;
   case ND_NOT: gen_expr(node->lhs); cmp_zero(); println("  xori r1, r1, 1"); return;
   case ND_LOGAND: {
@@ -401,7 +502,7 @@ static void gen_expr(Node *node) {
       unsupported(node, "va_start after stack-passed named parameter is not implemented yet");
     /* The register save area starts at old-SP+16, which is above this
        function's frame. */
-    println("  addi r1, r5, %d", current_fn->stack_size + 16 + (arg_index + 1) * 4);
+    add_offset(1, 5, current_fn->stack_size + 16 + (arg_index + 1) * 4, 2);
     store(pointer_to(ty_char));
     return;
   }
@@ -534,9 +635,15 @@ static void assign_lvar_offsets(Obj *prog) {
     if (!fn->is_function) continue;
     /* Variadic functions reserve 16..28 for the canonical incoming r1-r4
        save area.  Their named parameter homes therefore begin at 32. */
-    int off = 16;
+    /* Each call reserves a 32-byte register home area below the caller's
+     * frame.  The callee writes incoming r1-r4 at caller-SP+16..28, so a
+     * caller's own locals and parameter homes must begin above that area.
+     * Keeping the first user slot at +48 prevents a four-argument call from
+     * overwriting the caller's locals (stage-3 chibicc exposed this through
+     * fwrite during preprocessing). */
+    int off = 48;
     if (fn->va_area)
-      off = 32;
+      off = 64;
     int nparams = 0;
     for (Obj *v = fn->params; v; v = v->next) {
       if ((v->ty->kind == TY_STRUCT || v->ty->kind == TY_UNION || v->ty->size > 4) &&
@@ -582,7 +689,7 @@ static void emit_data(Obj *prog) {
     if (v->is_function || !v->is_definition) continue;
     println("  %s %s", v->is_static ? ".local" : ".global", v->name);
     println("  .type %s, @object", v->name);
-    println("  .align %d", v->align > 0 ? __builtin_ctz(v->align) : 0);
+    println("  .align %d", v->align > 0 ? rem_ctz(v->align) : 0);
     println("%s:", v->name);
     if (!v->init_data) { println("  .zero %d", v->ty->size); continue; }
     /* Global pointer initializers are recorded as relocations by the
@@ -616,7 +723,8 @@ static void emit_text(Obj *prog) {
     println("  .align 2");
     println("  .type %s, @function", fn->name); println("%s:", fn->name);
     current_fn = fn;
-    println("  subi r13, r13, %d", fn->stack_size);
+    if (fits_imm12(fn->stack_size)) println("  subi r13, r13, %d", fn->stack_size);
+    else { emit_imm(15, fn->stack_size); println("  sub r13, r13, r15"); }
     println("  sw r5, 0(r13)"); println("  sw r14, 4(r13)"); println("  addi r5, r13, 0");
     if (fn->va_area) {
       /* The incoming register save area belongs above the active frame.
@@ -625,12 +733,13 @@ static void emit_text(Obj *prog) {
          matches GCC and prevents vfprintf (and other callees) from
          overwriting the variadic arguments before va_arg consumes them. */
       int save_base = fn->stack_size + 16;
-      println("  sw r1, %d(r5)", save_base);
-      println("  sw r2, %d(r5)", save_base + 4);
-      println("  sw r3, %d(r5)", save_base + 8);
-      println("  sw r4, %d(r5)", save_base + 12);
+      store_fp(1, save_base);
+      store_fp(2, save_base + 4);
+      store_fp(3, save_base + 8);
+      store_fp(4, save_base + 12);
     }
     int argreg = 1;
+    int stack_word = 0;
     for (Obj *v = fn->params; v; v = v->next) {
       if (v->ty->size > 4) {
         if (argreg <= 3) {
@@ -638,23 +747,30 @@ static void emit_text(Obj *prog) {
           println("  sw r%d, %d(r5)", argreg + 1, v->offset + 4);
           argreg += 2;
         } else {
-          println("  lw r1, %d(r5)", fn->stack_size + v->offset);
-          println("  sw r1, %d(r5)", v->offset);
-          println("  lw r1, %d(r5)", fn->stack_size + v->offset + 4);
-          println("  sw r1, %d(r5)", v->offset + 4);
+          /* Incoming stack arguments are above the caller's 32-byte
+           * register home area.  v->offset is the callee's local home,
+           * not the incoming stack slot. */
+          load_fp(1, fn->stack_size + 32 + stack_word * 4);
+          store_fp(1, v->offset);
+          load_fp(1, fn->stack_size + 32 + (stack_word + 1) * 4);
+          store_fp(1, v->offset + 4);
+          stack_word += 2;
         }
       } else if (argreg <= 4) {
         println("  sw r%d, %d(r5)", argreg++, v->offset);
       } else {
-        println("  lw r1, %d(r5)", fn->stack_size + v->offset);
-        println("  sw r1, %d(r5)", v->offset);
+        load_fp(1, fn->stack_size + 32 + stack_word * 4);
+        store_fp(1, v->offset);
+        stack_word++;
       }
     }
     gen_stmt(fn->body);
     if (!strcmp(fn->name, "main")) println("  li r1, 0");
     println(".Lreturn.%s:", fn->name);
     println("  lw r14, 4(r13)"); println("  lw r5, 0(r13)");
-    println("  addi r13, r13, %d", fn->stack_size); println("  jr r14");
+    if (fits_imm12(fn->stack_size)) println("  addi r13, r13, %d", fn->stack_size);
+    else { emit_imm(15, fn->stack_size); println("  add r13, r13, r15"); }
+    println("  jr r14");
   }
 }
 

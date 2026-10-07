@@ -532,6 +532,8 @@ static Token *append_tokens(Token *tok1, Token *tok2) {
 
 static void cc1(void) {
   Token *tok = NULL;
+  bool trace = getenv("CHIBICC_TRACE") != NULL;
+  if (trace) fprintf(stderr, "TRACE cc1 start %s\n", base_file);
 
   // Process -include option
   for (int i = 0; i < opt_include.len; i++) {
@@ -552,8 +554,10 @@ static void cc1(void) {
 
   // Tokenize and parse.
   Token *tok2 = must_tokenize_file(base_file);
+  if (trace) fprintf(stderr, "TRACE tokenize complete\n");
   tok = append_tokens(tok, tok2);
   tok = preprocess(tok);
+  if (trace) fprintf(stderr, "TRACE preprocess complete\n");
 
   // If -M or -MD are given, print file dependencies.
   if (opt_M || opt_MD) {
@@ -569,6 +573,7 @@ static void cc1(void) {
   }
 
   Obj *prog = parse(tok);
+  if (trace) fprintf(stderr, "TRACE parse complete\n");
 
   // Open a temporary output buffer.
   char *buf;
@@ -577,12 +582,14 @@ static void cc1(void) {
 
   // Traverse the AST to emit assembly.
   codegen(prog, output_buf);
+  if (trace) fprintf(stderr, "TRACE codegen complete\n");
   fclose(output_buf);
 
   // Write the asembly text to a file.
   FILE *out = open_file(output_file);
   fwrite(buf, buflen, 1, out);
   fclose(out);
+  if (trace) fprintf(stderr, "TRACE output complete\n");
 }
 
 static void assemble(char *input, char *output) {

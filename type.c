@@ -16,7 +16,11 @@ Type *ty_ulong = &(Type){TY_LONG, 4, 4, true};
 Type *ty_ullong = &(Type){TY_LLONG, 8, 4, true};
 
 Type *ty_float = &(Type){TY_FLOAT, 4, 4};
-Type *ty_double = &(Type){TY_DOUBLE, 8, 8};
+/* REM32 follows the target C ABI here: an 8-byte double has 4-byte
+ * alignment.  Keeping this at 8 makes self-hosted chibicc compute different
+ * layouts from GCC (for example Token becomes 72 instead of 68 bytes),
+ * corrupting copies of compiler-internal structs. */
+Type *ty_double = &(Type){TY_DOUBLE, 8, 4};
 Type *ty_ldouble = &(Type){TY_LDOUBLE, 16, 16};
 
 static Type *new_type(TypeKind kind, int size, int align) {
@@ -72,6 +76,8 @@ bool is_compatible(Type *t1, Type *t2) {
     if (!is_compatible(t1->return_ty, t2->return_ty))
       return false;
     if (t1->is_variadic != t2->is_variadic)
+      return false;
+    if (t1->has_prototype != t2->has_prototype)
       return false;
 
     Type *p1 = t1->params;
