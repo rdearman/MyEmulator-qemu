@@ -42,6 +42,19 @@ or QEMU source change has been made for this task.
 | NU-20 | Scalar conversion to `_Bool` does not normalize: `bool-normalization.c` | The inherited REM `ND_CAST` has no `_Bool` case. Storing a pointer or integer in a one-byte Boolean retains its low byte rather than `(value != 0)`. A nonzero value with a zero low byte becomes false. Corrected lowering uses the complete scalar truth test, including wide and floating values. Pristine upstream and system GCC reducers return 0. Native request 024 proves the inherited compiler's reducer returns 1 and the repaired integer-stage compiler's reducer returns 0. |
 | NU-21 | REM driver discards linker options: `driver-library-search.c`, with `driver-library-provider.c` | The REM branch of `run_linker` ignores the parsed `ld_extra_args`, including `-L`. The upstream x86-64 driver builds and runs this library-search probe successfully. The REM branch now forwards those arguments and accepts an explicit private libc archive through `CHIBICC_REM_LIBC`; native driver verification is pending. |
 | NU-22 | Installed soft-float runtime uses non-IEEE encoding: `soft-float-encoding.c` | Native request 037 converts integer-derived 1.5 to raw bits `00000000800007fe`, not IEEE binary64 `3ff8000000000000`, and returns 1. Pristine upstream chibicc on x86-64 and system GCC produce the expected bits and return 0. This is a REM runtime/ABI artifact defect, not an upstream chibicc defect. Source-built IEEE helpers are staged; native verification is pending. |
+| NU-23 | ILP32 nondecimal integer literal width: `hex-literal-width.c`; runtime consequence: `printf-signed-width.c` | An unsuffixed hexadecimal value exceeding 32 bits selected 32-bit `long`; `L` and signed `LL` nondecimal candidate selection also ignored target widths/range. Native request 057 returns 1; the identical reducer passes GCC and pristine upstream chibicc on supported x86-64. This is a REM ILP32 frontend/ABI portability defect, not an independently reproduced upstream defect. Request 059's corrected compiler returns 0 for the same native reducer; runtime and self-rebuild acceptance are still pending. |
+
+NU-23 blocked the complete compiler self-rebuild after all audited libc
+members had been source-built. `INTMAX_MAX=0x7fffffffffffffff` acquired
+32-bit signed type and became -1. Musl `vfprintf` consequently compared
+an unsigned 64-bit value against UINT64_MAX and printed negative decimal
+integers as their unsigned representation: -36 became
+18446744073709551580 in request 056. The compiler uses these signed
+formatters to emit negative assembly offsets; its self-build then failed
+with assembler "bignum invalid" diagnostics. Fixing the literal candidate
+types, then recompiling the runtime, addresses the source cause rather
+than suppressing assembler errors or changing formatting output.
+No new architecture-independent upstream report is warranted.
 
 NU-22 explains why request 030's integer-derived arithmetic checks passed
 while request 033's literal arithmetic failed: the old helpers were internally
