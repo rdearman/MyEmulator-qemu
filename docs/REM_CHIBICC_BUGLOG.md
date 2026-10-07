@@ -43,6 +43,8 @@ or QEMU source change has been made for this task.
 | NU-21 | REM driver discards linker options: `driver-library-search.c`, with `driver-library-provider.c` | The REM branch of `run_linker` ignores the parsed `ld_extra_args`, including `-L`. The upstream x86-64 driver builds and runs this library-search probe successfully. The REM branch now forwards those arguments and accepts an explicit private libc archive through `CHIBICC_REM_LIBC`; native driver verification is pending. |
 | NU-22 | Installed soft-float runtime uses non-IEEE encoding: `soft-float-encoding.c` | Native request 037 converts integer-derived 1.5 to raw bits `00000000800007fe`, not IEEE binary64 `3ff8000000000000`, and returns 1. Pristine upstream chibicc on x86-64 and system GCC produce the expected bits and return 0. This is a REM runtime/ABI artifact defect, not an upstream chibicc defect. Source-built IEEE helpers are staged; native verification is pending. |
 | NU-23 | ILP32 nondecimal integer literal width: `hex-literal-width.c`; runtime consequence: `printf-signed-width.c` | An unsuffixed hexadecimal value exceeding 32 bits selected 32-bit `long`; `L` and signed `LL` nondecimal candidate selection also ignored target widths/range. Native request 057 returns 1; the identical reducer passes GCC and pristine upstream chibicc on supported x86-64. This is a REM ILP32 frontend/ABI portability defect, not an independently reproduced upstream defect. Request 059's corrected compiler returns 0 for the same native reducer; runtime and self-rebuild acceptance are still pending. |
+| NU-24 | ILP32 pointer formatting: `printf-hex-width.c` | The staged musl formatter must widen `(uintptr_t)arg.p` into `arg.i` before its `%p` integer path; the pointer and uintmax_t union members have different widths on REM. This is REM runtime portability work, separate from the confirmed upstream brace-string parser defect corrupting the hexadecimal digit table. Source fix and native verification are in progress. |
+| NU-25 | Bitfield loads/stores discard field layout: `bitfield-neighbours.c` | REM loads the complete storage unit without extracting a field and replaces that entire unit on assignment, destroying neighbours. The reducer passes GCC and pristine upstream x86-64. This directly blocks curl's `BIT` connection/TLS state in `lib/urldata.h`; the staged backend extracts/sign-extends fields and merges stores into their existing storage unit. Native verification is pending. |
 
 NU-23 blocked the complete compiler self-rebuild after all audited libc
 members had been source-built. `INTMAX_MAX=0x7fffffffffffffff` acquired
@@ -55,6 +57,45 @@ with assembler "bignum invalid" diagnostics. Fixing the literal candidate
 types, then recompiling the runtime, addresses the source cause rather
 than suppressing assembler errors or changing formatting output.
 No new architecture-independent upstream report is warranted.
+
+Request 059 subsequently rebuilt all audited libc members, passed the signed
+formatter reducer, and successfully rebuilt the compiler's ten translation
+units using that repaired native compiler/runtime. The self-built compiler
+also passes the hexadecimal-width reducer. This is an incremental native
+bootstrap result, not yet complete userland/package acceptance.
+
+### Actual frame alignment and legacy libc callers
+
+The existing `local-alignment.c` and `assignment-call-alignment.c` reducers
+still failed in requests 060/063: aligning offsets relative to r5 was not
+enough. Request 064 emits the expected local offset 64 but observes address
+alignment 12 modulo 16. The legacy startup/runtime can call with only word
+alignment; a constant multiple-of-16 frame preserves that misalignment.
+This extends the established REM NU-18/NU-15 findings, not an upstream issue.
+
+The staged backend now realigns the actual frame to at least 16 bytes or
+the maximum local alignment. It preserves the original incoming SP in the
+unused saved-frame slot at offset 28. Stack arguments and variadic homes
+remain relative to that incoming SP; the epilogue restores it exactly.
+Allocation and temporary storage occur before realignment, all preserved
+registers remain saved, and no incoming argument register is scratch.
+Request 065 passes local alignment, assignment-call alignment, wide varargs,
+stack-named varargs, a wide argument split at r4, and large-frame varargs.
+The repaired generator's complete self-rebuild acceptance is pending.
+
+The rebuilt runtime also exposes an ILP32 `%p` support gap: its formatter
+reads the 64-bit integer union member without first converting the 32-bit
+pointer. The source adds the explicit `(uintptr_t)` conversion before the
+existing hexadecimal formatting. `printf-hex-width.c` retains an ordinary
+runtime reducer; native verification is pending. The separately confirmed
+brace-enclosed string initializer defect corrupting its digit table is
+documented in the existing upstream report, not classified as REM-specific.
+
+Curl's Boolean bitfields also encounter a separately confirmed upstream
+signed-extraction defect. `bool-bitfield.c` passes GCC but returns 1 with
+pristine supported-target upstream chibicc. This is recorded in the existing
+upstream report; the REM extraction explicitly treats `_Bool` as unsigned
+so its value is 0 or 1, rather than sign-extending a one-bit true value.
 
 NU-22 explains why request 030's integer-derived arithmetic checks passed
 while request 033's literal arithmetic failed: the old helpers were internally

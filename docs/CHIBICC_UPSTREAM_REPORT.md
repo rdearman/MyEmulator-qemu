@@ -97,6 +97,41 @@ already tests floating magnitude bits rather than unordered comparison flags;
 native verification of NaN truth is included in `ieee-soft-float.c`.
 No upstream source tree was patched and no report was submitted.
 
+### A brace-enclosed string initializes only the first array element
+
+Minimal reducer: `toolchain/tests/native-userland/brace-string-initializer.c`.
+The ordinary declaration `static const char digits[4] = {"0123"};` must
+initialize four characters. Pristine upstream chibicc on supported x86-64
+compiles the reducer but returns 1; GCC returns 0. This was encountered
+because musl's `vfprintf` hexadecimal digit table uses precisely this valid
+C initializer, so hexadecimal and pointer formatting cannot work correctly
+in the source-built runtime.
+
+The array parser treats the brace-enclosed string as a scalar initializer
+for the first character, instead of using its existing string initializer
+for the complete array. The staged source-kit repair routes a brace-enclosed
+string through that existing path when its element type matches the string
+type, preserving ordinary arrays of string pointers and accepting the
+optional trailing comma. Native repaired-runtime verification is pending.
+This is a genuinely architecture-independent upstream frontend defect,
+not a REM frame-pointer defect. No upstream contact or submission occurred.
+
+### A true `_Bool` bitfield is read as -1
+
+Minimal reducer: `toolchain/tests/native-userland/bool-bitfield.c`.
+Setting a Boolean bitfield to 1 and clearing its neighbour must preserve
+values 1 and 0. GCC returns 0; pristine upstream chibicc on supported x86-64
+returns 1. In contrast, `bitfield-neighbours.c`, containing ordinary unsigned
+and signed integer fields, passes both compilers.
+
+Upstream's member extraction selects arithmetic right shift because its
+`TY_BOOL` type does not carry the unsigned flag. A one-bit true value is
+therefore sign-extended to -1 instead of yielding the required Boolean 1.
+Curl's `BIT` state fields directly require correct Boolean bitfield support.
+The staged REM lowering selects logical extraction for `TY_BOOL`, separately
+from restoring the entirely missing REM bitfield load/merge lowering.
+Native repaired verification is pending. No upstream report was submitted.
+
 ## 1. Executive Summary
 
 REM is a 32-bit little-endian Linux architecture with an ILP32 C data model:
