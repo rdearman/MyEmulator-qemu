@@ -695,3 +695,21 @@ one-archive transfer procedure, original backup/log paths and rollback.
 Further related hardening may continue, but there is no native qualification
 blocker. Next agent should verify preserved release artifacts/checkpoints and
 only pursue an actual remaining release-validation gap; do not redo native builds.
+
+Final source/docs/evidence checkpoint:
+local `664948ab42bc5d59fd4bd0d44edb5446070829ae`;
+published `18e7cdc521d89ebb092a8dd7d1de8aba79df340c`,
+task-only branch `rem-fold-update-20261008-v2-checkpoint`, push PASS.
+The committed set was independently verified as exactly 11 intended task files.
+One trailing space in the kernel's `pcpu-alloc` serial line is deliberately
+retained as actual evidence; source/script/docs whitespace is otherwise clean.
+
+Requested final repeat from the exact immutable archive PASS/0: all seven
+install/reinstall/post-build rollback/safety groups. Durable log:
+`docs/REM_FOLD_V2_EVIDENCE_20261008/last-final-archive-install.log`.
+Audit proved existing tracked binary-diff fingerprint and unrelated Git status
+unchanged, and archive still exactly the published hash. Only intended evidence
+was added. No qualifications are still running; no native or packaging blocker.
+
+Single next action for Codex: verify the preserved archive SHA-256 and use the
+release document's literal-hash transfer/install block; do not restart builds.
