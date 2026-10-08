@@ -52,23 +52,66 @@ for fault in MYEMU_BAD_USER_FAULT "Kernel panic - synthetic fixture" "REM_QA_DON
     test ! -e "$work/rejected"
 done
 echo "PASS user fault, kernel panic and failed guest exit rejected"
-QUALIFICATION_LOG="$work/complete.log" OUT="$work/synthetic-only" \
+synthetic="$work/synthetic-only/rem-update-20261008-v2"
+candidate="$work/candidate/rem-update-20261008-v2"
+QUALIFICATION_LOG="$work/complete.log" OUT="$synthetic" \
     bash "$here/make-package.sh" > "$work/complete-build.log" 2>&1
-(cd "$work/synthetic-only" && sha256sum -c payload.sha256 > "$work/complete-checksums.log")
+(cd "$synthetic" && sha256sum -c payload.sha256 > "$work/complete-checksums.log")
 for marker in "${markers[@]}"; do
-    grep -Fqx "$marker" "$work/synthetic-only/MANIFEST.txt"
+    grep -Fqx "$marker" "$synthetic/MANIFEST.txt"
 done
 echo "PASS host-only synthetic marker acceptance and checksums (NOT REM execution)"
-QUALIFICATION_LOG= OUT="$work/candidate" \
+bash "$here/archive-package.sh" "$synthetic" "$work/SYNTHETIC-NOT-FOR-TRANSFER.tar.gz" \
+    > "$work/archive.log" 2>&1
+find "$synthetic" -exec touch -m -t 202610090101 {} +
+bash "$here/archive-package.sh" "$synthetic" "$work/SYNTHETIC-NOT-FOR-TRANSFER-second.tar.gz" \
+    > "$work/archive-second.log" 2>&1
+cmp "$work/SYNTHETIC-NOT-FOR-TRANSFER.tar.gz" "$work/SYNTHETIC-NOT-FOR-TRANSFER-second.tar.gz"
+echo "PASS normalized archive reproducibility across changed mtimes, extracted hashes and archive SHA-256 (HOST-ONLY)"
+for file in chibicc-update-seed vmlinux; do
+    mismatch="$work/mismatched-$file/rem-update-20261008-v2"
+    mkdir -p "${mismatch%/*}"
+    cp -a "$synthetic" "$mismatch"
+    printf 'deliberately mismatched host-only fixture\n' > "$mismatch/payload/$file"
+    (cd "$mismatch" &&
+        { grep -Fv "  payload/$file" payload.sha256; sha256sum "payload/$file"; } > new.sha256 &&
+        mv new.sha256 payload.sha256)
+    if bash "$here/archive-package.sh" "$mismatch" "$work/rejected.tar.gz" \
+        > "$work/mismatched.log" 2>&1; then
+        echo "FAIL mismatched tested binary accepted: $file" >&2
+        exit 1
+    fi
+    grep -Fqx "release input differs from REM-tested binary: $file" "$work/mismatched.log"
+    test ! -e "$work/rejected.tar.gz"
+done
+echo "PASS mismatched seed and kernel rejected despite resealed file checksums"
+printf 'uncovered fixture\n' > "$synthetic/uncovered.txt"
+if bash "$here/archive-package.sh" "$synthetic" "$work/rejected.tar.gz" \
+    > "$work/uncovered.log" 2>&1; then
+    echo "FAIL unchecksummed package file accepted" >&2
+    exit 1
+fi
+grep -Fqx "package file inventory differs from checksummed manifest" "$work/uncovered.log"
+test ! -e "$work/rejected.tar.gz"
+echo "PASS complete checksum inventory enforced"
+QUALIFICATION_LOG= OUT="$candidate" \
     bash "$here/make-package.sh" > "$work/candidate-build.log" 2>&1
 grep -Fqx "Full REM execution qualification: PENDING; candidate, NOT ready for transfer." \
-    "$work/candidate/MANIFEST.txt"
-(cd "$work/candidate" && sha256sum -c payload.sha256 > "$work/candidate-checksums.log")
-if QUALIFICATION_LOG= OUT="$work/candidate" \
+    "$candidate/MANIFEST.txt"
+(cd "$candidate" && sha256sum -c payload.sha256 > "$work/candidate-checksums.log")
+if bash "$here/archive-package.sh" "$candidate" "$work/rejected.tar.gz" \
+    > "$work/pending-archive.log" 2>&1; then
+    echo "FAIL pending candidate archived for release" >&2
+    exit 1
+fi
+grep -Fqx "package is not fully REM-qualified; no release archive created" "$work/pending-archive.log"
+test ! -e "$work/rejected.tar.gz"
+echo "PASS pending candidate cannot produce a release archive"
+if QUALIFICATION_LOG= OUT="$candidate" \
     bash "$here/make-package.sh" > "$work/overwrite.log" 2>&1; then
     echo "FAIL existing package output overwritten" >&2
     exit 1
 fi
 grep -Fq "output already exists and is not an empty directory:" "$work/overwrite.log"
-(cd "$work/candidate" && sha256sum -c payload.sha256 > "$work/preserved-checksums.log")
+(cd "$candidate" && sha256sum -c payload.sha256 > "$work/preserved-checksums.log")
 echo "PASS pending candidate labeled and nonempty package output preserved"

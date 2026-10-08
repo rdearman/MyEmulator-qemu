@@ -8,9 +8,9 @@ Termux needs the e2fsprogs/debugfs already used for the first update.
 No patch, awk, Python, native objdump, resize or formatting is required.
 
 From Termux, after checking the archive SHA-256 against the adjacent manifest:
-  cd ~/rem
-  tar xzf REM-FOLD-update-20261008-v2.tar.gz
-  sh rem-update-20261008-v2/install.sh install
+  cd ~/rem &&
+  tar xzf REM-FOLD-update-20261008-v2.tar.gz &&
+  sh rem-update-20261008-v2/install.sh install &&
   sh rem-update-20261008-v2/install.sh verify
 
 The installer preflights BOTH compiler files before changing the image.
@@ -61,3 +61,13 @@ Set QUALIFICATION_LOG to the completed full REM serial log for the final release
 all seed/stage, compiler, Samurai, full verification and guest exit markers are
 required, and fault/failed-exit logs are rejected. Without it the manifest clearly
 labels the output as an unqualified candidate, not ready for transfer.
+After actual REM qualification and final installer regression, create the release:
+  bash android/fold-update-20261008/archive-package.sh PACKAGE_DIRECTORY \
+    /tmp/REM-FOLD-update-20261008-v2.tar.gz
+This refuses pending packages, changed tested seed/kernel binaries and existing
+outputs. Two normalized archives must be byte-identical; extracted payload hashes
+and the final archive SHA-256 are verified. Adjacent .sha256 and .manifest.txt
+files contain the transfer checksum, byte size and qualification report.
+The final delivery must provide the literal archive SHA-256 in a ready-to-paste
+verification/install block; a single archive download is sufficient. Do not use
+an old archive hash, an unqualified candidate, or a synthetic host-test archive.

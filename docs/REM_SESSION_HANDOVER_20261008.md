@@ -489,3 +489,66 @@ installer regression, check all payload hashes, archive only
 `rem-update-20261008-v2/`, and write the adjacent release report with byte size
 and archive SHA-256. Do not overwrite an existing archive/evidence path blindly.
 The current manifested scratch candidate is still PENDING, not for transfer.
+
+Release-gate/runtime-rollback checkpoint was preserved:
+local `c919b12f2592e1432587bb5ab5857d158863993d`;
+remote `b16427fb4d5c3aa0dd967523276c61bb33cbe300`
+on `rem-fold-update-20261008-v2-checkpoint`, push PASS.
+The original QEMU PID 1790915 remained active at elapsed 01:06:38, one CPU
+fully utilized, serial still at compiler qualification with no completion/fault
+marker. Independent host validation is complete; wait economically for the
+existing execution rather than spending credits repeating qualified work.
+
+### Reproducible release tooling and exact takeover
+
+Additional verified task source:
+`android/fold-update-20261008/archive-package.sh` (21 parent task paths total).
+Archive creation now checks the complete checksum inventory, rejects pending
+manifests, unexpected files, changed REM-tested seed/kernel and existing output
+paths. Order/time/ownership/permissions/gzip headers are normalized. Two archives
+must match byte-for-byte; extracted payload and final archive checksums are
+verified; adjacent `.sha256` and `.manifest.txt` record hash and byte size.
+
+Expanded HOST-ONLY package tests PASS/0: all earlier marker/fault cases plus
+reproducibility after changing source mtimes, extracted/hash verification,
+mismatched seed/kernel despite resealed checksums, uncovered-file rejection,
+pending-package release rejection and output preservation. Synthetic proof is
+NOT native execution; all synthetic archives were removed. No final release
+archive/hash has yet been produced.
+
+Last observed QEMU state: PID 1790915, elapsed 01:17:00, compiler phase entered;
+no completion/fault markers. New user rule: check at most once per ten minutes,
+except an exit/completion/failure event. No restart or qualified rebuild.
+
+Codex's first action, on the desktop, not on Rick's phone:
+
+```sh
+cd /home/rick/Development/Active/MyEmulator-qemu
+git status --short
+ps -p 1790915 -o pid,ppid,stat,lstart,etime,time,args
+tail -n 35 /tmp/remqa/foldv2.serial
+grep -E 'COMPILER_REQUIRED_|SAMURAI_.*OK|REM_UPDATE_VERIFY_OK|REM_QA_DONE|MYEMU_BAD_USER_FAULT|Kernel panic|FAIL compiler|FAIL Samurai' /tmp/remqa/foldv2.serial
+```
+
+If unfinished, leave it alone and honor the ten-minute interval. If it failed,
+after QEMU stops obtain the compiler/Samurai logs from the guest image and fix
+only the first actual failure. If all actual success markers are present, use
+the fresh release recipe above with the actual serial log; do not reuse a
+PENDING or synthetic tree. Against the exact fresh release, run:
+
+```sh
+bash android/fold-update-20261008/test-install.sh \
+  /tmp/remqa/foldsim/rootfs.ext4 "$release_parent/rem-update-20261008-v2"
+TMPDIR=/tmp sh "$release_parent/rem-update-20261008-v2/install.sh" verify \
+  /tmp/remqa/abi-followup/fold-case/rootfs.ext4
+bash android/fold-update-20261008/archive-package.sh \
+  "$release_parent/rem-update-20261008-v2" \
+  /tmp/REM-FOLD-update-20261008-v2.tar.gz
+```
+
+Record actual markers/exit state, final size/hash and exact transfer/install
+commands in both docs. Provide one archive download and a literal checksum
+verification/install block, not a guessed transfer URL, another rootfs or phone
+diagnostics. Preserve the actual image `~/rem/rootfs.ext4`; stop Fold QEMU before
+Termux installation/rollback. Guest verification is one script invocation after
+normal boot, not manual editing.
