@@ -93,13 +93,39 @@ grep -Fqx "qualification manifest lacks expected execution marker: COMPILER_REQU
     "$work/incomplete-manifest.log"
 test ! -e "$work/rejected.tar.gz"
 echo "PASS resealed PASS manifest without compiler completion rejected"
+bad_mapping="$work/bad-mapping/rem-update-20261008-v2"
+mkdir -p "${bad_mapping%/*}"
+cp -a "$synthetic" "$bad_mapping"
+while IFS='|' read -r guest payload baseline expected patchable mode; do
+    if [ "$guest" = /bin/busybox ]; then
+        expected=0000000000000000000000000000000000000000000000000000000000000000
+    fi
+    printf '%s|%s|%s|%s|%s|%s\n' "$guest" "$payload" "$baseline" "$expected" "$patchable" "$mode"
+done < "$synthetic/files.list" > "$bad_mapping/files.list"
+(cd "$bad_mapping" &&
+    { grep -Fv "  files.list" payload.sha256; sha256sum files.list; } > new.sha256 &&
+    mv new.sha256 payload.sha256)
+if bash "$here/archive-package.sh" "$bad_mapping" "$work/rejected.tar.gz" \
+    > "$work/bad-mapping.log" 2>&1; then
+    echo "FAIL inconsistent guest payload mapping accepted" >&2
+    exit 1
+fi
+grep -Fqx "files.list SHA-256 mismatch for /bin/busybox" "$work/bad-mapping.log"
+test ! -e "$work/rejected.tar.gz"
+echo "PASS guest payload mapping hashes independently verified"
 for file in chibicc-update-seed vmlinux; do
     mismatch="$work/mismatched-$file/rem-update-20261008-v2"
     mkdir -p "${mismatch%/*}"
     cp -a "$synthetic" "$mismatch"
     printf 'deliberately mismatched host-only fixture\n' > "$mismatch/payload/$file"
+    changed_sha=$(sha256sum "$mismatch/payload/$file" | cut -d' ' -f1)
+    while IFS='|' read -r guest payload baseline expected patchable mode; do
+        if [ "$payload" = "$file" ]; then expected=$changed_sha; fi
+        printf '%s|%s|%s|%s|%s|%s\n' "$guest" "$payload" "$baseline" "$expected" "$patchable" "$mode"
+    done < "$synthetic/files.list" > "$mismatch/files.list"
     (cd "$mismatch" &&
-        { grep -Fv "  payload/$file" payload.sha256; sha256sum "payload/$file"; } > new.sha256 &&
+        { grep -Fv -e "  payload/$file" -e "  files.list" payload.sha256;
+          sha256sum "payload/$file" files.list; } > new.sha256 &&
         mv new.sha256 payload.sha256)
     if bash "$here/archive-package.sh" "$mismatch" "$work/rejected.tar.gz" \
         > "$work/mismatched.log" 2>&1; then
