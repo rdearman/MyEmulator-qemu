@@ -254,7 +254,7 @@ compiler-source writes. A host-generated compiler with the new backend and old
 parser rejects the small-return source with
 `REM aggregate return requires a hidden result parameter`.
 
-## Running qualification -- snapshot, not completion
+## Prior simulated-baseline qualification snapshot — later completed
 
 Launch command (already running; do not run it again):
 
@@ -412,7 +412,7 @@ in `chibicc-rem-native.patch` (line 3534 contains its required leading space).
 Compiler source and scoped checks excluding the patch were clean. Do not
 rewrite the source patch merely to suppress this metadata whitespace warning.
 
-## Scratch artifacts and unfinished delivery
+## Prior simulated-baseline scratch artifacts and delivery state
 
 Keep these; do not delete anything still needed by the running job:
 
@@ -461,7 +461,7 @@ for its original fixture: it passed before this checkpoint, but its fixture
 must be pinned to the old revision before any future rerun. No implementation
 change to those defaults was made during this handover.
 
-## Exact next actions
+## Historical next actions before the prior simulation finished
 
 1. **Inspect the already-running foldv2 job and its serial log.** Do not restart,
    kill it, or wait for Rick to supply phone diagnostics.
@@ -488,7 +488,7 @@ agent resumes. Do not resurrect the accidental external native-userland tree,
 discard Fold-era source changes, weaken the GCC interoperability tests, or
 label the old desktop-only delivery as real-Fold-qualified.
 
-## Authorized continuation after checkpoint
+## Historical authorization and observer context for the prior simulation
 
 The user subsequently authorized resuming this task through final qualification
 and packaging. The earlier implementation pause is superseded; do not restart
@@ -683,7 +683,7 @@ This remains host-only evidence; the running guest and qualified seed were not
 rebuilt or changed. Independent release validation and takeover documentation
 are complete; the remaining critical-path action is the existing event/result.
 
-## Latest authoritative snapshot -- native compiler PASS
+## Prior simulated-baseline compiler snapshot -- PASS
 
 At `2026-10-08T10:18:48+01:00`, requested single current-state check:
 QEMU PID **1790915**, parent timeout **1790913**, process state **Sl**,
@@ -741,7 +741,7 @@ confirmed on its GitHub publication branch. Unrelated remaining Git status:
 272 entries, consisting of 47 modified, one type change, 224 untracked.
 These are preserved, not cleaned or included in task commits.
 
-## Final actual qualification and release
+## Prior simulated-baseline qualification and release record -- rejected for actual Fold
 
 Original `foldv2` completed, harness exit 0 and authoritative guest
 `REM_QA_DONE|0`. Observer 646 captured the actual completion; both original QEMU/
