@@ -18,7 +18,9 @@ Only this one small archive is needed; do not transfer another rootfs/source tre
 `docs/REM_FOLD_V2_EVIDENCE_20261008/` contains the full normalized serial,
 compiler/Samurai logs, release-input verification and final-archive installer
 regression. Original run `foldv2` exited 0; guest result was `REM_QA_DONE|0`.
-QEMU PID 1790915 and timeout PID 1790913 exited normally through the test harness.
+The harness stopped QEMU PID 1790915 and timeout PID 1790913 after guest success.
+Their individual wait statuses were suppressed by the original harness; the
+guest result and actual markers, not a guessed QEMU exit code, prove success.
 
 Observed actual markers include all three seed/stage small-return checks,
 `COMPILER_REQUIRED_PORTING_TESTS_OK`, `COMPILER_REQUIRED_SELFREBUILD_OK`,
@@ -33,6 +35,11 @@ post-build reinstall; exact original compiler/source rollback; removal of
 newly built Samurai; local source/data preserved; compiler conflicts, unknown
 library/helper baselines, corruption, missing payload/kernel and wrong hashes
 rejected without image/kernel changes.
+
+The requested last independent test repeated the full install/reinstall/
+post-build rollback/safety suite from this exact archive and passed, exit 0.
+The existing tracked-diff fingerprint, unrelated Git status entries and release
+archive bytes were unchanged; only the intentional last-test evidence was added.
 
 The update uses the verified seed
 `6b28c165cb94b7411a63b7e74932845b11b8e30ea2bd6882b9c7bf1348a2ac44`
@@ -88,3 +95,10 @@ Rollback restores originals and their metadata, including the original compiler/
 Samurai or their original absence, even after post-build reinstall. Other guest
 data and local sources remain intact. Rollback returns the previous state,
 not a newly qualified compiler. The log/archived backup directory is retained.
+
+Source/evidence checkpoint: local
+`664948ab42bc5d59fd4bd0d44edb5446070829ae`,
+published `18e7cdc521d89ebb092a8dd7d1de8aba79df340c` on
+`rem-fold-update-20261008-v2-checkpoint`. Original main ancestry cannot be pushed
+because it contains unrelated oversized recovered files; it was not rewritten.
+The task-only branch preserves the verified source/docs without those ancestors.

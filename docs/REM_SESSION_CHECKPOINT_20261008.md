@@ -474,3 +474,19 @@ literal-hash Termux install block, single guest qualification command and rollba
 
 Further directly related release hardening may continue; do not redo the passed
 native qualification or rebuild the tested compiler/kernel without a new failure.
+
+Final source/evidence checkpoint local
+`664948ab42bc5d59fd4bd0d44edb5446070829ae`,
+task-only remote `18e7cdc521d89ebb092a8dd7d1de8aba79df340c`, push PASS.
+Committed file set independently verified: exactly the 11 intended source/
+documentation/evidence files, no unrelated files.
+Raw normalized serial preserves one kernel boot line's trailing space
+(`pcpu-alloc`, line 13); it is intentional evidence formatting, not source
+whitespace. Do not rewrite actual logs merely to silence that diff-check warning.
+
+Requested last exact-archive installer/rollback rerun PASS/0 (all seven groups).
+`last-final-archive-install.log` is durable. Audit confirmed no unexpected
+working-tree status changes, no change to existing tracked modifications
+(full binary diff fingerprint), and no change to the verified release archive.
+All native/package/install/rollback/transfer work is complete; no running QEMU
+qualification or outstanding native blocker remains.
