@@ -3,6 +3,13 @@
 Resume from here; do not redo completed items. Canonical repo only; scratch in /tmp.
 Never git clean/reset/restore; ~265 pre-existing dirty/untracked entries must be preserved.
 
+**CURRENT STATUS: V2 QUALIFICATION STILL RUNNING**
+
+**FINAL V2 PACKAGE: NOT YET READY FOR TRANSFER**
+
+The current continuation is in sections 11-14 and the handover document.
+Earlier v1 completion statements do not qualify the corrected v2 update.
+
 ## 1. Completed (verified)
 
 ### Aggregate ABI fix (chibicc) — DONE, both directions PASS in REM QEMU
@@ -322,3 +329,36 @@ Failing host regression scratch is now retained for diagnosis.
 At elapsed 54:54 QEMU PID 1790915 was still running; serial remained at compiler
 qualification, no completion or fault marker. Final v2 archive is still pending.
 Single next action: inspect that existing qualification, not a replacement run.
+
+## 13. Pushed release-gate checkpoint and ongoing execution
+
+Local `c919b12f2592e1432587bb5ab5857d158863993d` and safe publication
+`b16427fb4d5c3aa0dd967523276c61bb33cbe300` preserve all validated release-gate
+and runtime-rollback work. Publication push PASS; unrelated work untouched.
+At elapsed 01:06:38 the original QEMU PID 1790915 was still active, about one
+CPU fully utilized. Serial still showed compiler qualification entered and no
+completion/fault marker. No work was restarted; waiting is economical after
+the independent host validation and documentation completed.
+
+## 14. Reproducible archive and complete manifest validation
+
+New verified task source:
+`android/fold-update-20261008/archive-package.sh` (21 parent task paths total).
+It requires a checksummed PASS manifest and the exact REM-tested seed/kernel,
+rejects extra/unchecksummed/nonregular files and existing outputs, normalizes
+archive order/time/ownership/permissions and gzip headers, compares two archives,
+extracts and verifies payload hashes, then generates/verifies archive SHA-256
+and an adjacent manifest with byte size. Pending packages cannot be released.
+
+Expanded HOST-ONLY `test-package.sh` PASS/0:
+13 separate missing-marker cases; user fault/panic/nonzero guest result rejection;
+synthetic marker acceptance (NOT REM evidence); reproducibility despite changed
+input mtimes; extracted payload and archive hashes; mismatched seed/kernel even
+after resealing file checksums; complete inventory; pending release rejection;
+nonempty output preservation. Synthetic archives were disposable and removed.
+No final release archive or final transfer SHA-256 exists yet.
+
+Last qualification check: elapsed 01:17:00, PID 1790915 still active, compiler
+phase entered, no completion/fault marker. User now requires checks no more
+often than every ten minutes unless an exit/completion/failure event occurs.
+Do independent safe work between checks; do not restart the qualification.
