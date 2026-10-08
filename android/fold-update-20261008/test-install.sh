@@ -56,6 +56,70 @@ for runtime in bootstrap/native/chibicc-selfbuilt bootstrap/tools/native/samu; d
 done
 [ "$runtime_backups" -gt 0 ] ||
     { echo "fixture has no native runtime to exercise post-build rollback" >&2; exit 1; }
+reject_install() {
+    name=$1
+    rejected_package=$2
+    rejected_image=$3
+    message=$4
+    if REM_KERNEL=${5:-$work/vmlinux} sh "$rejected_package/install.sh" install "$rejected_image" \
+        > "$work/reject-$name.log" 2>&1; then
+        echo "FAIL invalid installation accepted: $name" >&2
+        exit 1
+    fi
+    grep -Fq "$message" "$work/reject-$name.log"
+    test ! -e "$work/update-20261008-v2-backup"
+}
+before_guards=$(sha256sum "$work/rootfs.ext4" "$work/vmlinux")
+cp -a "$package" "$work/bad-package"
+printf '\ncorrupted package fixture\n' >> "$work/bad-package/payload/parse.c"
+reject_install corruption "$work/bad-package" "$work/rootfs.ext4" "package payload checksum mismatch"
+cp "$package/payload/parse.c" "$work/bad-package/payload/parse.c"
+rm "$work/bad-package/payload/codegen.c"
+reject_install missing-payload "$work/bad-package" "$work/rootfs.ext4" "package payload checksum mismatch"
+cp "$package/payload/codegen.c" "$work/bad-package/payload/codegen.c"
+sed '1s/^[0-9a-f]\{64\}/0000000000000000000000000000000000000000000000000000000000000000/' \
+    "$package/payload.sha256" > "$work/bad-package/payload.sha256"
+reject_install wrong-hash "$work/bad-package" "$work/rootfs.ext4" "package payload checksum mismatch"
+reject_install missing-kernel "$package" "$work/rootfs.ext4" "kernel missing:" "$work/missing-vmlinux"
+printf 'not a 10 GiB image\n' > "$work/small.ext4"
+reject_install wrong-size "$package" "$work/small.ext4" "expected the 10 GiB"
+mkdir "$work/remvm"
+ln -s "$work/rootfs.ext4" "$work/remvm/rootfs.ext4"
+reject_install obsolete-image "$package" "$work/remvm/rootfs.ext4" "refusing obsolete remvm image"
+test "$before_guards" = "$(sha256sum "$work/rootfs.ext4" "$work/vmlinux")"
+echo "PASS corrupt/missing/wrong-hash payload, missing kernel, wrong size and obsolete image rejected without image/kernel changes"
+debugfs -R "dump /usr/lib/libc.a $work/original-libc.a" "$work/rootfs.ext4" >/dev/null 2>&1
+debugfs -R "dump $kit/bootstrap/rebuild-required-native.sh $work/original-rebuild.sh" "$work/rootfs.ext4" >/dev/null 2>&1
+test -f "$work/original-libc.a"
+test -f "$work/original-rebuild.sh"
+for conflict in missing-library modified-library modified-helper; do
+    case "$conflict" in
+        missing-library)
+            guest=/usr/lib/libc.a
+            original="$work/original-libc.a"
+            debugfs -w -R "rm $guest" "$work/rootfs.ext4" >/dev/null 2>&1
+            ;;
+        modified-library|modified-helper)
+            if [ "$conflict" = modified-library ]; then
+                guest=/usr/lib/libc.a
+                original="$work/original-libc.a"
+            else
+                guest=$kit/bootstrap/rebuild-required-native.sh
+                original="$work/original-rebuild.sh"
+            fi
+            printf 'Fold-local changes must not be overwritten\n' > "$work/local-conflict"
+            debugfs -w -R "rm $guest" "$work/rootfs.ext4" >/dev/null 2>&1
+            debugfs -w -R "write $work/local-conflict $guest" "$work/rootfs.ext4" >/dev/null 2>&1
+            ;;
+    esac
+    before_conflict=$(sha256sum "$work/rootfs.ext4" "$work/vmlinux")
+    reject_install "$conflict" "$package" "$work/rootfs.ext4" "unsupported or missing baseline for $guest"
+    test "$before_conflict" = "$(sha256sum "$work/rootfs.ext4" "$work/vmlinux")"
+    debugfs -w -R "rm $guest" "$work/rootfs.ext4" >/dev/null 2>&1
+    debugfs -w -R "write $original $guest" "$work/rootfs.ext4" >/dev/null 2>&1
+    debugfs -w -R "sif $guest mode 0100644" "$work/rootfs.ext4" >/dev/null 2>&1
+done
+echo "PASS missing/modified required library and local helper conflicts abort before any image/kernel mutation"
 if sh "$package/install.sh" verify "$work/rootfs.ext4" > "$work/before-verify.log" 2>&1; then
     echo "FAIL incomplete compiler sources reported VERIFY_OK" >&2
     exit 1
@@ -90,6 +154,8 @@ for runtime in bootstrap/native/chibicc-selfbuilt bootstrap/tools/native/samu; d
     debugfs -R "dump $kit/$runtime $work/rebuilt-$key" "$work/rootfs.ext4" >/dev/null 2>&1
     cmp "$work/rebuilt-runtime" "$work/rebuilt-$key"
 done
+sh "$package/install.sh" install "$work/rootfs.ext4" > "$work/postbuild-rerun.log" 2>&1
+grep -q '^VERIFY_OK$' "$work/postbuild-rerun.log"
 sh "$package/install.sh" rollback "$work/rootfs.ext4" > "$work/rollback.log" 2>&1
 dump parse.c "$work/restored-parse.c"
 dump codegen.c "$work/restored-codegen.c"
@@ -108,7 +174,7 @@ for runtime in bootstrap/native/chibicc-selfbuilt bootstrap/tools/native/samu; d
 done
 dump .rem-fold-update-user-data-regression.c "$work/user-source-restored.c"
 cmp "$work/local-user-source.c" "$work/user-source-restored.c"
-echo "PASS rollback restores $runtime_backups existing runtimes, removes newly built runtimes, preserves local source/data"
+echo "PASS post-build reinstall/rollback restores $runtime_backups original runtimes, removes newly built runtimes, preserves local source/data"
 sed 's/uint64_t mask = (1L << mem->bit_width) - 1;/uint64_t mask = 123;/' \
     "$work/local-parse.c" > "$work/conflict-parse.c"
 put "$work/conflict-parse.c" parse.c

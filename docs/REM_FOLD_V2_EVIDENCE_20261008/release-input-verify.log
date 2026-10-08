@@ -1,0 +1,52 @@
+== REM update 20261008 v2: verify on /tmp/remqa/abi-followup/fold-case/rootfs.ext4 (Thu  8 Oct 10:38:19 BST 2026) ==
+PASS /tmp/remqa/abi-followup/fold-case/vmlinux
+PASS /bin/busybox
+PASS /bin/rem-transfer-busybox
+PASS /bin/busybox-human-baseline
+PASS /etc/init.d/rcS
+PASS /usr/lib/libc.a
+PASS /usr/lib/crt1.o
+PASS /home/dev/rem-native-userland/bootstrap/musl/native/libc.a
+PASS /home/dev/rem-native-userland/bootstrap/chibicc/codegen.c
+NOTE compiler hunk already applied; keeping local changes
+NOTE compiler hunk already applied; keeping local changes
+NOTE compiler hunk already applied; keeping local changes
+PASS (merged local compiler changes) /home/dev/rem-native-userland/bootstrap/chibicc/parse.c
+PASS /home/dev/rem-native-userland/patches/chibicc-rem-native.patch
+PASS /home/dev/rem-native-userland/bootstrap/build-samurai-native.sh
+PASS /home/dev/rem-native-userland/bootstrap/rebuild-required-native.sh
+PASS /home/dev/rem-native-userland/bootstrap/native/chibicc-update-seed
+PASS /home/dev/rem-native-userland/tests/aggregate-small-return.c
+PASS /home/dev/rem-native-userland/tests/compiler-porting-native.sh
+PASS /home/dev/rem-update-20261008/verify.sh
+PASS /home/dev/rem-native-userland/packages/samurai/arg.h
+PASS /home/dev/rem-native-userland/packages/samurai/build.c
+PASS /home/dev/rem-native-userland/packages/samurai/build.h
+PASS /home/dev/rem-native-userland/packages/samurai/deps.c
+PASS /home/dev/rem-native-userland/packages/samurai/deps.h
+PASS /home/dev/rem-native-userland/packages/samurai/env.c
+PASS /home/dev/rem-native-userland/packages/samurai/env.h
+PASS /home/dev/rem-native-userland/packages/samurai/graph.c
+PASS /home/dev/rem-native-userland/packages/samurai/graph.h
+PASS /home/dev/rem-native-userland/packages/samurai/htab.c
+PASS /home/dev/rem-native-userland/packages/samurai/htab.h
+PASS /home/dev/rem-native-userland/packages/samurai/LICENSE
+PASS /home/dev/rem-native-userland/packages/samurai/log.c
+PASS /home/dev/rem-native-userland/packages/samurai/log.h
+PASS /home/dev/rem-native-userland/packages/samurai/os.h
+PASS /home/dev/rem-native-userland/packages/samurai/os-posix.c
+PASS /home/dev/rem-native-userland/packages/samurai/parse.c
+PASS /home/dev/rem-native-userland/packages/samurai/parse.h
+PASS /home/dev/rem-native-userland/packages/samurai/README.md
+PASS /home/dev/rem-native-userland/packages/samurai/samu.1
+PASS /home/dev/rem-native-userland/packages/samurai/samu.c
+PASS /home/dev/rem-native-userland/packages/samurai/scan.c
+PASS /home/dev/rem-native-userland/packages/samurai/scan.h
+PASS /home/dev/rem-native-userland/packages/samurai/tool.c
+PASS /home/dev/rem-native-userland/packages/samurai/tool.h
+PASS /home/dev/rem-native-userland/packages/samurai/tree.c
+PASS /home/dev/rem-native-userland/packages/samurai/tree.h
+PASS /home/dev/rem-native-userland/packages/samurai/util.c
+PASS /home/dev/rem-native-userland/packages/samurai/util.h
+PASS filesystem check
+VERIFY_OK

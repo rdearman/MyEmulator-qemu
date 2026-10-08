@@ -1,0 +1,120 @@
+chibicc [ -o <path> ] <file>
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: /home/dev/rem-native-userland/native-tests/porting/aggregate-small-return has a LOAD segment with RWX permissions
+PASS aggregate-small-return (seed)
+CC codegen.c
+CC hashmap.c
+CC main.c
+CC parse.c
+CC preprocess.c
+CC strings.c
+CC tokenize.c
+CC type.c
+CC unicode.c
+CC rem_float.c
+/usr/bin/ld: warning: _clzsi2.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: error in /usr/lib/libgcc.a(_divdi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_moddi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_udivdi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_umoddi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: warning: chibicc-native has a LOAD segment with RWX permissions
+-rwxr-xr-x    1    796400 Jan  1 00:00 chibicc-native
+To try it:   ./chibicc-native -g hello.c -o hello   (uses ./include next to the binary)
+To install:  cp ~/.local/bin/chibicc ~/.local/bin/chibicc.orig; cp chibicc-native ~/.local/bin/chibicc
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: /home/dev/rem-native-userland/native-tests/porting/aggregate-small-return has a LOAD segment with RWX permissions
+PASS aggregate-small-return (stage1)
+CC codegen.c
+CC hashmap.c
+CC main.c
+CC parse.c
+CC preprocess.c
+CC strings.c
+CC tokenize.c
+CC type.c
+CC unicode.c
+CC rem_float.c
+/usr/bin/ld: warning: _clzsi2.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: error in /usr/lib/libgcc.a(_divdi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_moddi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_udivdi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_umoddi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: warning: chibicc-native has a LOAD segment with RWX permissions
+-rwxr-xr-x    1    796400 Jan  1 00:00 chibicc-native
+To try it:   ./chibicc-native -g hello.c -o hello   (uses ./include next to the binary)
+To install:  cp ~/.local/bin/chibicc ~/.local/bin/chibicc.orig; cp chibicc-native ~/.local/bin/chibicc
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: /home/dev/rem-native-userland/native-tests/porting/aggregate-small-return has a LOAD segment with RWX permissions
+PASS aggregate-small-return (stage2)
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: native-tests/porting/aggregate-small-return has a LOAD segment with RWX permissions
+PASS aggregate-small-return
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: native-tests/porting/aggregate-abi has a LOAD segment with RWX permissions
+PASS aggregate-abi
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: native-tests/porting/alloca-frame has a LOAD segment with RWX permissions
+PASS alloca-frame
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: native-tests/porting/vla-frame has a LOAD segment with RWX permissions
+PASS vla-frame
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: native-tests/porting/long-conditional-branch has a LOAD segment with RWX permissions
+PASS long-conditional-branch
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: native-tests/porting/designator-unnamed-bitfield has a LOAD segment with RWX permissions
+PASS designator-unnamed-bitfield
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: native-tests/porting/preprocessor-signed-comparison has a LOAD segment with RWX permissions
+PASS preprocessor-signed-comparison
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: native-tests/porting/line-in-conditional has a LOAD segment with RWX permissions
+PASS line-in-conditional
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: native-tests/porting/parenthesized-function-parameter has a LOAD segment with RWX permissions
+PASS parenthesized-function-parameter
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: native-tests/porting/nested-designator-continuation has a LOAD segment with RWX permissions
+PASS nested-designator-continuation
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: native-tests/porting/static-assert has a LOAD segment with RWX permissions
+PASS static-assert
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: native-tests/porting/include-next has a LOAD segment with RWX permissions
+PASS include-next
+PASS static-assert-fail rejection
+PASS negative array bound rejection
+PASS unsupported atomic capability rejection
+/usr/bin/ld: warning: _clzsi2.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: error in /usr/lib/libgcc.a(_udivdi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_umoddi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: warning: native-tests/porting/hashmap-tombstone has a LOAD segment with RWX permissions
+PASS hashmap-tombstone
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: native-tests/porting/chibicc-caller has a LOAD segment with RWX permissions
+PASS chibicc caller / GCC aggregate callee
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: native-tests/porting/gcc-caller has a LOAD segment with RWX permissions
+PASS GCC caller / chibicc aggregate callee
+COMPILER_REQUIRED_PORTING_TESTS_OK
+COMPILER_REQUIRED_SELFREBUILD_OK

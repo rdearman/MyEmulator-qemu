@@ -165,11 +165,36 @@ prepare_compiler_sources() {
     done < "$HERE/files.list"
 }
 
+supported_previous_file() {
+    case "$1:$2" in
+        chibicc-rem-native.patch:ad77b8b945638eb6287a582165725ef5655b12fa606052f5567468ea26561c04|\
+        rebuild-required-native.sh:9e5386300f930ccb42b949bd10838d94975c5e09c38325b42aa8037a4112542d|\
+        compiler-porting-native.sh:5c47f7be9b69d575bf5edb0d30283967b456ed242cd9385593de7559b02a6a16|\
+        libc.a:30cff68855d3793dedd63020928e65dfc084a5aa6667ef0114b25d6d92bd0924)
+            return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+preflight_files() {
+    while IFS='|' read -r gp pl base new pt nm; do
+        [ -n "$gp" ] || continue
+        [ "$pt" = 1 ] && continue
+        cur=$(gsha "$gp")
+        [ "$cur" = "$new" ] && continue
+        [ "$base" = NEW ] && [ "$cur" = ABSENT ] && continue
+        [ "$cur" = "$base" ] && continue
+        supported_previous_file "$pl" "$cur" && continue
+        die "unsupported or missing baseline for $gp ($cur); no guest or kernel files changed"
+    done < "$HERE/files.list"
+}
+
 do_install() {
     [ -e "$BK/installed" ] && say "NOTE: earlier install recorded in $BK; re-running is safe"
     [ -f "$KERNEL" ] || die "kernel missing: $KERNEL (set REM_KERNEL to its real path)"
     # Both halves of the ABI change must merge before changing either file.
     prepare_compiler_sources
+    preflight_files
     fsck_pre
     mkdir -p "$BK/files"
     # Qualification replaces these later, inside REM; rollback must restore
@@ -177,6 +202,9 @@ do_install() {
     for gp in /home/dev/rem-native-userland/bootstrap/native/chibicc-selfbuilt \
         /home/dev/rem-native-userland/bootstrap/tools/native/samu; do
         key=$(echo "$gp" | sed 's#/#_#g')
+        if [ -f "$BK/files.created" ] && grep -Fqx "$gp" "$BK/files.created"; then
+            continue
+        fi
         if [ "$(gsha "$gp")" != ABSENT ]; then
             if [ ! -f "$BK/files/$key" ]; then
                 cp "$TMPD/g" "$BK/files/$key"
@@ -214,26 +242,21 @@ do_install() {
                 grep -q "^$gp|" "$BK/restore.list" 2>/dev/null || echo "$gp|$key|$(gattr "$gp")" >> "$BK/restore.list"
                 set -- $(gattr "$gp")
             else
-                gexists "$(dirname "$gp")" || { say "WARN $(dirname "$gp") missing; $gp not created"; continue; }
+                gmkdir "$(dirname "$gp")"
                 set -- $nm $(gattr "$(dirname "$gp")" | cut -d' ' -f2-)
                 echo "$gp" >> "$BK/files.created"
             fi
             gput "$src" "$gp" "$1" "$2" "$3"; say "ADDED $gp"; continue
         fi
-        if [ "$cur" = ABSENT ]; then say "WARN $gp absent; not created"; continue; fi
+        [ "$cur" != ABSENT ] || die "$gp disappeared after preflight; rollback required"
         if [ "$pt" = 1 ]; then
             src="$TMPD/prepared-$pl"
             if [ "$(sha "$src")" = "$cur" ]; then
                 say "SKIP (already merged; local changes preserved) $gp"; continue
             fi
         elif [ "$cur" != "$base" ]; then
-            case "$pl:$cur" in
-                chibicc-rem-native.patch:ad77b8b945638eb6287a582165725ef5655b12fa606052f5567468ea26561c04) ;;
-                *)
-                say "WARN $gp differs from baseline ($cur); LEFT UNCHANGED"
-                continue
-                ;;
-            esac
+            supported_previous_file "$pl" "$cur" ||
+                die "$gp changed after preflight; rollback required"
         fi
         if [ ! -f "$BK/files/$key" ]; then
             cp "$TMPD/g" "$BK/files/$key"; echo "$gp|$key|$(gattr "$gp")" >> "$BK/restore.list"
