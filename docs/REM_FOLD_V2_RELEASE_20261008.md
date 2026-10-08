@@ -1,6 +1,14 @@
 # REM32 Fold update 20261008 v2
 
-**Qualified in actual REM/QEMU; final archive installation and rollback PASS.**
+**BLOCKED: actual Fold bootstrap libc is unidentified; do not reinstall this archive.**
+
+The actual Fold rejected the installer for
+`/home/dev/rem-native-userland/bootstrap/musl/native/libc.a`, SHA-256
+`0bc5770f3d1b84a97a1030f5c2911b164a375d89c2db9e4a89a4f51c4f2b3186`.
+It reported no guest or kernel files changed. The archive below passed native
+REM/QEMU qualification and installation/rollback for the previous simulated
+baseline, but that does not establish support for this different library.
+Baseline validation must not be bypassed. Retain the archive as prior evidence.
 
 Archive: `/tmp/REM-FOLD-update-20261008-v2.tar.gz`
 
@@ -12,6 +20,39 @@ SHA-256:
 Sidecars: the archive path plus `.sha256` and `.manifest.txt`. The archive
 contains its own checksummed `MANIFEST.txt`, installer and guest verifier.
 Only this one small archive is needed; do not transfer another rootfs/source tree.
+
+## Actual Fold rejection: identification result
+
+The reported full `0bc5770f...` SHA-256 was not found in the available canonical
+libraries, bootstrap outputs, original committed runtime, REM scratch/backups,
+244 standalone image candidates, ten rootfs images inside nine distribution
+archives, or the extra retained `/tmp/rem-abi-base.ext4`. One candidate was a
+78-byte placeholder rather than a filesystem; one older checksum-damaged image
+was inspected read-only with `debugfs -c`. No image was modified. Archive
+rootfs images were extracted only to disposable sparse scratch and removed
+after inspection. The existing divergent recovery directory is absent.
+
+The known library comparison, not a comparison of the unknown Fold bytes:
+
+| Archive | SHA-256 | Bytes | Members | Bad large-frame prologues |
+| --- | --- | ---: | ---: | ---: |
+| Original flight runtime | `30cff68855d3793dedd63020928e65dfc084a5aa6667ef0114b25d6d92bd0924` | 2,835,504 | 1,345 | 35 |
+| Corrected qualified runtime | `269b1d6b5a15a3e2b3c4f8fe48dc0f9f8b5922e2c90937586ec7167d22a1c7c2` | 2,861,972 | 1,345 | 0 |
+
+Both have identical member-name sets (`clone.o` changes position) and
+representative ELF32 little-endian REM objects, machine `0xf2e2`. Original
+bytes are retained in commit `25ab091504e0c1027c7e5efcf332aecd2e072432` and the
+userspace import. Corrected bytes match the existing musl install output and
+qualified payload. The recovered native musl bootstrap recipe copies the
+system archive and updates members from 33 listed C files plus `native_syscall.o`; that recipe
+does not identify the unknown archive or prove its provenance/compatibility.
+
+**Required next input:** the actual Fold archive bytes, not another hash.
+Its size, member inventory, object contents and provenance remain unknown.
+No hash was whitelisted, no validation was relaxed, and no new package or
+native qualification was started. After identification, an exact-baseline
+installation/rollback and full native qualification must precede any
+replacement release.
 
 ## Actual execution and installation evidence
 
@@ -48,7 +89,11 @@ and kernel
 The full run used the installed image with the deliberately retained local
 parser edit, not an exact-clean-source-only baseline.
 
-## Transfer and install
+## Prior transfer and install procedure (blocked for the actual Fold)
+
+Do not run the following procedure again until the unknown library is identified
+and an exact-baseline replacement update is qualified. These are historical
+instructions for the prior artifact, not instructions to work around rejection.
 
 Copy/download the single archive above into Termux's `~/rem`. Use the existing
 transfer route; no new download URL or full distribution is required.

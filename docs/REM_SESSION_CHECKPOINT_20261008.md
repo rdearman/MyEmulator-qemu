@@ -3,12 +3,44 @@
 Resume from here; do not redo completed items. Canonical repo only; scratch in /tmp.
 Never git clean/reset/restore; ~265 pre-existing dirty/untracked entries must be preserved.
 
-**CURRENT STATUS: V2 COMPILER/SAMURAI/FULL QUALIFICATION PASS**
+**CURRENT STATUS: ACTUAL FOLD BLOCKED ON UNIDENTIFIED BOOTSTRAP LIBC**
 
-**FINAL V2 PACKAGE: QUALIFIED AND READY FOR TRANSFER**
+**FINAL V2 PACKAGE: PRIOR SIMULATION PASS; NOT READY FOR THIS FOLD BASELINE**
 
-The current continuation is in section 17 and the release/handover documents.
+The actual Fold safely rejected the v2 installer before changing guest/kernel
+files. Its `/home/dev/rem-native-userland/bootstrap/musl/native/libc.a` has SHA-256
+`0bc5770f3d1b84a97a1030f5c2911b164a375d89c2db9e4a89a4f51c4f2b3186`.
+Do not whitelist it without identifying the archive. Prior compiler/Samurai/full
+qualification evidence remains valid only for the simulated baseline it tested.
+The current continuation is the baseline investigation in the release/handover
+documents; section 17 records the earlier simulated release.
 Earlier v1 completion statements do not qualify the corrected v2 update.
+
+## Latest actual-Fold baseline investigation: BLOCKED
+
+No exact `0bc5770f...` archive was found. Read-only searches covered canonical
+libraries/known bootstrap outputs, retained REM scratch/rollback artifacts,
+the original committed runtime, 244 standalone image candidates (including a
+78-byte non-image placeholder), ten archived distribution rootfs images, and
+the extra `/tmp/rem-abi-base.ext4`. One historical image needed read-only
+`debugfs -c` because its bitmap checksum was invalid; it yielded the known old
+library, not the Fold hash. No image was repaired or mutated.
+
+Old/new known archives have 1,345 members each and identical member-name sets:
+old `30cff688...`, 2,835,504 bytes, 35 bad frame prologues;
+corrected `269b1d6b...`, 2,861,972 bytes, zero bad frame prologues.
+The recovered private-musl recipe copies the system archive and updates members
+from 33 listed C files plus `native_syscall.o`, so the private archive can differ,
+but the actual Fold's unknown bytes cannot be identified from that fact alone.
+No retained private `librem-runtime.a` was found.
+
+**Stopped as requested:** baseline validation unchanged; no new build,
+qualification or package. Prior v2 archive still hashes to
+`ab19349f0fe651df40cbad970f3dce371a2850ecfee44d60c03741dd9eb95d1b`.
+Search inventories are disposable under `/tmp/rem-libc-identify.g59nt0n9/`;
+details and the takeover action are in the handover/release documents.
+**Next:** obtain the actual Fold archive, verify its full reported hash, and
+establish provenance/member/ABI comparison before accepting any new baseline.
 
 ## 1. Completed (verified)
 

@@ -1,15 +1,72 @@
 # REM32 Fold ABI/update handover -- 2026-10-08
 
-**CURRENT STATUS: FULL V2 QUALIFICATION PASS**
+**CURRENT STATUS: ACTUAL FOLD BLOCKED ON UNIDENTIFIED BOOTSTRAP LIBC**
 
-**NATIVE COMPILER / SAMURAI / FULL UPDATE: PASS**
+**NATIVE COMPILER / SAMURAI / FULL UPDATE: PRIOR SIMULATED BASELINE PASS**
 
-**FINAL V2 PACKAGE: QUALIFIED AND READY FOR TRANSFER**
+**FINAL V2 PACKAGE: NOT READY FOR THIS ACTUAL FOLD BASELINE**
 
-Full qualification and tests of the actual final archive have now passed.
-The latest authoritative release state is at the end of this document and in
-`docs/REM_FOLD_V2_RELEASE_20261008.md`; earlier pending snapshots are historical.
-Do not repeat the completed qualification or send the original v1 archive.
+The actual Fold rejected the v2 installer at the private bootstrap library:
+`/home/dev/rem-native-userland/bootstrap/musl/native/libc.a`, SHA-256
+`0bc5770f3d1b84a97a1030f5c2911b164a375d89c2db9e4a89a4f51c4f2b3186`.
+It reported no guest or kernel files changed. Do not add the hash without
+identifying those bytes. Earlier passing evidence is not qualification of this
+previously unrecognized Fold baseline. The latest authoritative release state
+is in `docs/REM_FOLD_V2_RELEASE_20261008.md`.
+Do not repeat the earlier native builds unless the exact baseline is identified
+and a supported replacement requires requalification.
+
+## Latest continuation: unknown actual Fold libc, investigation stopped
+
+The requested SHA-256 was not found in the available artifacts. No installer
+allowlist or compiler/runtime source was changed, and no replacement release or
+native rebuild was started. The prior archive is retained unchanged as evidence,
+not as a supported update for this Fold.
+
+Read-only search covered canonical standalone libraries and bootstrap outputs,
+retained REM scratch/backups, the original committed runtime, 244 standalone
+image candidates, and ten rootfs images inside nine older distribution archives.
+The 244 candidates included one 78-byte placeholder, not a filesystem; the old
+`bash-rebuilt.ext4` had a bitmap checksum error and was inspected successfully
+with read-only `debugfs -c`, without repairing it. An additional retained
+`/tmp/rem-abi-base.ext4` was checked. Extracted guest libraries had only the
+known `30cff688...` and `269b1d6b...` hashes. No reference to the requested full
+hash was found in searched repository documentation/scripts/manifests.
+The known divergent recovery directory no longer exists; it was not recreated.
+The original `REM-FOLD-BUILD-SOURCE-20261007.tar.gz` was not found among retained
+release/source archives.
+
+The known old/new libraries are respectively 2,835,504 and 2,861,972 bytes,
+with 1,345 members each and identical member-name sets; `clone.o` changes order.
+Their representative objects are ELF32 little-endian REM machine `0xf2e2`.
+The target-aware host disassembler again found 35 bad large-frame prologues in
+the old library and zero in the corrected library. The old exact bytes are in
+Git commit `25ab091504e0c1027c7e5efcf332aecd2e072432` and the userspace import;
+the corrected exact bytes match `/tmp/remqa/musl-inst/lib/libc.a` and the already
+qualified payload. None of this identifies the unknown Fold archive.
+
+The recovered bootstrap musl recipe, in
+`toolchain/native-userland/patches/musl-rem-native.patch` (recovery commit
+`f89a89d15df50f2eda340fbc76a22fbef78ad0df`), copies `/usr/lib/libc.a`, then
+compiles 33 listed C files, updates their members, and adds `native_syscall.o`.
+This establishes that the
+private bootstrap archive need not equal `/usr/lib/libc.a`; it does **not**
+establish that SHA `0bc5770f...` is this recipe's legitimate output.
+No retained `librem-runtime.a` was found, and the retained Fold kit's native
+musl directory contains only the corrected `269b1d6b...` archive.
+
+Disposable inventories and known-library disassembly are in
+`/tmp/rem-libc-identify.g59nt0n9/`; no extracted rootfs remains there.
+Authoritative blocked-state findings are also in the release document.
+
+**Single next action:** obtain a byte-for-byte copy of the actual Fold
+`/home/dev/rem-native-userland/bootstrap/musl/native/libc.a`, verify the stated
+SHA-256, and compare its archive members/objects with the known libraries and
+bootstrap recipe. Until then, do not whitelist, bypass checks, rebuild, or
+resend the rejected release. If provenance is established, reproduce that
+exact starting archive and require install/rollback, native compiler
+self-rebuild/porting, Samurai, `REM_UPDATE_VERIFY_OK`, and `REM_QA_DONE|0`
+before producing a distinctly versioned replacement and new SHA-256.
 
 ## Objective and workspace boundary
 
