@@ -19,6 +19,8 @@ The host-only package gate regression also passes all 15 missing-marker cases
 and rejects user faults, kernel panic, OOM and common runtime crash diagnostics;
 its synthetic positive fixture is explicitly not REM qualification evidence.
 Transcript: `docs/REM_FOLD_V2_EVIDENCE_20261008/real-fold-host-package-test.log`.
+The running QEMU/session snapshot and observation cadence are at the top of
+`docs/REM_SESSION_HANDOVER_20261008.md`.
 
 ## Prior v2 archive — rejected for the actual Fold
 

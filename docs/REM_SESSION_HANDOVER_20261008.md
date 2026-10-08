@@ -22,6 +22,32 @@ No corrected release archive is transferable until every required guest
 marker passes. The release document distinguishes the rejected archive from
 this candidate and any eventual corrected release.
 
+## Current exact-baseline run snapshot — 2026-10-08 12:11 BST
+
+Qualification started at `2026-10-08T12:00:23+01:00`. Runner tool session is
+`15780`; its QEMU PID is `2954`. Keep that session alive and do not restart it.
+The disposable image is
+`/tmp/rem-fold-real-fold-qualification.20261008/rootfs.ext4`; the input archive
+is `/tmp/libc.a.fold`. The launcher reproduced rejection by the prior archive
+with zero image/kernel mutation, installed and verified the corrected
+candidate, reinstalled it idempotently, and confirmed the exact old and new
+library hashes in the guest.
+
+Actual serial output passed the system checks and entered compiler
+qualification at 12:02:24 BST. At 12:11 BST there was no completion, failure,
+user-fault, panic or OOM marker; neither `qualification-exit.txt` nor
+`qemu-exit.txt` exists yet. Do not inspect or mutate the live ext4 image. The
+runner watches for actual fault/completion markers and applies an 18,000
+second timeout. Next routine observation is no earlier than 12:21 BST unless
+the runner reports a completion or failure event.
+
+The host installer regression passed against a disposable image carrying the
+exact Fold archive, including install, verify, reinstall, rollback, reinstall
+after rollback, local-source preservation and zero-mutation rejection cases.
+The host package gate regression is retained at
+`docs/REM_FOLD_V2_EVIDENCE_20261008/real-fold-host-package-test.log`; it is
+explicitly synthetic host evidence, not native qualification.
+
 ## Previous continuation: unknown actual Fold libc, investigation stopped
 
 The requested SHA-256 was not found in the available artifacts. No installer
