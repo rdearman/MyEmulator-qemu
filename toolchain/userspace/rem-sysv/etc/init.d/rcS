@@ -1,0 +1,14 @@
+#!/bin/sh
+# BusyBox init's sysinit hook. Start the default console developer runlevel.
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+export PATH
+root=${REM_ROOT:-}
+mkdir -p "$root/run"
+# Kernel virtual filesystems: needed by mount, df, ps, stat -f and /sys/block.
+if [ -z "$root" ]; then
+    mountpoint_has() { [ -e "$1" ]; }
+    mountpoint_has /proc/self || mount -t proc -o nosuid,nodev,noexec proc /proc
+    mountpoint_has /sys/kernel || mount -t sysfs -o nosuid,nodev,noexec sysfs /sys
+    [ -e /etc/mtab ] || [ -L /etc/mtab ] || ln -s /proc/mounts /etc/mtab
+fi
+exec "$root/etc/init.d/rc" start 3

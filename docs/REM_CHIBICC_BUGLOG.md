@@ -1377,3 +1377,70 @@ The follow-up fix also corrected integer-literal type selection in
 `PRId64` expansion removes Samurai's post-build fault. Corrected Samurai is
 `/tmp/samu-fix` (SHA256
 `1bee2e3c9aa19fe0ece0af1eb333b41e63ba7382bff993b68d297515d9d1aa93`).
+
+## Static initializer dropped members after an unnamed bitfield (fixed 2026-10-08)
+
+Class A (code generation). Found by `designator-unnamed-bitfield.c` in the REM
+qualification run (stage1/selfbuilt compilers from canonical sources): the
+program linked and exited 1. The host-built cross chibicc from the same
+sources emitted `value` as 12 zero bytes.
+
+Cause: `write_gvar_data()` (parse.c) did `break` when a bitfield member had no
+initializer expression. Unnamed padding bitfields never have one, so every
+later member of a static struct initializer was silently zeroed. The bitfield
+mask also used `1L << bit_width`, which is undefined for width 32 on REM
+(32-bit `long`).
+
+Fix: `continue` instead of `break`; the mask is computed in `uint64_t` with a
+width-64 guard. `chibicc-rem-native.patch` parse.c section regenerated.
+
+## Aggregate ABI (fixed 2026-10-08)
+
+All struct/union returns use a hidden result pointer in r1, and aggregate
+arguments are passed by address, matching REM GCC. The old chibicc
+`size <= 8` register return (r1:r2) is removed (codegen.c `gen_call`/return,
+parse.c `function`). Both interoperability directions pass in REM.
+
+## Native chibicc/samu faults at 0x1000xxxx were kernel (class B)
+
+With the old R4 kernel, the installed native chibicc and samu faulted. With the
+rebuilt kernel (syscalls 36/37/43/44/116) both run correctly, so the Fold update
+ships the kernel.
+
+## Kernel double fault: GCC prologue left SP misaligned between steps (fixed 2026-10-08)
+
+Class A (cross-GCC code generation) causing class B symptoms. The REM
+qualification run panicked with `MyEmulator2 exception: pc=001037b0 cause=15
+info=00000010`: a double fault caused by timer IRQ 16 arriving inside
+`arch_do_signal_or_restart`. The prologue allocated 256 bytes as
+`subi r13,r13,255; subi r13,r13,1`. An interrupt between the two instructions
+found SSP misaligned, so QEMU (`myemu32_enter_exception`, `ssp & 3`) raised a
+double fault. Timing-dependent; the vmlinux had 314 such sequences.
+
+Fix (`toolchain/scripts/prepare-gcc-source.py`): both SP-stepping loops of
+`myemulator2_expand_prologue` (the moxie-derived 256..510 loop and the
+large-frame loop) now step by 252, keeping SP word-aligned after every
+instruction. Kernel rebuilt: 0 misaligned r13 immediates. User code is
+unaffected (IRQs switch to SSP; `get_sigframe` aligns USP).
+
+## Fold small-struct return `{0,1}`: partial ABI update (2026-10-08)
+
+The exact real-Fold failure is reproduced in REM with a native compiler:
+`aggregate-abi RC=1`, `FIRST=0`, `LAST=1`. With updated codegen.c and old
+parse.c the caller passes the zeroed result buffer in r1 and the argument in
+r2, but the callee has no hidden first parameter and reads r1 as its argument.
+It increments the result buffer's initially zero last member.
+
+The installer allowed this state. If a Fold-era parser already contained the
+initializer `break` -> `continue` fix, the combined parse.c diff failed; the
+installer left the entire parser untouched while updating codegen.c. It
+reported INSTALL COMPLETE and treated any LOCAL source as VERIFY_OK.
+The previous simulation had exact-baseline sources and missed this case.
+
+The correction preflights both sources before writing the image and handles
+already-applied hunks individually. Source conflicts fail explicitly. The
+backend also rejects an aggregate-returning function without its parser-added
+hidden parameter. `aggregate-small-return.c` checks both return members and
+unchanged caller input; seed, stage1 and stage2 each run it. A tested explicit
+bootstrap seed removes dependence on whichever selfbuilt binary happens to
+be installed; the installed compiler changes only after full qualification.

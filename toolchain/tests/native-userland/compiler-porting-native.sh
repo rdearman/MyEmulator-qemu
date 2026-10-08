@@ -4,7 +4,7 @@ case $0 in */*) cd "${0%/*}/.." ;; esac
 source ./native-env.sh
 compiler=${TEST_CC:-$CC}
 mkdir -p native-tests/porting
-for name in aggregate-abi alloca-frame vla-frame long-conditional-branch designator-unnamed-bitfield \
+for name in aggregate-small-return aggregate-abi alloca-frame vla-frame long-conditional-branch designator-unnamed-bitfield \
     preprocessor-signed-comparison line-in-conditional \
     parenthesized-function-parameter nested-designator-continuation \
     static-assert; do

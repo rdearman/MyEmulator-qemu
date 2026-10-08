@@ -442,8 +442,8 @@
  void codegen(Obj *prog, FILE *out);
  int align_to(int n, int align);
  
---- a/codegen.c	2020-12-07 03:00:06.000000000 +0000
-+++ b/codegen.c	2026-10-07 10:42:05.935430823 +0100
+--- a/codegen.c
++++ b/codegen.c
 @@ -1,18 +1,24 @@
  #include "chibicc.h"
  
@@ -479,7 +479,7 @@
  
  __attribute__((format(printf, 1, 2)))
  static void println(char *fmt, ...) {
-@@ -20,1575 +26,1011 @@
+@@ -20,1575 +26,1007 @@
    va_start(ap, fmt);
    vfprintf(output_file, fmt, ap);
    va_end(ap);
@@ -1412,7 +1412,7 @@
 +  bool indirect = !(node->lhs->kind == ND_VAR && node->lhs->var->is_function);
 +  int nwords = 0;
 +  bool aggregate_return = node->ty->kind == TY_STRUCT || node->ty->kind == TY_UNION;
-+  bool hidden_return = aggregate_return && node->ty->size > 8;
++  bool hidden_return = aggregate_return;
 +  if (hidden_return) nwords++;
 +  for (Node *a = node->args; a; a = a->next)
 +    nwords += arg_words(a->ty);
@@ -2337,16 +2337,6 @@
 +    branch_zero(1, true, node->begin_label); println("%s:", node->brk_label); return;
    }
 -  case ND_SWITCH:
--    gen_expr(node->cond);
--
--    for (Node *n = node->case_next; n; n = n->case_next) {
--      char *ax = (node->cond->ty->size == 8) ? "%rax" : "%eax";
--      char *di = (node->cond->ty->size == 8) ? "%rdi" : "%edi";
--
--      if (n->begin == n->end) {
--        println("  cmp $%ld, %s", n->begin, ax);
--        println("  je %s", n->label);
--        continue;
 +  case ND_BLOCK: for (Node *n = node->body; n; n = n->next) gen_stmt(n); return;
 +  case ND_RETURN:
 +    if (node->lhs) gen_expr(node->lhs);
@@ -2354,28 +2344,11 @@
 +    if (current_fn->ty->return_ty->kind == TY_STRUCT ||
 +        current_fn->ty->return_ty->kind == TY_UNION) {
 +      Type *ty = current_fn->ty->return_ty;
-+      if (ty->size > 8) {
-+        println("  add r3, r1, r0");
-+        load_fp(1, current_fn->params->offset);
-+        push_reg(1);
-+        println("  add r1, r3, r0");
-+        store(ty);
-+      } else {
-+        println("  add r3, r1, r0");
-+        println("  li r1, 0");
-+        println("  li r2, 0");
-+        for (int i = 0; i < ty->size; i++) {
-+          println("  lbu r4, %d(r3)", i);
-+          println("  slli r4, r4, %d", (i % 4) * 8);
-+          println("  or r%d, r%d, r4", i < 4 ? 1 : 2, i < 4 ? 1 : 2);
-+        }
-       }
--
--      // [GNU] Case ranges
--      println("  mov %s, %s", ax, di);
--      println("  sub $%ld, %s", n->begin, di);
--      println("  cmp $%ld, %s", n->end - n->begin, di);
--      println("  jbe %s", n->label);
++      println("  add r3, r1, r0");
++      load_fp(1, current_fn->params->offset);
++      push_reg(1);
++      println("  add r1, r3, r0");
++      store(ty);
 +      println("  j .Lreturn.%s", current_fn->name);
 +      return;
 +    }
@@ -2396,7 +2369,23 @@
 +  case ND_LABEL: println("%s:", node->unique_label); gen_stmt(node->lhs); return;
 +  case ND_CASE: println("%s:", node->label); gen_stmt(node->lhs); return;
 +  case ND_SWITCH: {
-+    gen_expr(node->cond);
+     gen_expr(node->cond);
+-
+-    for (Node *n = node->case_next; n; n = n->case_next) {
+-      char *ax = (node->cond->ty->size == 8) ? "%rax" : "%eax";
+-      char *di = (node->cond->ty->size == 8) ? "%rdi" : "%edi";
+-
+-      if (n->begin == n->end) {
+-        println("  cmp $%ld, %s", n->begin, ax);
+-        println("  je %s", n->label);
+-        continue;
+-      }
+-
+-      // [GNU] Case ranges
+-      println("  mov %s, %s", ax, di);
+-      println("  sub $%ld, %s", n->begin, di);
+-      println("  cmp $%ld, %s", n->end - n->begin, di);
+-      println("  jbe %s", n->label);
 +    println("  add r15, r1, r0");
 +    for (Node *c = node->case_next; c; c = c->case_next) {
 +      println("  li r1, %ld", c->begin);
@@ -2650,7 +2639,7 @@
 +        println("  .byte %d", (unsigned char)v->init_data[pos++]);
        }
 -      continue;
--    }
+     }
 -
 -    // .bss or .tbss
 -    if (var->is_tls)
@@ -2694,7 +2683,7 @@
 -    for (int i = 0; i < sz; i++) {
 -      println("  mov %s, %d(%%rbp)", argreg8[r], offset + i);
 -      println("  shr $8, %s", argreg64[r]);
-     }
+-    }
 -    return;
    }
  }
@@ -2718,6 +2707,13 @@
 +       (used heavily by Samurai) are not always visible to the lightweight
 +       reference liveness pass. */
 +    if (!fn->is_function || !fn->is_definition || fn->alias_name) continue;
++    if (fn->ty->return_ty->kind == TY_STRUCT ||
++        fn->ty->return_ty->kind == TY_UNION) {
++      Obj *result = fn->params;
++      if (!result || result->name[0] || result->ty->kind != TY_PTR ||
++          result->ty->base != fn->ty->return_ty)
++        error_tok(fn->tok, "REM aggregate return requires a hidden result parameter");
++    }
 +    println("  %s %s", fn->is_static ? ".local" : fn->is_weak ? ".weak" : ".global", fn->name);
      println("  .text");
 -    println("  .type %s, @function", fn->name);
@@ -3273,8 +3269,8 @@
    strarray_push(&arr, "ld");
    strarray_push(&arr, "-o");
    strarray_push(&arr, output);
---- a/parse.c	2020-12-07 03:00:06.000000000 +0000
-+++ b/parse.c	2026-10-07 10:05:02.296721950 +0100
+--- a/parse.c
++++ b/parse.c
 @@ -46,6 +46,8 @@
    bool is_inline;
    bool is_tls;
@@ -3529,7 +3525,23 @@
    if (init->ty->kind == TY_ARRAY && tok->kind == TK_STR) {
      string_initializer(rest, tok, init);
      return;
-@@ -1458,7 +1564,7 @@
+@@ -1427,12 +1533,13 @@
+       if (mem->is_bitfield) {
+         Node *expr = init->children[mem->idx]->expr;
+         if (!expr)
+-          break;
++          continue;
+ 
+         char *loc = buf + offset + mem->offset;
+         uint64_t oldval = read_buf(loc, mem->ty->size);
+         uint64_t newval = eval(expr);
+-        uint64_t mask = (1L << mem->bit_width) - 1;
++        uint64_t mask = mem->bit_width >= 64 ? ~(uint64_t)0
++                                             : ((uint64_t)1 << mem->bit_width) - 1;
+         uint64_t combined = oldval | ((newval & mask) << mem->bit_offset);
+         write_buf(loc, combined, mem->ty->size);
+       } else {
+@@ -1458,7 +1565,7 @@
      return cur;
    }
  
@@ -3538,7 +3550,7 @@
      *(double *)(buf + offset) = eval_double(init->expr);
      return cur;
    }
-@@ -1503,7 +1609,7 @@
+@@ -1503,7 +1610,7 @@
        "typedef", "enum", "static", "extern", "_Alignas", "signed", "unsigned",
        "const", "volatile", "auto", "register", "restrict", "__restrict",
        "__restrict__", "_Noreturn", "float", "double", "typeof", "inline",
@@ -3547,7 +3559,7 @@
      };
  
      for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)
-@@ -1640,6 +1746,7 @@
+@@ -1640,6 +1747,7 @@
  
      char *brk = brk_label;
      char *cont = cont_label;
@@ -3555,7 +3567,7 @@
      brk_label = node->brk_label = new_unique_name();
      cont_label = node->cont_label = new_unique_name();
  
-@@ -1674,6 +1781,7 @@
+@@ -1674,6 +1782,7 @@
  
      char *brk = brk_label;
      char *cont = cont_label;
@@ -3563,7 +3575,7 @@
      brk_label = node->brk_label = new_unique_name();
      cont_label = node->cont_label = new_unique_name();
  
-@@ -1689,6 +1797,7 @@
+@@ -1689,6 +1798,7 @@
  
      char *brk = brk_label;
      char *cont = cont_label;
@@ -3571,7 +3583,7 @@
      brk_label = node->brk_label = new_unique_name();
      cont_label = node->cont_label = new_unique_name();
  
-@@ -1768,6 +1877,10 @@
+@@ -1768,6 +1878,10 @@
    enter_scope();
  
    while (!equal(tok, "}")) {
@@ -3582,7 +3594,7 @@
      if (is_typename(tok) && !equal(tok->next, ":")) {
        VarAttr attr = {};
        Type *basety = declspec(&tok, tok, &attr);
-@@ -1779,6 +1892,10 @@
+@@ -1779,6 +1893,10 @@
  
        if (is_function(tok)) {
          tok = function(tok, basety, &attr);
@@ -3593,7 +3605,7 @@
          continue;
        }
  
-@@ -1900,7 +2017,10 @@
+@@ -1900,7 +2018,10 @@
        switch (node->ty->size) {
        case 1: return node->ty->is_unsigned ? (uint8_t)val : (int8_t)val;
        case 2: return node->ty->is_unsigned ? (uint16_t)val : (int16_t)val;
@@ -3605,7 +3617,7 @@
        }
      }
      return val;
-@@ -2095,6 +2215,7 @@
+@@ -2095,6 +2216,7 @@
                  tok);
  
      Node *loop = new_node(ND_DO, tok);
@@ -3613,7 +3625,7 @@
      loop->brk_label = new_unique_name();
      loop->cont_label = new_unique_name();
  
-@@ -2541,12 +2662,33 @@
+@@ -2541,12 +2663,33 @@
  }
  
  // struct-members = (declspec declarator (","  declarator)* ";")*
@@ -3647,7 +3659,7 @@
      VarAttr attr = {};
      Type *basety = declspec(&tok, tok, &attr);
      bool first = true;
-@@ -2746,7 +2888,7 @@
+@@ -2746,7 +2889,7 @@
      }
  
      // Regular struct member
@@ -3656,7 +3668,7 @@
          !strncmp(mem->name->loc, tok->loc, tok->len))
        return mem;
    }
-@@ -2805,6 +2947,7 @@
+@@ -2805,6 +2948,7 @@
  //              | "++"
  //              | "--"
  static Node *postfix(Token **rest, Token *tok) {
@@ -3664,7 +3676,7 @@
    if (equal(tok, "(") && is_typename(tok->next)) {
      // Compound literal
      Token *start = tok;
-@@ -2813,17 +2956,16 @@
+@@ -2813,17 +2957,16 @@
  
      if (scope->next == NULL) {
        Obj *var = new_anon_gvar(ty);
@@ -3691,7 +3703,7 @@
  
    for (;;) {
      if (equal(tok, "(")) {
-@@ -2892,7 +3034,7 @@
+@@ -2892,7 +3035,7 @@
      Node *arg = assign(&tok, tok);
      add_type(arg);
  
@@ -3700,7 +3712,7 @@
        error_tok(tok, "too many arguments");
  
      if (param_ty) {
-@@ -2905,6 +3047,13 @@
+@@ -2905,6 +3048,13 @@
        arg = new_cast(arg, ty_double);
      }
  
@@ -3714,7 +3726,7 @@
      cur = cur->next = arg;
    }
  
-@@ -2983,6 +3132,11 @@
+@@ -2983,6 +3133,11 @@
  static Node *primary(Token **rest, Token *tok) {
    Token *start = tok;
  
@@ -3726,7 +3738,7 @@
    if (equal(tok, "(") && equal(tok->next, "{")) {
      // This is a GNU statement expresssion.
      Node *node = new_node(ND_STMT_EXPR, tok);
-@@ -3079,6 +3233,45 @@
+@@ -3079,6 +3234,45 @@
      return node;
    }
  
@@ -3772,7 +3784,7 @@
    if (tok->kind == TK_IDENT) {
      // Variable or enum constant
      VarScope *sc = find_var(tok);
-@@ -3114,7 +3307,7 @@
+@@ -3114,7 +3308,7 @@
      Node *node;
      if (is_flonum(tok->ty)) {
        node = new_node(ND_NUM, tok);
@@ -3781,7 +3793,7 @@
      } else {
        node = new_num(tok->val, tok);
      }
-@@ -3221,8 +3414,18 @@
+@@ -3221,8 +3415,18 @@
    }
  
    fn->is_root = !(fn->is_static && fn->is_inline);
@@ -3801,18 +3813,12 @@
      return tok;
  
    current_fn = fn;
-@@ -3233,13 +3436,19 @@
+@@ -3233,13 +3437,13 @@
    // A buffer for a struct/union return value is passed
    // as the hidden first parameter.
    Type *rty = ty->return_ty;
 -  if ((rty->kind == TY_STRUCT || rty->kind == TY_UNION) && rty->size > 16)
-+  if ((rty->kind == TY_STRUCT || rty->kind == TY_UNION) && rty->size >
-+#ifdef CHIBICC_REM
-+      8
-+#else
-+      16
-+#endif
-+      )
++  if (rty->kind == TY_STRUCT || rty->kind == TY_UNION)
      new_lvar("", pointer_to(rty));
  
    fn->params = locals;
@@ -3823,7 +3829,7 @@
    fn->alloca_bottom = new_lvar("__alloca_size__", pointer_to(ty_char));
  
    tok = skip(tok, "{");
-@@ -3258,6 +3467,8 @@
+@@ -3258,6 +3462,8 @@
    fn->locals = locals;
    leave_scope();
    resolve_goto_labels();
@@ -3832,7 +3838,7 @@
    return tok;
  }
  
-@@ -3269,6 +3480,13 @@
+@@ -3269,6 +3475,13 @@
        tok = skip(tok, ",");
      first = false;
  
@@ -3846,7 +3852,7 @@
      Type *ty = declarator(&tok, tok, basety);
      if (!ty->name)
        error_tok(ty->name_pos, "variable name omitted");
-@@ -3277,6 +3495,15 @@
+@@ -3277,6 +3490,15 @@
      var->is_definition = !attr->is_extern;
      var->is_static = attr->is_static;
      var->is_tls = attr->is_tls;
@@ -3862,7 +3868,7 @@
      if (attr->align)
        var->align = attr->align;
  
-@@ -3330,6 +3557,7 @@
+@@ -3330,6 +3552,7 @@
    Type *ty = func_type(pointer_to(ty_void));
    ty->params = copy_type(ty_int);
    builtin_alloca = new_gvar("alloca", ty);
@@ -3870,7 +3876,7 @@
    builtin_alloca->is_definition = false;
  }
  
-@@ -3339,6 +3567,10 @@
+@@ -3339,6 +3562,10 @@
    globals = NULL;
  
    while (tok->kind != TK_EOF) {
@@ -3881,7 +3887,7 @@
      VarAttr attr = {};
      Type *basety = declspec(&tok, tok, &attr);
  
-@@ -3351,6 +3583,10 @@
+@@ -3351,6 +3578,10 @@
      // Function
      if (is_function(tok)) {
        tok = function(tok, basety, &attr);

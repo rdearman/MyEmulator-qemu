@@ -1,0 +1,51 @@
+REM Fold update 20261008 v2
+=========================
+
+This replaces the earlier update, not the rootfs. Stop QEMU before installation.
+Target: $HOME/rem/rootfs.ext4 (10 GiB); never the obsolete remvm image.
+Kernel: vmlinux beside that image; REM_KERNEL can override its exact location.
+Termux needs the e2fsprogs/debugfs already used for the first update.
+No patch, awk, Python, native objdump, resize or formatting is required.
+
+From Termux, after checking the archive SHA-256 against the adjacent manifest:
+  cd ~/rem
+  tar xzf REM-FOLD-update-20261008-v2.tar.gz
+  sh rem-update-20261008-v2/install.sh install
+  sh rem-update-20261008-v2/install.sh verify
+
+The installer preflights BOTH compiler files before changing the image.
+It merges exact hunks independently, accepting already-applied Fold fixes and
+preserving other local source edits. Ambiguous or conflicting changes abort
+without applying half an ABI update. Backups and log:
+  ~/rem/update-20261008-v2-backup
+  ~/rem/update-20261008-v2.log
+The original compiler and Samurai are backed up too: qualification later
+replaces them inside REM. The original update's backups remain untouched.
+
+Boot REM normally, log in as root, then run:
+  sh /home/dev/rem-update-20261008/verify.sh full
+This tests the new explicit bootstrap seed, rebuilds the compiler twice, tests
+each stage's 8-byte struct return, runs the whole required compiler suite, then
+builds/runs Samurai. It takes hours. The existing selfbuilt compiler is only
+replaced after the final candidate passes the complete compiler suite.
+Success: COMPILER_REQUIRED_PORTING_TESTS_OK,
+COMPILER_REQUIRED_SELFREBUILD_OK, SAMURAI_NATIVE_EXECUTION_OK and
+REM_UPDATE_VERIFY_OK. Logs: rem-update-compiler.log and rem-update-samurai.log
+under /home/dev/rem-native-userland.
+
+Rollback, from Termux with QEMU stopped:
+  cd ~/rem
+  sh rem-update-20261008-v2/install.sh rollback
+This restores the exact pre-v2 source files, compiler, Samurai and kernel,
+and removes installer-created files. Other sources and guest data are kept.
+
+Host regression command (uses a disposable copy, never the supplied image):
+  bash android/fold-update-20261008/test-install.sh IMAGE PACKAGE_DIRECTORY
+
+Host package recipe (canonical repository only):
+  bash android/fold-update-20261008/build-seed.sh /tmp/rem-fold-update-seed
+  CHIBICC_SEED=VERIFIED_REM_COMPILER OUT=/tmp/rem-update-20261008-v2 \
+    bash android/fold-update-20261008/make-package.sh
+Build the seed with the fixed cross-GCC and flight-kit-runtime musl, using
+-DCHIBICC_REM for all ten compiler translation units; execute it in REM before
+packaging. The package does not rely on whichever old compiler the Fold has.

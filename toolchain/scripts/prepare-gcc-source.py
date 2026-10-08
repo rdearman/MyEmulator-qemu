@@ -429,13 +429,13 @@ myemulator2_expand_cbranchdf4 (rtx *operands)
            "\t}")
     new = ("      else\n"
            "\t{\n"
-           "\t  while (i > 255)\n"
+           "\t  while (i > 252)\n"
            "\t    {\n"
            "\t      insn = emit_insn (gen_subsi3 (stack_pointer_rtx,\n"
            "\t\t\t\t\t    stack_pointer_rtx,\n"
-           "\t\t\t\t\t    GEN_INT (255)));\n"
+           "\t\t\t\t\t    GEN_INT (252)));\n"
            "\t      RTX_FRAME_RELATED_P (insn) = 1;\n"
-           "\t      i -= 255;\n"
+           "\t      i -= 252;\n"
            "\t    }\n"
            "\t  if (i != 0)\n"
            "\t    {\n"
@@ -666,7 +666,13 @@ myemulator2_expand_cbranchdf4 (rtx *operands)
         "myemulator2_stack_dynamic_offset (void)\n"
         "{\n"
         "  myemulator2_compute_frame ();\n"
-        "  return STACK_POINTER_OFFSET + REG_PARM_STACK_SPACE (NULL_TREE);\n"
+        "  /* Dynamic allocations must sit above the whole outgoing argument block\n"
+        "     (register home area plus any stack-passed arguments), otherwise a\n"
+        "     call with more than four argument words overwrites alloca/VLA data.  */\n"
+        "  HOST_WIDE_INT outgoing = (HOST_WIDE_INT) crtl->outgoing_args_size;\n"
+        "  if (outgoing < REG_PARM_STACK_SPACE (NULL_TREE))\n"
+        "    outgoing = REG_PARM_STACK_SPACE (NULL_TREE);\n"
+        "  return STACK_POINTER_OFFSET + outgoing;\n"
         "}\n"
         "\n"
         + dynamic_offset_marker
@@ -674,6 +680,30 @@ myemulator2_expand_cbranchdf4 (rtx *operands)
     if dynamic_offset_marker in text and "myemulator2_stack_dynamic_offset (void)\n{" not in text:
         text = text.replace(dynamic_offset_marker, dynamic_offset_fn, 1)
 
+    text = text.replace('  return STACK_POINTER_OFFSET + REG_PARM_STACK_SPACE (NULL_TREE);\n', '  /* Dynamic allocations must sit above the whole outgoing argument block\n     (register home area plus any stack-passed arguments), otherwise a\n     call with more than four argument words overwrites alloca/VLA data.  */\n  HOST_WIDE_INT outgoing = (HOST_WIDE_INT) crtl->outgoing_args_size;\n  if (outgoing < REG_PARM_STACK_SPACE (NULL_TREE))\n    outgoing = REG_PARM_STACK_SPACE (NULL_TREE);\n  return STACK_POINTER_OFFSET + outgoing;\n')
+    # The SP must stay word-aligned after every instruction: an interrupt
+    # taken between two SP steps (e.g. 255 + 1) finds a misaligned SSP and the
+    # CPU raises a double fault.  Step large frames by 252 instead.
+    sp_step_old = ("\t  while (i > 255)\n\t    {\n"
+                   "\t      insn = emit_insn (gen_subsi3 (stack_pointer_rtx,\n"
+                   "\t\t\t\t\t    stack_pointer_rtx,\n"
+                   "\t\t\t\t\t    GEN_INT (255)));\n"
+                   "\t      RTX_FRAME_RELATED_P (insn) = 1;\n"
+                   "\t      i -= 255;\n")
+    text = text.replace(sp_step_old, sp_step_old.replace("255", "252"))
+    mid_old = ("      while ((i >= 255) && (i <= 510))\n\t{\n"
+               "\t  insn = emit_insn (gen_subsi3 (stack_pointer_rtx,\n"
+               "\t\t\t\t\tstack_pointer_rtx,\n"
+               "\t\t\t\t\tGEN_INT (255)));\n"
+               "\t  RTX_FRAME_RELATED_P (insn) = 1;\n"
+               "\t  i -= 255;\n")
+    mid_new = (mid_old.replace("(i >= 255)", "(i > 255)")
+               .replace("GEN_INT (255)", "GEN_INT (252)")
+               .replace("i -= 255", "i -= 252"))
+    if mid_old in text:
+        text = text.replace(mid_old, mid_new, 1)
+    elif mid_new not in text:
+        raise SystemExit("could not locate mid-size frame allocation loop")
     cc.write_text(text)
 
     # Part 2 of the Bug #6 fix: teach generic GCC about STACK_DYNAMIC_PAD.
