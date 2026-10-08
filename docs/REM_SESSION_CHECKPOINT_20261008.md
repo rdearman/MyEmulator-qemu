@@ -7,7 +7,7 @@ Never git clean/reset/restore; ~265 pre-existing dirty/untracked entries must be
 
 **FINAL V2 PACKAGE: NOT YET READY FOR TRANSFER**
 
-The current continuation is in sections 11-14 and the handover document.
+The current continuation is in sections 11-15 and the handover document.
 Earlier v1 completion statements do not qualify the corrected v2 update.
 
 ## 1. Completed (verified)
@@ -362,3 +362,24 @@ Last qualification check: elapsed 01:17:00, PID 1790915 still active, compiler
 phase entered, no completion/fault marker. User now requires checks no more
 often than every ten minutes unless an exit/completion/failure event occurs.
 Do independent safe work between checks; do not restart the qualification.
+
+## 15. Event-driven observation and strengthened archive regression
+
+Archive/source/docs checkpoint local `2eb637e474922596689aef13914c301bb3e0d371`
+was preserved; task-only remote `ea217004c6327e39809e03dbca69f4e8f434efb0`
+was pushed successfully.
+
+Event-only observer tool session `646` is active and verified responsive:
+Linux inotify observes serial writes and pidfd observes QEMU exit; there is no
+periodic QEMU/status polling. It reports completion, user fault, panic or explicit
+compiler/Samurai failure and does not alter the qualification. Read its result
+on completion notification, then inspect the original `foldv2` evidence.
+Last actual progress snapshot remains elapsed 01:17:00; no newer completion
+marker has been observed. The next action is to consume that event/result.
+
+Archive validation additionally requires every execution marker in the sealed
+manifest and checks the extracted file inventory. Host tests PASS/0 additionally
+prove: an existing archive/hash cannot be overwritten; a resealed PASS manifest
+missing compiler completion is rejected; unexpected symlinks are rejected.
+Complete updated host package regression PASS/0 (11 PASS lines). Synthetic
+fixtures are still NOT REM qualification and were removed on success.

@@ -552,3 +552,30 @@ verification/install block, not a guessed transfer URL, another rootfs or phone
 diagnostics. Preserve the actual image `~/rem/rootfs.ext4`; stop Fold QEMU before
 Termux installation/rollback. Guest verification is one script invocation after
 normal boot, not manual editing.
+
+### Latest preserved checkpoint and event observer
+
+Local source/documentation checkpoint:
+`2eb637e474922596689aef13914c301bb3e0d371`.
+Task-only remote checkpoint:
+`ea217004c6327e39809e03dbca69f4e8f434efb0`,
+branch `rem-fold-update-20261008-v2-checkpoint`, push PASS.
+
+Original qualification tool session: `foldv2`; original QEMU PID: 1790915.
+Additional event-only observer tool session: `646`, verified active/responsive.
+It uses Linux inotify for serial writes and pidfd for process exit, not periodic
+progress/status polling. It cannot stop or modify QEMU. Upon its completion
+notification, read session 646 once and capture actual original execution
+results; do not launch a replacement qualification. The last recorded progress
+snapshot remains elapsed 01:17:00 with compiler phase entered and no marker.
+
+Further archive checks require all expected execution markers in a checksummed
+PASS manifest and compare the extracted file inventory. Latest full host-only
+package regression PASS/0, 11 PASS lines, including preservation of existing
+archive/hash, rejection of a resealed PASS manifest lacking compiler completion,
+and rejection of unexpected symlinks. Synthetic fixtures were removed; no final
+REM-qualified v2 archive/hash has been generated.
+
+Current single next action: consume the existing qualification's completion/
+failure event and authoritative serial markers. Until then do not restart QEMU,
+repeat the seed build, or transfer a candidate/synthetic archive.
