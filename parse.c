@@ -1533,12 +1533,13 @@ write_gvar_data(Relocation *cur, Initializer *init, Type *ty, char *buf, int off
       if (mem->is_bitfield) {
         Node *expr = init->children[mem->idx]->expr;
         if (!expr)
-          break;
+          continue;
 
         char *loc = buf + offset + mem->offset;
         uint64_t oldval = read_buf(loc, mem->ty->size);
         uint64_t newval = eval(expr);
-        uint64_t mask = (1L << mem->bit_width) - 1;
+        uint64_t mask = mem->bit_width >= 64 ? ~(uint64_t)0
+                                             : ((uint64_t)1 << mem->bit_width) - 1;
         uint64_t combined = oldval | ((newval & mask) << mem->bit_offset);
         write_buf(loc, combined, mem->ty->size);
       } else {
@@ -3436,13 +3437,7 @@ static Token *function(Token *tok, Type *basety, VarAttr *attr) {
   // A buffer for a struct/union return value is passed
   // as the hidden first parameter.
   Type *rty = ty->return_ty;
-  if ((rty->kind == TY_STRUCT || rty->kind == TY_UNION) && rty->size >
-#ifdef CHIBICC_REM
-      8
-#else
-      16
-#endif
-      )
+  if (rty->kind == TY_STRUCT || rty->kind == TY_UNION)
     new_lvar("", pointer_to(rty));
 
   fn->params = locals;

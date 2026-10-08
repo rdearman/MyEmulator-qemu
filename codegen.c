@@ -468,7 +468,7 @@ static void gen_call(Node *node) {
   bool indirect = !(node->lhs->kind == ND_VAR && node->lhs->var->is_function);
   int nwords = 0;
   bool aggregate_return = node->ty->kind == TY_STRUCT || node->ty->kind == TY_UNION;
-  bool hidden_return = aggregate_return && node->ty->size > 8;
+  bool hidden_return = aggregate_return;
   if (hidden_return) nwords++;
   for (Node *a = node->args; a; a = a->next)
     nwords += arg_words(a->ty);
@@ -793,22 +793,11 @@ static void gen_stmt(Node *node) {
     if (current_fn->ty->return_ty->kind == TY_STRUCT ||
         current_fn->ty->return_ty->kind == TY_UNION) {
       Type *ty = current_fn->ty->return_ty;
-      if (ty->size > 8) {
-        println("  add r3, r1, r0");
-        load_fp(1, current_fn->params->offset);
-        push_reg(1);
-        println("  add r1, r3, r0");
-        store(ty);
-      } else {
-        println("  add r3, r1, r0");
-        println("  li r1, 0");
-        println("  li r2, 0");
-        for (int i = 0; i < ty->size; i++) {
-          println("  lbu r4, %d(r3)", i);
-          println("  slli r4, r4, %d", (i % 4) * 8);
-          println("  or r%d, r%d, r4", i < 4 ? 1 : 2, i < 4 ? 1 : 2);
-        }
-      }
+      println("  add r3, r1, r0");
+      load_fp(1, current_fn->params->offset);
+      push_reg(1);
+      println("  add r1, r3, r0");
+      store(ty);
       println("  j .Lreturn.%s", current_fn->name);
       return;
     }
@@ -942,6 +931,13 @@ static void emit_text(Obj *prog) {
        (used heavily by Samurai) are not always visible to the lightweight
        reference liveness pass. */
     if (!fn->is_function || !fn->is_definition || fn->alias_name) continue;
+    if (fn->ty->return_ty->kind == TY_STRUCT ||
+        fn->ty->return_ty->kind == TY_UNION) {
+      Obj *result = fn->params;
+      if (!result || result->name[0] || result->ty->kind != TY_PTR ||
+          result->ty->base != fn->ty->return_ty)
+        error_tok(fn->tok, "REM aggregate return requires a hidden result parameter");
+    }
     println("  %s %s", fn->is_static ? ".local" : fn->is_weak ? ".weak" : ".global", fn->name);
     println("  .text");
     println("  .align 2");
