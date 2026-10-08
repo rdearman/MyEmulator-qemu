@@ -1,14 +1,15 @@
 # REM32 Fold ABI/update handover -- 2026-10-08
 
-**CURRENT STATUS: QUALIFICATION STILL RUNNING**
+**CURRENT STATUS: FULL V2 QUALIFICATION PASS**
 
-**NATIVE COMPILER QUALIFICATION: PASS; SAMURAI/FULL UPDATE: PENDING**
+**NATIVE COMPILER / SAMURAI / FULL UPDATE: PASS**
 
-**FINAL V2 PACKAGE: NOT YET READY FOR TRANSFER**
+**FINAL V2 PACKAGE: QUALIFIED AND READY FOR TRANSFER**
 
-Implementation resumed at Rick's subsequent request. This is a code/fix checkpoint,
-not a claim that the new full qualification has passed. Do not restart the
-already-running job or send the original archive to the Fold again.
+Full qualification and tests of the actual final archive have now passed.
+The latest authoritative release state is at the end of this document and in
+`docs/REM_FOLD_V2_RELEASE_20261008.md`; earlier pending snapshots are historical.
+Do not repeat the completed qualification or send the original v1 archive.
 
 ## Objective and workspace boundary
 
@@ -638,3 +639,59 @@ To inspect without restarting, use the documented `ps`/`tail`/`grep` block.
 Next routine observation no earlier than **10:28:48 BST**, unless an exit,
 completion or failure event occurs. Keep the originating CLI alive; do not
 kill QEMU, mutate/fsck its live image, or transfer a PENDING/synthetic archive.
+
+Final independent preservation audit after that snapshot:
+local documentation/evidence checkpoint
+`f0cdec22b0951f3b54b2b3fdec0cf9595d716d3f`;
+task-only remote `de7bc02027099dd758e110c3adb96cd0ffaaacbd`, push PASS.
+All 21 task entries matched byte-for-byte between committed canonical HEAD and
+remote checkpoint; all task files clean and no unrelated staged entries.
+Nested compiler commit `f3a3094f16fd144719be9b4ee77e84836e4c1bfa` was independently
+confirmed on its GitHub publication branch. Unrelated remaining Git status:
+272 entries, consisting of 47 modified, one type change, 224 untracked.
+These are preserved, not cleaned or included in task commits.
+
+## Final actual qualification and release
+
+Original `foldv2` completed, harness exit 0 and authoritative guest
+`REM_QA_DONE|0`. Observer 646 captured the actual completion; both original QEMU/
+timeout PIDs 1790915/1790913 were gone at 10:33:59 BST. No job was restarted.
+Actual seed/stage1/stage2 small-return, compiler porting/self-rebuild, all six
+Samurai, full verification and guest-success markers were observed. No user
+fault or panic appeared. Actual logs are durable:
+`docs/REM_FOLD_V2_EVIDENCE_20261008/{qualification.serial,compiler.log,samurai.log}`.
+Compiler result file in the guest was explicitly read as 0.
+
+New host-only release safety: every target is preflighted, accepting tested
+old-helper/library baselines but rejecting missing/unknown noncompiler files
+before image/kernel mutation. Compiler local hunks still merge/preserve edits.
+This also avoids overwriting unknown local Samurai/helper sources.
+New post-build reinstall fix: a runtime recorded absent before the first install
+is never reclassified as original merely because native qualification built it.
+Rollback still removes that new runtime after reinstall.
+
+Exact final archive's installer suite PASS/0, seven PASS groups: corrupted/
+missing/wrong-hash payload, missing kernel and obsolete/wrong-size images;
+missing/modified required library and local helper conflicts; incomplete ABI
+verification rejected; local parser merge/preservation/idempotence; exact source
+rollback; post-build reinstall/runtime restoration/removal/local data; parser
+conflict abort. Negative preflights compare complete image+kernel SHA-256.
+Logs: `release-input-verify.log`, `final-archive-install.log` in the evidence dir.
+
+Final release directory:
+`/tmp/rem-fold-final-release.koeW2P/rem-update-20261008-v2`.
+Actual archive extraction used for tests:
+`/tmp/rem-fold-final-archive-test.zuWrzf/rem-update-20261008-v2`.
+Archive: `/tmp/REM-FOLD-update-20261008-v2.tar.gz`.
+Size: **4,713,486 bytes**.
+SHA-256:
+`ab19349f0fe651df40cbad970f3dce371a2850ecfee44d60c03741dd9eb95d1b`.
+Adjacent `.sha256` and `.manifest.txt`; internal checksummed `MANIFEST.txt`.
+Reproducibility (two archives), extraction/hash checks, complete manifest and
+matched tested seed/kernel all passed. Do not overwrite this verified artifact.
+
+`docs/REM_FOLD_V2_RELEASE_20261008.md` contains the literal-hash install block,
+one-archive transfer procedure, original backup/log paths and rollback.
+Further related hardening may continue, but there is no native qualification
+blocker. Next agent should verify preserved release artifacts/checkpoints and
+only pursue an actual remaining release-validation gap; do not redo native builds.

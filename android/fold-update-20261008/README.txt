@@ -14,6 +14,9 @@ From Termux, after checking the archive SHA-256 against the adjacent manifest:
   sh rem-update-20261008-v2/install.sh verify
 
 The installer preflights BOTH compiler files before changing the image.
+It also preflights every other target against its installed/new/known-old baseline.
+Missing required files or unknown local helper/library/Samurai changes abort
+before any image or kernel changes; local source is never silently overwritten.
 It merges exact hunks independently, accepting already-applied Fold fixes and
 preserving other local source edits. Ambiguous or conflicting changes abort
 without applying half an ABI update. Backups and log:
@@ -21,6 +24,8 @@ without applying half an ABI update. Backups and log:
   ~/rem/update-20261008-v2.log
 The original compiler and Samurai are backed up too: qualification later
 replaces them inside REM. The original update's backups remain untouched.
+Reinstalling after native qualification keeps the original pre-update backups,
+including the recorded absence of a Samurai binary that was first built later.
 
 Boot REM normally, log in as root, then run:
   sh /home/dev/rem-update-20261008/verify.sh full
@@ -42,7 +47,10 @@ and removes installer-created files. Other sources and guest data are kept.
 Host regression command (uses a disposable copy, never the supplied image):
   bash android/fold-update-20261008/test-install.sh IMAGE PACKAGE_DIRECTORY
 This covers exact source rollback, preservation of local source/data, restoration
-of rebuilt existing native runtimes and removal of newly built runtimes.
+of rebuilt existing native runtimes and removal of newly built runtimes, even
+after a post-build reinstall. Corrupt/missing/wrong-hash payloads, missing kernel,
+obsolete/small images and unsupported installed baselines are rejected without
+changing image or kernel bytes.
 Host-only package marker/checksum tests (not native qualification):
   bash android/fold-update-20261008/test-package.sh VERIFIED_REM_COMPILER
 

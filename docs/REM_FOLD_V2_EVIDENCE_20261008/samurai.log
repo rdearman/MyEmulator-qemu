@@ -1,0 +1,38 @@
+CC samurai build.c
+CC samurai deps.c
+CC samurai env.c
+CC samurai graph.c
+CC samurai htab.c
+CC samurai log.c
+CC samurai os-posix.c
+CC samurai parse.c
+CC samurai samu.c
+CC samurai scan.c
+CC samurai tool.c
+CC samurai tree.c
+CC samurai util.c
+/usr/bin/ld: warning: _clzsi2.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: error in /usr/lib/libgcc.a(_udivdi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: error in /usr/lib/libgcc.a(_umoddi3.o)(.eh_frame); no .eh_frame_hdr table will be created
+/usr/bin/ld: warning: samu has a LOAD segment with RWX permissions
+SAMURAI_BUILD_OK
+[1/1] /home/dev/rem-native-userland/bootstrap/native/chibicc-selfbuilt -o hello hello.c
+SAMURAI_DRY_RUN_OK
+[1/1] /home/dev/rem-native-userland/bootstrap/native/chibicc-selfbuilt -o hello hello.c
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: hello has a LOAD segment with RWX permissions
+SAMURAI_NATIVE_BUILD_OK
+[1/1] /home/dev/rem-native-userland/bootstrap/native/chibicc-selfbuilt -o hello hello.c
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: hello has a LOAD segment with RWX permissions
+SAMURAI_INCREMENTAL_REBUILD_OK
+remove hello
+SAMURAI_CLEAN_OK
+[1/1] /home/dev/rem-native-userland/bootstrap/native/chibicc-selfbuilt -o hello hello.c
+/usr/bin/ld: warning: _muldi3.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+/usr/bin/ld: warning: hello has a LOAD segment with RWX permissions
+SAMURAI_NATIVE_EXECUTION_OK

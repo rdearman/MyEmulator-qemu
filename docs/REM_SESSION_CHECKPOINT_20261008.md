@@ -3,11 +3,11 @@
 Resume from here; do not redo completed items. Canonical repo only; scratch in /tmp.
 Never git clean/reset/restore; ~265 pre-existing dirty/untracked entries must be preserved.
 
-**CURRENT STATUS: V2 QUALIFICATION STILL RUNNING; NATIVE COMPILER PASS, SAMURAI PENDING**
+**CURRENT STATUS: V2 COMPILER/SAMURAI/FULL QUALIFICATION PASS**
 
-**FINAL V2 PACKAGE: NOT YET READY FOR TRANSFER**
+**FINAL V2 PACKAGE: QUALIFIED AND READY FOR TRANSFER**
 
-The current continuation is in sections 11-16 and the handover document.
+The current continuation is in section 17 and the release/handover documents.
 Earlier v1 completion statements do not qualify the corrected v2 update.
 
 ## 1. Completed (verified)
@@ -431,3 +431,46 @@ Next routine check no earlier than 10:28:48 BST unless exit/failure/completion.
 All validated source was already published at task-only checkpoint
 `f7b8e76df738ac50a0cdf2e87de9a37d81e05239`
 (local `a984e6381deccda325c0b29b3cac93fcfce432e3`).
+
+Documentation/evidence checkpoint local
+`f0cdec22b0951f3b54b2b3fdec0cf9595d716d3f`,
+task-only remote `de7bc02027099dd758e110c3adb96cd0ffaaacbd`, push PASS.
+Independent preservation audit PASS: all 21 task entries are byte-identical
+between canonical committed HEAD and published checkpoint; task working tree
+clean; no staged unrelated entries; nested compiler `f3a3094...` confirmed on
+GitHub. Remaining unrelated work: exactly 272 status entries (47 modified,
+one type change, 224 untracked), unchanged and not staged.
+
+## 17. Actual full v2 qualification and final-archive tests PASS
+
+Original `foldv2` harness exited 0, guest `REM_QA_DONE|0`; original QEMU/timeout
+PIDs 1790915/1790913 were confirmed gone at 10:33:59 BST. Event observer 646
+captured completion and exited. Every required actual marker passed:
+seed/stage1/stage2 small return, both required compiler markers, all six Samurai
+markers, REM_UPDATE_VERIFY_OK. No user fault or kernel panic in the full serial.
+Durable actual logs: `docs/REM_FOLD_V2_EVIDENCE_20261008/`.
+
+Release installer safety was strengthened without changing guest payloads:
+all targets preflight before any filesystem/kernel mutation; known original
+helpers/runtime hashes accepted; unknown local helpers/libraries/Samurai files
+or missing required baselines rejected rather than overwritten.
+Post-build reinstall no longer mistakes a newly built Samurai for an original
+binary that should be restored by rollback. Actual-final-archive tests PASS/0:
+corrupt/missing/wrong-hash payload, missing kernel, wrong-size/obsolete image,
+missing/modified library and modified helper, incomplete ABI verification,
+local edit preservation/idempotence, exact source/runtime rollback, post-build
+reinstall/original-absence restoration, conflicting parser atomic abort.
+Rejected installs were checked with full image+kernel SHA-256, not only sources.
+
+Final qualified tree: `/tmp/rem-fold-final-release.koeW2P/rem-update-20261008-v2`.
+Final extracted archive test tree:
+`/tmp/rem-fold-final-archive-test.zuWrzf/rem-update-20261008-v2`.
+Archive: `/tmp/REM-FOLD-update-20261008-v2.tar.gz`, **4,713,486 bytes**,
+SHA-256 `ab19349f0fe651df40cbad970f3dce371a2850ecfee44d60c03741dd9eb95d1b`.
+Two byte-identical normalized archives, extracted hashes, complete manifest,
+matched REM-tested seed/kernel and final archive SHA-256 all PASS.
+See `docs/REM_FOLD_V2_RELEASE_20261008.md` for exact one-archive transfer,
+literal-hash Termux install block, single guest qualification command and rollback.
+
+Further directly related release hardening may continue; do not redo the passed
+native qualification or rebuild the tested compiler/kernel without a new failure.
