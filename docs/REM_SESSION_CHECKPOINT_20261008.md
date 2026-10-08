@@ -3,11 +3,11 @@
 Resume from here; do not redo completed items. Canonical repo only; scratch in /tmp.
 Never git clean/reset/restore; ~265 pre-existing dirty/untracked entries must be preserved.
 
-**CURRENT STATUS: V2 QUALIFICATION STILL RUNNING**
+**CURRENT STATUS: V2 QUALIFICATION STILL RUNNING; NATIVE COMPILER PASS, SAMURAI PENDING**
 
 **FINAL V2 PACKAGE: NOT YET READY FOR TRANSFER**
 
-The current continuation is in sections 11-15 and the handover document.
+The current continuation is in sections 11-16 and the handover document.
 Earlier v1 completion statements do not qualify the corrected v2 update.
 
 ## 1. Completed (verified)
@@ -393,3 +393,41 @@ package regression PASS/0, 12 PASS lines, including a deliberately inconsistent
 mapping with resealed package checksums. No guest or qualified build changed.
 Independent release/rollback/documentation validation is complete; consume the
 event-only observer's result rather than repeatedly querying QEMU.
+
+## 16. Actual native compiler qualification PASS; Samurai running
+
+Requested single snapshot at `2026-10-08T10:18:48+01:00`:
+QEMU PID 1790915, parent timeout PID 1790913, state `Sl`, elapsed 01:48:23,
+CPU time 01:48:24; original start 08:30:24 BST. Same command, kernel and live
+image as documented; no restart or alteration.
+
+Actual `/tmp/remqa/foldv2.serial` execution evidence now includes:
+
+```text
+PASS aggregate-small-return (seed)
+PASS aggregate-small-return (stage1)
+PASS aggregate-small-return (stage2)
+PASS aggregate-small-return
+PASS aggregate-abi
+PASS chibicc caller / GCC aggregate callee
+PASS GCC caller / chibicc aggregate callee
+COMPILER_REQUIRED_PORTING_TESTS_OK
+COMPILER_REQUIRED_SELFREBUILD_OK
+--- Samurai (log: /home/dev/rem-native-userland/rem-update-samurai.log)
+```
+
+All other required compiler porting tests/rejection tests printed PASS.
+The native seed/stage1/stage2 return regression checks unchanged input and
+`t.first == 11`, `t.last == 23`. These are actual REM results, not host fixtures.
+No user fault or kernel panic appeared in the inspected serial.
+
+Still expected: SAMURAI_BUILD_OK, SAMURAI_DRY_RUN_OK, SAMURAI_NATIVE_BUILD_OK,
+SAMURAI_INCREMENTAL_REBUILD_OK, SAMURAI_CLEAN_OK, SAMURAI_NATIVE_EXECUTION_OK,
+REM_UPDATE_VERIFY_OK, REM_QA_DONE|0. Until those occur, final v2 is NOT ready.
+Original tool `foldv2` and event observer `646` remain the existing run/result
+sources. Codex should read their completion notification, or inspect the exact
+PID/serial with the handover commands; do not start a new qualification.
+Next routine check no earlier than 10:28:48 BST unless exit/failure/completion.
+All validated source was already published at task-only checkpoint
+`f7b8e76df738ac50a0cdf2e87de9a37d81e05239`
+(local `a984e6381deccda325c0b29b3cac93fcfce432e3`).

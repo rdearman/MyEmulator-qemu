@@ -2,6 +2,8 @@
 
 **CURRENT STATUS: QUALIFICATION STILL RUNNING**
 
+**NATIVE COMPILER QUALIFICATION: PASS; SAMURAI/FULL UPDATE: PENDING**
+
 **FINAL V2 PACKAGE: NOT YET READY FOR TRANSFER**
 
 Implementation resumed at Rick's subsequent request. This is a code/fix checkpoint,
@@ -589,3 +591,50 @@ rejection of an inconsistent mapping even after its checksums were resealed.
 This remains host-only evidence; the running guest and qualified seed were not
 rebuilt or changed. Independent release validation and takeover documentation
 are complete; the remaining critical-path action is the existing event/result.
+
+## Latest authoritative snapshot -- native compiler PASS
+
+At `2026-10-08T10:18:48+01:00`, requested single current-state check:
+QEMU PID **1790915**, parent timeout **1790913**, process state **Sl**,
+elapsed **01:48:23**, CPU time **01:48:24**, started **08:30:24 BST**.
+The exact process command/kernel/live image are unchanged from above.
+Serial: `/tmp/remqa/foldv2.serial`.
+
+Actual REM execution now proves compiler qualification/self-rebuild PASS:
+
+```text
+PASS aggregate-small-return (seed)
+PASS aggregate-small-return (stage1)
+PASS aggregate-small-return (stage2)
+PASS aggregate-small-return
+PASS aggregate-abi
+PASS chibicc caller / GCC aggregate callee
+PASS GCC caller / chibicc aggregate callee
+COMPILER_REQUIRED_PORTING_TESTS_OK
+COMPILER_REQUIRED_SELFREBUILD_OK
+--- Samurai (log: /home/dev/rem-native-userland/rem-update-samurai.log)
+```
+
+All other required porting/rejection tests printed PASS. Each stage's small
+return checks unchanged caller input and returned `{11,23}`. This is real REM
+execution, not synthetic host gate testing. No user fault or panic was observed.
+Latest meaningful output is the Samurai phase entry, guest log
+`/home/dev/rem-native-userland/rem-update-samurai.log`.
+
+Remaining expected actual markers:
+SAMURAI_BUILD_OK, SAMURAI_DRY_RUN_OK, SAMURAI_NATIVE_BUILD_OK,
+SAMURAI_INCREMENTAL_REBUILD_OK, SAMURAI_CLEAN_OK, SAMURAI_NATIVE_EXECUTION_OK,
+REM_UPDATE_VERIFY_OK, REM_QA_DONE|0. No final v2 release archive/hash yet.
+
+Source checkpoint local `a984e6381deccda325c0b29b3cac93fcfce432e3`,
+task-only remote `f7b8e76df738ac50a0cdf2e87de9a37d81e05239`, push PASS.
+All current-task source/scripts/tests are preserved there; unrelated recovered
+work remains untouched. Only these final evidence/documentation changes are new.
+
+**Single next action for Codex:** consume existing observer session `646` /
+original `foldv2` completion, then apply the exact release commands above if
+every actual marker passed. Never restart or repeat native compiler rebuilds.
+To inspect without restarting, use the documented `ps`/`tail`/`grep` block.
+Next routine observation no earlier than **10:28:48 BST**, unless an exit,
+completion or failure event occurs. Keep the originating CLI alive; do not
+kill QEMU, mutate/fsck its live image, or transfer a PENDING/synthetic archive.
