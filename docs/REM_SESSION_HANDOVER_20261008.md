@@ -446,3 +446,46 @@ This proves candidate/qualification-input identity, not compiler completion.
 The live QEMU remained active at elapsed 48:01. A read-only raw-image compiler
 log snapshot yielded no text and cannot establish progress or failure because
 the live guest's cached/journaled writes may not yet be visible.
+
+### Subsequent validated release/rollback changes
+
+Local checkpoint `87eea048afaa940ca73fd86719507ed7ef7a13ef`, task-only remote
+checkpoint `201846b79da0a70aad763c9c28efef67ba13c491`: push PASS.
+Current task scope additionally includes
+`android/fold-update-20261008/test-package.sh` (20 parent task paths total).
+
+`make-package.sh` now writes a checksummed `MANIFEST.txt` with baselines, seed/
+kernel SHA-256, payload mapping, install/verify/rollback commands and qualification
+status. Without `QUALIFICATION_LOG`, output is explicitly PENDING/not ready.
+With the actual completed serial log, every one of the 13 exact markers is
+required and any user fault, kernel panic or failed guest exit aborts packaging.
+
+Host-only `test-package.sh` PASS/0: each individual missing marker, three fault/
+exit cases, synthetic positive marker validation, manifest checksums, pending
+label and output preservation. Synthetic logs/trees are test fixtures, NOT REM
+execution evidence, and were removed on success. Never use one for delivery.
+
+Expanded `test-install.sh` PASS/0 against
+`/tmp/rem-fold-package-gates.E4xfZ2/rem-update-20261008-v2`:
+all earlier checks, restored existing compiler after a simulated native rebuild,
+removed newly built Samurai on rollback, preserved unrelated local source/data.
+Failed host regression work directories are retained with an explicit diagnostic
+path rather than silently cleaned. These changes remain host-only.
+
+At elapsed 54:54, QEMU PID 1790915 was active (one CPU fully used); compiler phase
+still entered, no completion/fault marker in serial. Do not restart the job.
+After actual completion, use a fresh output and the actual serial:
+
+```sh
+release_parent=$(mktemp -d /tmp/rem-fold-release.XXXXXX)
+CHIBICC_SEED=/tmp/remqa/abi-followup/seed-build/chibicc-update-seed \
+QUALIFICATION_LOG=/tmp/remqa/foldv2.serial \
+OUT="$release_parent/rem-update-20261008-v2" \
+bash android/fold-update-20261008/make-package.sh
+```
+
+Then validate that exact release directory against the stopped image and run
+installer regression, check all payload hashes, archive only
+`rem-update-20261008-v2/`, and write the adjacent release report with byte size
+and archive SHA-256. Do not overwrite an existing archive/evidence path blindly.
+The current manifested scratch candidate is still PENDING, not for transfer.

@@ -10,6 +10,7 @@
 #   BASE_PATCH  chibicc-rem-native.patch as shipped in REM-FOLD-BUILD-SOURCE-20261007
 #               (SHA-256 b235638b...; default: pinned original kit revision)
 #   CHIBICC_SEED  REM-native compiler built by build-seed.sh and executed in REM
+#   QUALIFICATION_LOG  successful full REM serial log; omitted for candidate-only packages
 set -euo pipefail
 here=$(cd "${0%/*}" && pwd)
 repo=$(cd "$here/../.." && pwd)
@@ -30,6 +31,32 @@ trap 'rm -rf "$work"' EXIT
 if [ -n "${BASE_PATCH:-}" ]; then cp "$BASE_PATCH" "$work/base.patch"
 else git -C "$repo" show e962d91f238476cc92669e5e514b12075dca0136:toolchain/native-userland/patches/chibicc-rem-native.patch > "$work/base.patch"; fi
 [ "$(s "$work/base.patch")" = "$base_patch_sha" ] || { echo "baseline patch mismatch" >&2; exit 1; }
+qualification_markers=(
+    "PASS aggregate-small-return (seed)"
+    "PASS aggregate-small-return (stage1)"
+    "PASS aggregate-small-return (stage2)"
+    COMPILER_REQUIRED_PORTING_TESTS_OK
+    COMPILER_REQUIRED_SELFREBUILD_OK
+    SAMURAI_BUILD_OK
+    SAMURAI_DRY_RUN_OK
+    SAMURAI_NATIVE_BUILD_OK
+    SAMURAI_INCREMENTAL_REBUILD_OK
+    SAMURAI_CLEAN_OK
+    SAMURAI_NATIVE_EXECUTION_OK
+    REM_UPDATE_VERIFY_OK
+    "REM_QA_DONE|0"
+)
+if [ -n "${QUALIFICATION_LOG:-}" ]; then
+    tr -d '\r' < "$QUALIFICATION_LOG" > "$work/qualification.log"
+    for marker in "${qualification_markers[@]}"; do
+        grep -Fqx "$marker" "$work/qualification.log" ||
+            { echo "qualification marker missing: $marker" >&2; exit 1; }
+    done
+    if grep -Eq 'MYEMU_BAD_USER_FAULT|Kernel panic|REM_QA_DONE\|[1-9]' "$work/qualification.log"; then
+        echo "qualification log contains a fault or failed guest result" >&2
+        exit 1
+    fi
+fi
 for v in base new; do
     mkdir -p "$work/$v"
     git -C "$repo/toolchain/chibicc-rem" archive "$chibicc_base" | tar -x -C "$work/$v"
@@ -90,5 +117,28 @@ done
 } > "$out/files.list"
 printf '%s\n' "$K/packages/samurai" /home/dev/rem-update-20261008 > "$out/dirs.list"
 sed 's#^#/#; s#^//#/#' "$BUSYBOX_LINKS" > "$out/applets.list"
-(cd "$out" && { find payload guest -type f | sort | xargs sha256sum; sha256sum install.sh README.txt files.list dirs.list applets.list; } > payload.sha256)
+{
+    echo "REM Fold incremental update 20261008 v2"
+    echo "Target: ~/rem/rootfs.ext4, existing 10 GiB ext4; QEMU must be stopped."
+    echo "No image replacement, formatting, resizing, or source-tree replacement."
+    echo "Original compiler patch SHA-256: $base_patch_sha"
+    echo "REM-native bootstrap seed SHA-256: $(s "$out/payload/chibicc-update-seed")"
+    echo "Kernel SHA-256: $(s "$out/payload/vmlinux")"
+    if [ -n "${QUALIFICATION_LOG:-}" ]; then
+        echo "Full REM execution qualification: PASS"
+        echo "Qualification serial SHA-256: $(s "$QUALIFICATION_LOG")"
+        printf '%s\n' "${qualification_markers[@]}"
+    else
+        echo "Full REM execution qualification: PENDING; candidate, NOT ready for transfer."
+    fi
+    echo "Installer regression and archive SHA-256: see adjacent release report."
+    echo "Backups: ~/rem/update-20261008-v2-backup; log: ~/rem/update-20261008-v2.log"
+    echo "Install: sh rem-update-20261008-v2/install.sh install"
+    echo "Verify: sh rem-update-20261008-v2/install.sh verify"
+    echo "Rollback (QEMU stopped): sh rem-update-20261008-v2/install.sh rollback"
+    echo "Guest verification: sh /home/dev/rem-update-20261008/verify.sh full"
+    echo "Payload mapping (guest path | package payload):"
+    cut -d'|' -f1,2 "$out/files.list"
+} > "$out/MANIFEST.txt"
+(cd "$out" && { find payload guest -type f | sort | xargs sha256sum; sha256sum install.sh README.txt MANIFEST.txt files.list dirs.list applets.list; } > payload.sha256)
 echo "Package tree: $out"

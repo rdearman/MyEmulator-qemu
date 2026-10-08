@@ -41,6 +41,10 @@ and removes installer-created files. Other sources and guest data are kept.
 
 Host regression command (uses a disposable copy, never the supplied image):
   bash android/fold-update-20261008/test-install.sh IMAGE PACKAGE_DIRECTORY
+This covers exact source rollback, preservation of local source/data, restoration
+of rebuilt existing native runtimes and removal of newly built runtimes.
+Host-only package marker/checksum tests (not native qualification):
+  bash android/fold-update-20261008/test-package.sh VERIFIED_REM_COMPILER
 
 Host package recipe (canonical repository only):
   bash android/fold-update-20261008/build-seed.sh /tmp/rem-fold-update-seed
@@ -52,3 +56,8 @@ packaging. The package does not rely on whichever old compiler the Fold has.
 The package and installer regression use the pinned original kit baseline,
 not the current Git HEAD. BASE_PATCH can supply that same verified baseline.
 OUT must be absent or empty; existing package/evidence directories are preserved.
+The package contains a checksummed MANIFEST.txt with baselines and payload paths.
+Set QUALIFICATION_LOG to the completed full REM serial log for the final release:
+all seed/stage, compiler, Samurai, full verification and guest exit markers are
+required, and fault/failed-exit logs are rejected. Without it the manifest clearly
+labels the output as an unqualified candidate, not ready for transfer.

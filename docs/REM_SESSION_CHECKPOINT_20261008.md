@@ -295,3 +295,30 @@ payload checksums PASS; corrected installer regression PASS/0 (all four checks);
 stopped qualification launch-source verification PASS/0, including retained
 local parser edits, payload identity, filesystem check and `VERIFY_OK`.
 Live QEMU at elapsed 48:01 still had no authoritative completion marker.
+
+## 12. Release gates and post-build rollback validated
+
+Local checkpoint `87eea048afaa940ca73fd86719507ed7ef7a13ef` is preserved and
+task-only publication `201846b79da0a70aad763c9c28efef67ba13c491` was pushed
+successfully to `rem-fold-update-20261008-v2-checkpoint`.
+
+The package generator now includes a checksummed `MANIFEST.txt`. Without
+`QUALIFICATION_LOG` it explicitly labels the tree PENDING/not transferable.
+For a release, the actual completed REM serial log must contain all 13 exact
+seed/stage/compiler/Samurai/full-verification/guest-exit markers; user faults,
+kernel panics and failed guest results are rejected.
+
+New task file `android/fold-update-20261008/test-package.sh` passed all missing
+marker cases, all three fault/exit rejection cases, manifest checksums, pending
+label and nonempty-output preservation. Its synthetic positive log is HOST-ONLY
+unit evidence, NOT native qualification; its disposable synthetic tree was
+removed. No archive was released from synthetic evidence.
+Installer regression passed again against the manifested candidate:
+original compiler/runtime backup restored after a simulated rebuild, newly
+created Samurai removed on rollback, unrelated local source/data unchanged,
+plus all earlier partial-update/local-edit/idempotence/conflict checks.
+Failing host regression scratch is now retained for diagnosis.
+
+At elapsed 54:54 QEMU PID 1790915 was still running; serial remained at compiler
+qualification, no completion or fault marker. Final v2 archive is still pending.
+Single next action: inspect that existing qualification, not a replacement run.
