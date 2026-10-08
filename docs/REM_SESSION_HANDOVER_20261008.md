@@ -1,22 +1,28 @@
 # REM32 Fold ABI/update handover -- 2026-10-08
 
-**CURRENT STATUS: ACTUAL FOLD BLOCKED ON UNIDENTIFIED BOOTSTRAP LIBC**
+**CURRENT STATUS: EXACT FOLD BASELINE IDENTIFIED; FULL QUALIFICATION RUNNING**
 
 **NATIVE COMPILER / SAMURAI / FULL UPDATE: PRIOR SIMULATED BASELINE PASS**
 
-**FINAL V2 PACKAGE: NOT READY FOR THIS ACTUAL FOLD BASELINE**
+**OLD V2 ARCHIVE: REJECTED FOR THIS FOLD; CORRECTED CANDIDATE: NOT YET QUALIFIED**
 
-The actual Fold rejected the v2 installer at the private bootstrap library:
+The old v2 archive was rejected by the actual Fold at the private bootstrap library:
 `/home/dev/rem-native-userland/bootstrap/musl/native/libc.a`, SHA-256
 `0bc5770f3d1b84a97a1030f5c2911b164a375d89c2db9e4a89a4f51c4f2b3186`.
-It reported no guest or kernel files changed. Do not add the hash without
-identifying those bytes. Earlier passing evidence is not qualification of this
-previously unrecognized Fold baseline. The latest authoritative release state
-is in `docs/REM_FOLD_V2_RELEASE_20261008.md`.
-Do not repeat the earlier native builds unless the exact baseline is identified
-and a supported replacement requires requalification.
+It reported no guest or kernel files changed. The byte-for-byte archive is now
+available as `/tmp/libc.a.fold` and matches the reported hash. Occurrence-aware
+comparison identifies all 33 changed objects with the recovered bootstrap
+recipe and verifies the added syscall object exactly; see
+`docs/REM_FOLD_REAL_LIBC_BASELINE_20261008.md`. The candidate accepts that exact
+hash only at the private bootstrap path and replaces the full archive. Exact
+baseline host install/verify/reinstall/rollback tests pass. Full REM
+qualification is running from a fresh copy at
+`/tmp/rem-fold-real-fold-qualification.20261008`; do not start another run.
+No corrected release archive is transferable until every required guest
+marker passes. The release document distinguishes the rejected archive from
+this candidate and any eventual corrected release.
 
-## Latest continuation: unknown actual Fold libc, investigation stopped
+## Previous continuation: unknown actual Fold libc, investigation stopped
 
 The requested SHA-256 was not found in the available artifacts. No installer
 allowlist or compiler/runtime source was changed, and no replacement release or

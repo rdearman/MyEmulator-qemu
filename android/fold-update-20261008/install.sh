@@ -166,6 +166,10 @@ prepare_compiler_sources() {
 }
 
 supported_previous_file() {
+    case "${3:-}:$2" in
+        /home/dev/rem-native-userland/bootstrap/musl/native/libc.a:0bc5770f3d1b84a97a1030f5c2911b164a375d89c2db9e4a89a4f51c4f2b3186)
+            return 0 ;;
+    esac
     case "$1:$2" in
         chibicc-rem-native.patch:ad77b8b945638eb6287a582165725ef5655b12fa606052f5567468ea26561c04|\
         rebuild-required-native.sh:9e5386300f930ccb42b949bd10838d94975c5e09c38325b42aa8037a4112542d|\
@@ -184,7 +188,7 @@ preflight_files() {
         [ "$cur" = "$new" ] && continue
         [ "$base" = NEW ] && [ "$cur" = ABSENT ] && continue
         [ "$cur" = "$base" ] && continue
-        supported_previous_file "$pl" "$cur" && continue
+        supported_previous_file "$pl" "$cur" "$gp" && continue
         die "unsupported or missing baseline for $gp ($cur); no guest or kernel files changed"
     done < "$HERE/files.list"
 }
@@ -255,7 +259,7 @@ do_install() {
                 say "SKIP (already merged; local changes preserved) $gp"; continue
             fi
         elif [ "$cur" != "$base" ]; then
-            supported_previous_file "$pl" "$cur" ||
+            supported_previous_file "$pl" "$cur" "$gp" ||
                 die "$gp changed after preflight; rollback required"
         fi
         if [ ! -f "$BK/files/$key" ]; then

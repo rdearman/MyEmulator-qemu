@@ -3,20 +3,24 @@
 Resume from here; do not redo completed items. Canonical repo only; scratch in /tmp.
 Never git clean/reset/restore; ~265 pre-existing dirty/untracked entries must be preserved.
 
-**CURRENT STATUS: ACTUAL FOLD BLOCKED ON UNIDENTIFIED BOOTSTRAP LIBC**
+**CURRENT STATUS: EXACT FOLD BASELINE IDENTIFIED; FULL QUALIFICATION RUNNING**
 
-**FINAL V2 PACKAGE: PRIOR SIMULATION PASS; NOT READY FOR THIS FOLD BASELINE**
+**OLD V2 ARCHIVE: REJECTED FOR THIS FOLD; CORRECTED CANDIDATE: NOT YET QUALIFIED**
 
-The actual Fold safely rejected the v2 installer before changing guest/kernel
+The old v2 archive safely rejected the actual Fold before changing guest/kernel
 files. Its `/home/dev/rem-native-userland/bootstrap/musl/native/libc.a` has SHA-256
 `0bc5770f3d1b84a97a1030f5c2911b164a375d89c2db9e4a89a4f51c4f2b3186`.
-Do not whitelist it without identifying the archive. Prior compiler/Samurai/full
-qualification evidence remains valid only for the simulated baseline it tested.
-The current continuation is the baseline investigation in the release/handover
-documents; section 17 records the earlier simulated release.
-Earlier v1 completion statements do not qualify the corrected v2 update.
+The exact file `/tmp/libc.a.fold` is now available and hash-verified. Object
+inventory comparison identifies the 33 changed members with the recovered
+bootstrap recipe and reproduces the added syscall member exactly. The exact
+hash is accepted only at the private-musl path and replaced in full. See
+`docs/REM_FOLD_REAL_LIBC_BASELINE_20261008.md`. Host install/verify/reinstall/
+rollback tests on a disposable copy pass. Full REM qualification is running
+from `/tmp/rem-fold-real-fold-qualification.20261008`; no corrected release
+archive is transferable until it passes all required markers. Section 17
+records the old simulated release, which remains rejected for this baseline.
 
-## Latest actual-Fold baseline investigation: BLOCKED
+## Earlier actual-Fold baseline search: BLOCKED BEFORE ARCHIVE ARRIVED
 
 No exact `0bc5770f...` archive was found. Read-only searches covered canonical
 libraries/known bootstrap outputs, retained REM scratch/rollback artifacts,

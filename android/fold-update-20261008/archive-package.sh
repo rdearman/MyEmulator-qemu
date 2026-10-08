@@ -39,7 +39,10 @@ while IFS='|' read -r guest payload baseline expected patchable mode; do
 done < "$package/files.list"
 grep -Fqx "Full REM execution qualification: PASS" "$package/MANIFEST.txt" ||
     { echo "package is not fully REM-qualified; no release archive created" >&2; exit 1; }
-for marker in "PASS aggregate-small-return (seed)" \
+for marker in \
+    "FOLD_LIBC_INPUT_SHA256=0bc5770f3d1b84a97a1030f5c2911b164a375d89c2db9e4a89a4f51c4f2b3186" \
+    "FOLD_LIBC_UPDATED_SHA256=269b1d6b5a15a3e2b3c4f8fe48dc0f9f8b5922e2c90937586ec7167d22a1c7c2" \
+    "PASS aggregate-small-return (seed)" \
     "PASS aggregate-small-return (stage1)" "PASS aggregate-small-return (stage2)" \
     COMPILER_REQUIRED_PORTING_TESTS_OK COMPILER_REQUIRED_SELFREBUILD_OK \
     SAMURAI_BUILD_OK SAMURAI_DRY_RUN_OK SAMURAI_NATIVE_BUILD_OK \

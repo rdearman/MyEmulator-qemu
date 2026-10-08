@@ -9,7 +9,7 @@ No patch, awk, Python, native objdump, resize or formatting is required.
 
 From Termux, after checking the archive SHA-256 against the adjacent manifest:
   cd ~/rem &&
-  tar xzf REM-FOLD-update-20261008-v2.tar.gz &&
+  tar xzf REM-FOLD-update-20261008-v2-real-fold.tar.gz &&
   sh rem-update-20261008-v2/install.sh install &&
   sh rem-update-20261008-v2/install.sh verify
 
@@ -17,6 +17,10 @@ The installer preflights BOTH compiler files before changing the image.
 It also preflights every other target against its installed/new/known-old baseline.
 Missing required files or unknown local helper/library/Samurai changes abort
 before any image or kernel changes; local source is never silently overwritten.
+The identified Fold private libc SHA-256 0bc5770f...2b3186 is accepted only at
+/home/dev/rem-native-userland/bootstrap/musl/native/libc.a, never as an arbitrary
+system library. The full archive is replaced with the qualified runtime;
+no legacy object is carried into the updated archive.
 It merges exact hunks independently, accepting already-applied Fold fixes and
 preserving other local source edits. Ambiguous or conflicting changes abort
 without applying half an ABI update. Backups and log:
@@ -46,6 +50,9 @@ and removes installer-created files. Other sources and guest data are kept.
 
 Host regression command (uses a disposable copy, never the supplied image):
   bash android/fold-update-20261008/test-install.sh IMAGE PACKAGE_DIRECTORY
+For the actual Fold archive, prefix that command with FOLD_LIBC=/tmp/libc.a.fold.
+This also checks exact library backup/rollback, restored mode/ownership,
+reinstall after rollback and rejection of that archive at the system-libc path.
 This covers exact source rollback, preservation of local source/data, restoration
 of rebuilt existing native runtimes and removal of newly built runtimes, even
 after a post-build reinstall. Corrupt/missing/wrong-hash payloads, missing kernel,
@@ -71,7 +78,7 @@ required, and fault/failed-exit logs are rejected. Without it the manifest clear
 labels the output as an unqualified candidate, not ready for transfer.
 After actual REM qualification and final installer regression, create the release:
   bash android/fold-update-20261008/archive-package.sh PACKAGE_DIRECTORY \
-    /tmp/REM-FOLD-update-20261008-v2.tar.gz
+    /tmp/REM-FOLD-update-20261008-v2-real-fold.tar.gz
 This refuses pending packages, changed tested seed/kernel binaries and existing
 outputs. Two normalized archives must be byte-identical; extracted payload hashes
 and the final archive SHA-256 are verified. Adjacent .sha256 and .manifest.txt

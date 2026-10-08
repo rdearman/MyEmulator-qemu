@@ -1,6 +1,22 @@
 # REM32 Fold update 20261008 v2
 
-**BLOCKED: actual Fold bootstrap libc is unidentified; do not reinstall this archive.**
+**CORRECTED REAL-FOLD BASELINE QUALIFICATION: RUNNING; NOT TRANSFERABLE YET**
+
+The prior archive below is rejected for this Fold and must not be installed.
+The exact Fold input `/tmp/libc.a.fold` is present and verifies as
+`0bc5770f3d1b84a97a1030f5c2911b164a375d89c2db9e4a89a4f51c4f2b3186`.
+Occurrence-aware object evidence identifies the 33 changed recipe members and
+the exact added syscall object; the corrected installer accepts this hash only
+at the private bootstrap path and replaces the entire archive. See
+`docs/REM_FOLD_REAL_LIBC_BASELINE_20261008.md`.
+
+The exact-baseline installer tests pass. Full REM qualification is running on
+a fresh stopped-image copy in `/tmp/rem-fold-real-fold-qualification.20261008`.
+There is no corrected release archive or new transfer SHA-256 yet. Do not call
+this candidate qualified or transfer it until all full REM markers pass and
+the exact final archive passes extraction/install/rollback tests.
+
+## Prior v2 archive — rejected for the actual Fold
 
 The actual Fold rejected the installer for
 `/home/dev/rem-native-userland/bootstrap/musl/native/libc.a`, SHA-256
