@@ -7,7 +7,15 @@ package=$2
 here=$(cd "${0%/*}" && pwd)
 repo=$(cd "$here/../.." && pwd)
 work=$(mktemp -d /tmp/rem-fold-update-test.XXXXXX)
-trap 'rm -rf "$work"' EXIT
+cleanup() {
+    result=$?
+    if [ "$result" = 0 ]; then
+        rm -rf "$work"
+    else
+        echo "FAIL installer regression; preserved diagnostics: $work" >&2
+    fi
+}
+trap cleanup EXIT
 export TMPDIR=/tmp
 kit=/home/dev/rem-native-userland
 cp --sparse=always "$image" "$work/rootfs.ext4"
@@ -36,6 +44,18 @@ dump() {
 }
 put "$work/base/codegen.c" codegen.c
 put "$work/local-parse.c" parse.c
+printf '/* Fold-local source and data must survive the update. */\n' > "$work/local-user-source.c"
+put "$work/local-user-source.c" .rem-fold-update-user-data-regression.c
+runtime_backups=0
+for runtime in bootstrap/native/chibicc-selfbuilt bootstrap/tools/native/samu; do
+    key=${runtime##*/}
+    debugfs -R "dump $kit/$runtime $work/original-$key" "$work/rootfs.ext4" >/dev/null 2>&1
+    if [ -f "$work/original-$key" ]; then
+        runtime_backups=$((runtime_backups + 1))
+    fi
+done
+[ "$runtime_backups" -gt 0 ] ||
+    { echo "fixture has no native runtime to exercise post-build rollback" >&2; exit 1; }
 if sh "$package/install.sh" verify "$work/rootfs.ext4" > "$work/before-verify.log" 2>&1; then
     echo "FAIL incomplete compiler sources reported VERIFY_OK" >&2
     exit 1
@@ -49,13 +69,46 @@ grep -q 'if (rty->kind == TY_STRUCT || rty->kind == TY_UNION)' "$work/merged-par
 sh "$package/install.sh" install "$work/rootfs.ext4" > "$work/rerun.log" 2>&1
 sh "$package/install.sh" verify "$work/rootfs.ext4" > "$work/verify.log" 2>&1
 grep -q '^VERIFY_OK$' "$work/verify.log"
+dump .rem-fold-update-user-data-regression.c "$work/user-source-installed.c"
+cmp "$work/local-user-source.c" "$work/user-source-installed.c"
 echo "PASS local parser fix merged, preserved, verified and idempotent"
+printf '#!/bin/sh\nexit 73\n' > "$work/rebuilt-runtime"
+for runtime in bootstrap/native/chibicc-selfbuilt bootstrap/tools/native/samu; do
+    key=${runtime##*/}
+    if [ -f "$work/original-$key" ]; then
+        backup_key=$(printf '%s' "$kit/$runtime" | sed 's#/#_#g')
+        cmp "$work/original-$key" "$work/update-20261008-v2-backup/files/$backup_key"
+        debugfs -w -R "rm $kit/$runtime" "$work/rootfs.ext4" >/dev/null 2>&1
+    else
+        for directory in "$kit/bootstrap/tools" "$kit/bootstrap/tools/native"; do
+            if ! debugfs -R "stat $directory" "$work/rootfs.ext4" 2>/dev/null | grep -q 'Inode:'; then
+                debugfs -w -R "mkdir $directory" "$work/rootfs.ext4" >/dev/null 2>&1
+            fi
+        done
+    fi
+    debugfs -w -R "write $work/rebuilt-runtime $kit/$runtime" "$work/rootfs.ext4" >/dev/null 2>&1
+    debugfs -R "dump $kit/$runtime $work/rebuilt-$key" "$work/rootfs.ext4" >/dev/null 2>&1
+    cmp "$work/rebuilt-runtime" "$work/rebuilt-$key"
+done
 sh "$package/install.sh" rollback "$work/rootfs.ext4" > "$work/rollback.log" 2>&1
 dump parse.c "$work/restored-parse.c"
 dump codegen.c "$work/restored-codegen.c"
 cmp "$work/local-parse.c" "$work/restored-parse.c"
 cmp "$work/base/codegen.c" "$work/restored-codegen.c"
 echo "PASS rollback restores exact pre-update compiler sources"
+for runtime in bootstrap/native/chibicc-selfbuilt bootstrap/tools/native/samu; do
+    key=${runtime##*/}
+    if [ -f "$work/original-$key" ]; then
+        debugfs -R "dump $kit/$runtime $work/restored-$key" "$work/rootfs.ext4" >/dev/null 2>&1
+        cmp "$work/original-$key" "$work/restored-$key"
+    elif debugfs -R "stat $kit/$runtime" "$work/rootfs.ext4" 2>/dev/null | grep -q 'Inode:'; then
+        echo "FAIL rollback kept newly built $runtime" >&2
+        exit 1
+    fi
+done
+dump .rem-fold-update-user-data-regression.c "$work/user-source-restored.c"
+cmp "$work/local-user-source.c" "$work/user-source-restored.c"
+echo "PASS rollback restores $runtime_backups existing runtimes, removes newly built runtimes, preserves local source/data"
 sed 's/uint64_t mask = (1L << mem->bit_width) - 1;/uint64_t mask = 123;/' \
     "$work/local-parse.c" > "$work/conflict-parse.c"
 put "$work/conflict-parse.c" parse.c
