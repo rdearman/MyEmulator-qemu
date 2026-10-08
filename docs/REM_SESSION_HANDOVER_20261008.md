@@ -22,7 +22,7 @@ No corrected release archive is transferable until every required guest
 marker passes. The release document distinguishes the rejected archive from
 this candidate and any eventual corrected release.
 
-## Current exact-baseline run snapshot — 2026-10-08 12:19 BST
+## Current exact-baseline run snapshot — 2026-10-08 12:28 BST
 
 Qualification started at `2026-10-08T12:00:23+01:00`. Runner tool session is
 `15780`; its QEMU PID is `2954`. Keep that session alive and do not restart it.
@@ -34,12 +34,12 @@ candidate, reinstalled it idempotently, and confirmed the exact old and new
 library hashes in the guest.
 
 Actual serial output passed the system checks and entered compiler
-qualification at 12:02:24 BST. At 12:19 BST the serial was unchanged and there
+qualification at 12:02:24 BST. At 12:28 BST the serial was unchanged and there
 was no completion, failure,
 user-fault, panic or OOM marker; neither `qualification-exit.txt` nor
 `qemu-exit.txt` exists yet. Do not inspect or mutate the live ext4 image. The
 runner watches for actual fault/completion markers and applies an 18,000
-second timeout. Next routine observation is no earlier than 12:29 BST unless
+second timeout. Next routine observation is no earlier than 12:38 BST unless
 the runner reports a completion or failure event.
 
 The host installer regression passed against a disposable image carrying the
