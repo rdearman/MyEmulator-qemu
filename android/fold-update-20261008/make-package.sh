@@ -8,7 +8,7 @@
 #            (default /tmp/remqa/linux-netbuild/vmlinux)
 #   SAMURAI_TARBALL  samurai-531ba700.tar.gz from toolchain/native-userland/sources.env
 #   BASE_PATCH  chibicc-rem-native.patch as shipped in REM-FOLD-BUILD-SOURCE-20261007
-#               (SHA-256 b235638b...; default: git HEAD version of the patch)
+#               (SHA-256 b235638b...; default: pinned original kit revision)
 #   CHIBICC_SEED  REM-native compiler built by build-seed.sh and executed in REM
 set -euo pipefail
 here=$(cd "${0%/*}" && pwd)
@@ -28,7 +28,7 @@ s() { sha256sum "$1" | cut -d' ' -f1; }
 work=$(mktemp -d /tmp/rem-update-make.XXXXXX)
 trap 'rm -rf "$work"' EXIT
 if [ -n "${BASE_PATCH:-}" ]; then cp "$BASE_PATCH" "$work/base.patch"
-else git -C "$repo" show HEAD:toolchain/native-userland/patches/chibicc-rem-native.patch > "$work/base.patch"; fi
+else git -C "$repo" show e962d91f238476cc92669e5e514b12075dca0136:toolchain/native-userland/patches/chibicc-rem-native.patch > "$work/base.patch"; fi
 [ "$(s "$work/base.patch")" = "$base_patch_sha" ] || { echo "baseline patch mismatch" >&2; exit 1; }
 for v in base new; do
     mkdir -p "$work/$v"
@@ -40,7 +40,11 @@ for f in codegen.c parse.c; do
     cmp "$work/new/$f" "$repo/toolchain/chibicc-rem/$f"
 done
 
-rm -rf "$out"; mkdir -p "$out/payload/samurai" "$out/guest"
+if [ -e "$out" ]; then
+    [ -d "$out" ] && [ -z "$(ls -A "$out")" ] ||
+        { echo "output already exists and is not an empty directory: $out" >&2; exit 1; }
+fi
+mkdir -p "$out/payload/samurai" "$out/guest"
 cp "$here/install.sh" "$out/install.sh"
 cp "$here/README.txt" "$out/README.txt"
 cp "$here/verify.sh" "$out/guest/verify.sh"

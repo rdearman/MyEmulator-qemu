@@ -4,7 +4,7 @@
 
 **FINAL V2 PACKAGE: NOT YET READY FOR TRANSFER**
 
-Implementation is paused at Rick's request. This is a code/fix checkpoint,
+Implementation resumed at Rick's subsequent request. This is a code/fix checkpoint,
 not a claim that the new full qualification has passed. Do not restart the
 already-running job or send the original archive to the Fold again.
 
@@ -394,3 +394,55 @@ reproduction, or already-passed installer regressions merely because a new
 agent resumes. Do not resurrect the accidental external native-userland tree,
 discard Fold-era source changes, weaken the GCC interoperability tests, or
 label the old desktop-only delivery as real-Fold-qualified.
+
+## Authorized continuation after checkpoint
+
+The user subsequently authorized resuming this task through final qualification
+and packaging. The earlier implementation pause is superseded; do not restart
+the already-running qualification or redo the qualified seed.
+
+Parent checkpoint is `ab437cbb998a0143cf62607b71b84f5600cbe1cd`, with exactly
+the 19 entries listed above. Its HTTPS push exited 1: GitHub rejected unrelated
+pre-existing ancestor files `REM-FLIGHT-DEVELOPMENT.zip` (283.23 MB) and
+`docs/REM_QEMU_Debugging_Reference.pdf` (179.30 MB). Do not rewrite main or delete
+recovered files. A task-only publication branch based on remote main is the
+safe workaround; keep the original local checkpoint and working tree intact.
+Nested compiler checkpoint remains `f3a3094f16fd144719be9b4ee77e84836e4c1bfa`.
+Remaining Git status at capture: 47 modified, one type change, 224 untracked
+entries, no staged changes; unrelated recovered work remains intact.
+Full ordinary status snapshot: `/tmp/rem-fold-handover-status.9ld4pK`.
+
+The baseline caveat above is now fixed in both host scripts: defaults are pinned
+to `e962d91f238476cc92669e5e514b12075dca0136`; installer regressions also accept
+the verified `BASE_PATCH` override. Packaging refuses a nonempty output directory
+instead of deleting evidence. Use a fresh owned scratch directory for the final
+candidate. These host-only changes do not alter the running guest payload.
+
+At the last completed process snapshot QEMU PID 1790915 was still running,
+elapsed 42:08, with quick checks passed and compiler qualification entered.
+At a later snapshot (elapsed 45:44) the same QEMU remained active with the same
+compiler phase. Host syntax/scoped whitespace checks passed; both seed and
+original baseline hashes were reconfirmed. No completion/fault markers were
+present in serial. Final package remains
+unqualified and not ready for transfer until all required markers are observed.
+
+Task-only publication succeeded, without rewriting local main:
+`7d12be9c0479a99de4bf97244095735ab2804edd` on
+`origin/rem-fold-update-20261008-v2-checkpoint`. It contains the same 19 task
+entries as the local checkpoint, based on remote main
+`e2c32b0b51ab247a739d0e18bd6e93872aa60442`. Nested compiler publication remains
+on `rem-chibicc-fold-update-20261008`. Future coherent checkpoints should update
+the safe publication branch rather than retrying oversized main ancestry.
+
+Fresh final candidate directory:
+`/tmp/rem-fold-final.Uzh0Cd/rem-update-20261008-v2`.
+All payload checksums passed. Corrected `test-install.sh` against this directory
+and stopped `/tmp/remqa/foldsim/rootfs.ext4` passed all four installer regressions,
+exit 0. Verification of this candidate against the stopped launch-source image
+`/tmp/remqa/abi-followup/fold-case/rootfs.ext4` also passed, exit 0:
+all kernel/runtime/guest-script/seed/Samurai source payloads matched; merged
+local parser edits were retained; filesystem check and `VERIFY_OK` passed.
+This proves candidate/qualification-input identity, not compiler completion.
+The live QEMU remained active at elapsed 48:01. A read-only raw-image compiler
+log snapshot yielded no text and cannot establish progress or failure because
+the live guest's cached/journaled writes may not yet be visible.
