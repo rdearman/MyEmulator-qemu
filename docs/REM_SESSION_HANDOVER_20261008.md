@@ -65,7 +65,7 @@ Disposable inventories and known-library disassembly are in
 `/tmp/rem-libc-identify.g59nt0n9/`; no extracted rootfs remains there.
 Authoritative blocked-state findings are also in the release document.
 
-**Single next action:** obtain a byte-for-byte copy of the actual Fold
+**Historical next action before the archive arrived:** obtain a byte-for-byte copy of the actual Fold
 `/home/dev/rem-native-userland/bootstrap/musl/native/libc.a`, verify the stated
 SHA-256, and compare its archive members/objects with the known libraries and
 bootstrap recipe. Until then, do not whitelist, bypass checks, rebuild, or
@@ -774,5 +774,6 @@ Audit proved existing tracked binary-diff fingerprint and unrelated Git status
 unchanged, and archive still exactly the published hash. Only intended evidence
 was added. No qualifications are still running; no native or packaging blocker.
 
-Single next action for Codex: verify the preserved archive SHA-256 and use the
-release document's literal-hash transfer/install block; do not restart builds.
+Historical next action for that old-baseline checkpoint: verify its preserved
+archive SHA-256. That archive is now rejected for the actual Fold; follow the
+current status at the top of this handover instead.
