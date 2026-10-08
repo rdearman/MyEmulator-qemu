@@ -49,3 +49,6 @@ Host package recipe (canonical repository only):
 Build the seed with the fixed cross-GCC and flight-kit-runtime musl, using
 -DCHIBICC_REM for all ten compiler translation units; execute it in REM before
 packaging. The package does not rely on whichever old compiler the Fold has.
+The package and installer regression use the pinned original kit baseline,
+not the current Git HEAD. BASE_PATCH can supply that same verified baseline.
+OUT must be absent or empty; existing package/evidence directories are preserved.

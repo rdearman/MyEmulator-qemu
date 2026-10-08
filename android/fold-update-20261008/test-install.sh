@@ -15,7 +15,13 @@ cp "$package/payload/vmlinux" "$work/vmlinux"
 mkdir "$work/base"
 git -C "$repo/toolchain/chibicc-rem" archive 90d1f7f199cc55b13c7fdb5839d1409806633fdb |
     tar -x -C "$work/base"
-git -C "$repo" show HEAD:toolchain/native-userland/patches/chibicc-rem-native.patch > "$work/base.patch"
+if [ -n "${BASE_PATCH:-}" ]; then
+    cp "$BASE_PATCH" "$work/base.patch"
+else
+    git -C "$repo" show e962d91f238476cc92669e5e514b12075dca0136:toolchain/native-userland/patches/chibicc-rem-native.patch > "$work/base.patch"
+fi
+[ "$(sha256sum "$work/base.patch" | cut -d' ' -f1)" = b235638b86fb58fcbc9f192b4d460c9ec281f19212dbff1585f4639f6d133f97 ] ||
+    { echo "baseline patch mismatch" >&2; exit 1; }
 patch -s -p1 -d "$work/base" < "$work/base.patch"
 cp "$work/base/parse.c" "$work/local-parse.c"
 sed -i '/Node \*expr = init->children\[mem->idx\]->expr;/,+3s/break;/continue;/' "$work/local-parse.c"

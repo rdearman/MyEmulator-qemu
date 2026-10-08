@@ -264,3 +264,34 @@ After checkpointing, HEAD no longer holds the original source baseline:
 use `BASE_PATCH=/tmp/remqa/abi-followup/base.patch` for packaging, or extract it
 from pinned parent revision `e962d91f238476cc92669e5e514b12075dca0136`.
 The handover documents the corresponding test-install.sh fixture caveat.
+
+## 11. Work resumed after handover checkpoint
+
+The user authorized continued qualification and delivery without restarting
+completed or running work. Parent checkpoint:
+`ab437cbb998a0143cf62607b71b84f5600cbe1cd` (19 task entries); nested compiler
+checkpoint `f3a3094f16fd144719be9b4ee77e84836e4c1bfa` was published separately.
+Parent HTTPS push exited 1: GitHub rejected pre-existing ancestor files
+`REM-FLIGHT-DEVELOPMENT.zip` (283.23 MB) and
+`docs/REM_QEMU_Debugging_Reference.pdf` (179.30 MB). Do not rewrite main or
+delete recovered files to work around that. Publish a task-only checkpoint
+branch based on the existing remote main, preserving the local checkpoint.
+
+Packaging and installer-test fixtures now pin original baseline revision
+`e962d91f238476cc92669e5e514b12075dca0136` and validate the original patch SHA.
+The generator refuses nonempty output directories rather than deleting them.
+These are host-only corrections; the running guest qualification is unchanged.
+Final v2 qualification/archive remain pending actual execution markers.
+At elapsed 45:44 QEMU PID 1790915 remained active, compiler qualification
+entered, no completion marker in serial. Host syntax/scoped whitespace checks
+passed; seed and original patch hashes remain exactly as recorded.
+
+Safe task-only checkpoint publication PASS:
+`7d12be9c0479a99de4bf97244095735ab2804edd` pushed to
+`origin/rem-fold-update-20261008-v2-checkpoint`; unrelated oversized main history
+was neither rewritten nor removed.
+Fresh candidate `/tmp/rem-fold-final.Uzh0Cd/rem-update-20261008-v2`:
+payload checksums PASS; corrected installer regression PASS/0 (all four checks);
+stopped qualification launch-source verification PASS/0, including retained
+local parser edits, payload identity, filesystem check and `VERIFY_OK`.
+Live QEMU at elapsed 48:01 still had no authoritative completion marker.
