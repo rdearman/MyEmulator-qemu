@@ -9,6 +9,14 @@ The file was rechecked before this qualification. This is the baseline at
 `/home/dev/rem-native-userland/bootstrap/musl/native/libc.a`; it is distinct
 from `/usr/lib/libc.a`.
 
+Only the archive bytes were supplied from the phone; its inode ownership and
+mode were not included in that copy. The qualification image was based on the
+retained stopped Fold simulation and the exact archive bytes were injected at
+the private path. The host regression uses the retained image's mode `0644`,
+uid `1000`, gid `100` metadata for its fixture. On the phone, the installer
+records the actual target inode metadata and rollback restores those exact
+values.
+
 ## Member and object comparison
 
 The occurrence-aware inventory in `/tmp/rem-libc-identify.g59nt0n9/` records
