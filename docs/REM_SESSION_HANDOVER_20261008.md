@@ -49,6 +49,38 @@ The host package gate regression is retained at
 `docs/REM_FOLD_V2_EVIDENCE_20261008/real-fold-host-package-test.log`; it is
 explicitly synthetic host evidence, not native qualification.
 
+### Live visibility and progress reporting
+
+The active runner uses `-monitor none -serial stdio -netdev user,id=net0` with
+no host port forwarding. It has no virtio-serial channel; the guest image has
+no `/etc/ssh` or SSH service, and the runner's host process view cannot see
+QEMU's PID. The existing serial console is therefore the only configured
+guest-to-host channel. `verify.sh full` redirects compiler output to the guest
+file `/home/dev/rem-native-userland/rem-update-compiler.log` and historically
+printed it only after that phase ended. A read-only `debugfs` lookup against
+the live ext4 image did not find that file or expose updated guest directory
+entries; because the image is mounted read-write by QEMU, this stale/incomplete
+view is not proof of guest inactivity or failure. Do not fsck or write the
+active image to investigate progress.
+
+Future corrected candidates now add `REM_STAGE` records around compiler
+subtasks, `REM_PROGRESS` start/finish/failure records, a 60-second heartbeat,
+and a four-line compiler log tail on the existing serial console. The runner
+prints those records as they arrive. Samurai compilation gets the same
+heartbeat and its current `CC samurai <file>` substage. These edits were made
+after the active process started and do not change its image, process, or
+available evidence. Keep that run untouched and do not infer a hang solely
+from its quiet serial stream.
+
+The progress-reporting candidate is at
+`/tmp/rem-fold-progress-candidate3-20261008/rem-update-20261008-v2` and its
+payload checksums pass. Its host package gate and exact-Fold install/verify/
+reinstall/rollback regression both pass; durable logs are
+`docs/REM_FOLD_V2_EVIDENCE_20261008/progress-candidate3-host-package-gate.log`
+and `progress-candidate3-host-installer-test.log`. It is still a candidate:
+the active native run began with the earlier payload, and candidate3 requires
+its own full REM qualification before any final archive can be built.
+
 ## Previous continuation: unknown actual Fold libc, investigation stopped
 
 The requested SHA-256 was not found in the available artifacts. No installer

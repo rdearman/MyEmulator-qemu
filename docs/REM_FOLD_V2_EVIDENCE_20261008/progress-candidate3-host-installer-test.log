@@ -1,0 +1,10 @@
+PASS actual Fold libc fixture bytes verified
+PASS corrupt/missing/wrong-hash payload, missing kernel, wrong size and obsolete image rejected without image/kernel changes
+PASS missing/modified required library and local helper conflicts abort before any image/kernel mutation
+PASS verification rejects an incomplete local ABI update
+PASS local parser fix merged, preserved, verified and idempotent
+PASS actual Fold libc replaced in full and backed up byte-for-byte
+PASS rollback restores exact pre-update compiler sources
+PASS exact Fold libc bytes/ownership/mode restored; reinstall after rollback verified
+PASS post-build reinstall/rollback restores 1 original runtimes, removes newly built runtimes, preserves local source/data
+PASS conflicting parser aborts before either ABI source is written

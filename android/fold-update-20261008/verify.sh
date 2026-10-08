@@ -32,18 +32,56 @@ if [ "${1:-}" = full ]; then
     PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH; export PATH
     cd "$KIT" || { echo "FAIL kit missing: $KIT"; exit 1; }
     echo "--- compiler qualification (log: $KIT/rem-update-compiler.log)"
-    if bash bootstrap/rebuild-required-native.sh > rem-update-compiler.log 2>&1 &&
-        grep -q '^COMPILER_REQUIRED_PORTING_TESTS_OK$' rem-update-compiler.log; then
+    compiler_log=$KIT/rem-update-compiler.log
+    echo "REM_PROGRESS|compiler|start|$(date '+%Y-%m-%dT%H:%M:%S%z')"
+    bash bootstrap/rebuild-required-native.sh > "$compiler_log" 2>&1 &
+    compiler_pid=$!
+    compiler_heartbeat=0
+    while kill -0 "$compiler_pid" 2>/dev/null; do
+        sleep 60
+        if kill -0 "$compiler_pid" 2>/dev/null; then
+            compiler_heartbeat=$((compiler_heartbeat + 1))
+            compiler_stage=$(sed -n 's/^REM_STAGE|//p' "$compiler_log" | tail -n 1)
+            [ -n "$compiler_stage" ] || compiler_stage=stage-not-reported
+            echo "REM_PROGRESS|compiler|heartbeat|elapsed_seconds=$((compiler_heartbeat * 60))|stage=$compiler_stage"
+            tail -n 4 "$compiler_log" | sed 's/^/REM_LOG_TAIL|/'
+        fi
+    done
+    compiler_rc=0
+    wait "$compiler_pid" || compiler_rc=$?
+    if [ "$compiler_rc" = 0 ] &&
+        grep -q '^COMPILER_REQUIRED_PORTING_TESTS_OK$' "$compiler_log"; then
+        echo "REM_PROGRESS|compiler|finish|elapsed_seconds=$((compiler_heartbeat * 60))"
         grep '^PASS \|^COMPILER_REQUIRED' rem-update-compiler.log
     else
+        echo "REM_PROGRESS|compiler|failed|exit=$compiler_rc"
         echo "FAIL compiler qualification"; tail -n 15 rem-update-compiler.log; f=1
     fi
     if [ "$f" = 0 ]; then
         echo "--- Samurai (log: $KIT/rem-update-samurai.log)"
-        if bash bootstrap/build-samurai-native.sh > rem-update-samurai.log 2>&1 &&
-            grep -q '^SAMURAI_NATIVE_EXECUTION_OK$' rem-update-samurai.log; then
+        samurai_log=$KIT/rem-update-samurai.log
+        echo "REM_PROGRESS|samurai|start|$(date '+%Y-%m-%dT%H:%M:%S%z')"
+        bash bootstrap/build-samurai-native.sh > "$samurai_log" 2>&1 &
+        samurai_pid=$!
+        samurai_heartbeat=0
+        while kill -0 "$samurai_pid" 2>/dev/null; do
+            sleep 60
+            if kill -0 "$samurai_pid" 2>/dev/null; then
+                samurai_heartbeat=$((samurai_heartbeat + 1))
+                samurai_stage=$(sed -n 's/^CC samurai /compile-samurai-/' "$samurai_log" | tail -n 1)
+                [ -n "$samurai_stage" ] || samurai_stage=build-step-not-reported
+                echo "REM_PROGRESS|samurai|heartbeat|elapsed_seconds=$((samurai_heartbeat * 60))|stage=$samurai_stage"
+                tail -n 4 "$samurai_log" | sed 's/^/REM_LOG_TAIL|/'
+            fi
+        done
+        samurai_rc=0
+        wait "$samurai_pid" || samurai_rc=$?
+        if [ "$samurai_rc" = 0 ] &&
+            grep -q '^SAMURAI_NATIVE_EXECUTION_OK$' "$samurai_log"; then
+            echo "REM_PROGRESS|samurai|finish|elapsed_seconds=$((samurai_heartbeat * 60))"
             grep '^SAMURAI_' rem-update-samurai.log
         else
+            echo "REM_PROGRESS|samurai|failed|exit=$samurai_rc"
             echo "FAIL Samurai"; tail -n 15 rem-update-samurai.log; f=1
         fi
     fi
