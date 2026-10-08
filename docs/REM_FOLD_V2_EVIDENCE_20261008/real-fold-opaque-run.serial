@@ -1,0 +1,671 @@
+[    0.000000] Linux version 6.12.1 (rick@desktop) (myemulator2-elf-gcc (GCC) 15.2.0, GNU ld (GNU Binutils) 2.46.0.20260210) #3 Thu Oct  8 04:50:34 BST 2026
+[    0.000000] Zone ranges:
+[    0.000000]   Normal   [mem 0x0000000000101000-0x0000000007ffffff]
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000000101000-0x0000000007ffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000000101000-0x0000000007ffffff]
+[    0.000000] On node 0, zone Normal: 257 pages in unavailable ranges
+[    0.000000] MyEmulator2 maps RAM dynamically: 128 MiB, 32 PTE pages; bootstrap identity end 0x01000000
+[    0.000000] MyEmulator2 vectors at 00100000
+[    0.000000] MyEmulator2 RAM: 0x00101000-0x08000000
+[    0.000000] pcpu-alloc: s0 r0 d32768 u32768 alloc=1*32768
+[    0.000000] pcpu-alloc: [0] 0
+[    0.000000] Kernel command line: console=ttyMY0,115200 root=/dev/myemu0 rw init=/sbin/init virtio_mmio.device=0x200@0xf0200000:5 initcall_debug ip=off
+[    0.000000] Dentry cache hash table entries: 16384 (order: 4, 65536 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 8192 (order: 3, 32768 bytes, linear)
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 32511
+[    0.000000] mem auto-init: stack:all(zero), heap alloc:off, heap free:off
+[    0.000000] SLUB: HWalign=32, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+[    0.000000] NR_IRQS: 8
+[    0.000000] clocksource: myemulator2-time: mask: 0xffffffffffffffff max_cycles: 0x1d854df40, max_idle_ns: 3526361616960 ns
+[    0.000000] printk: legacy console [myemu0] enabled
+[    0.000000] printk: legacy console [ttyMY0] enabled
+[    0.000000] pid_max: default: 32768 minimum: 301
+[    0.000000] Mount-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.000000] Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.000000] calling  0x007eb9f0 @ 1
+[    0.000000] initcall 0x007eb9f0 returned 0 after 0 usecs
+[    0.000000] calling  0x007ec49c @ 1
+[    0.000000] initcall 0x007ec49c returned 0 after 0 usecs
+[    0.000000] calling  0x007ec55c @ 1
+[    0.000000] initcall 0x007ec55c returned 0 after 0 usecs
+[    0.000000] calling  0x007efadc @ 1
+[    0.000000] initcall 0x007efadc returned 0 after 0 usecs
+[    0.000000] calling  0x007f0f08 @ 1
+[    0.000000] initcall 0x007f0f08 returned 0 after 0 usecs
+[    0.000000] calling  0x007f6348 @ 1
+[    0.000000] initcall 0x007f6348 returned 0 after 0 usecs
+[    0.000000] calling  0x007fc668 @ 1
+[    0.000000] initcall 0x007fc668 returned 0 after 0 usecs
+[    0.000000] calling  0x007fe4c0 @ 1
+[    0.000000] initcall 0x007fe4c0 returned 0 after 0 usecs
+[    0.000000] calling  0x007fe7f8 @ 1
+[    0.000000] initcall 0x007fe7f8 returned 0 after 0 usecs
+[    0.000000] Memory: 119984K/130044K available (7054K kernel code, 477K rwdata, 382K rodata, 211K init, 225K bss, 9672K reserved, 0K cma-reserved)
+[    0.000000] devtmpfs: initialized
+[    0.000000] calling  0x008007c4 @ 1
+[    0.000000] initcall 0x008007c4 returned 0 after 0 usecs
+[    0.000000] calling  0x00809a90 @ 1
+[    0.000000] initcall 0x00809a90 returned 0 after 0 usecs
+[    0.000000] calling  0x007ec6b0 @ 1
+[    0.000000] initcall 0x007ec6b0 returned 0 after 0 usecs
+[    0.000000] calling  0x007ede10 @ 1
+[    0.000000] initcall 0x007ede10 returned 0 after 0 usecs
+[    0.000000] calling  0x007f0ac0 @ 1
+[    0.000000] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.000000] initcall 0x007f0ac0 returned 0 after 0 usecs
+[    0.000000] calling  0x007f0dec @ 1
+[    0.000000] futex hash table entries: 256 (order: -1, 3072 bytes, linear)
+[    0.000000] initcall 0x007f0dec returned 0 after 0 usecs
+[    0.000000] calling  0x007fde6c @ 1
+[    0.000000] initcall 0x007fde6c returned 0 after 0 usecs
+[    0.000000] calling  0x007fe570 @ 1
+[    0.000000] initcall 0x007fe570 returned 0 after 0 usecs
+[    0.000000] calling  0x007fe68c @ 1
+[    0.000000] initcall 0x007fe68c returned 0 after 0 usecs
+[    0.000000] calling  0x007fe6d0 @ 1
+[    0.000000] initcall 0x007fe6d0 returned 0 after 0 usecs
+[    0.000000] calling  0x004c9ee0 @ 1
+[    0.000000] initcall 0x004c9ee0 returned 0 after 0 usecs
+[    0.000000] calling  0x0080466c @ 1
+[    0.000000] initcall 0x0080466c returned 0 after 0 usecs
+[    0.000000] calling  0x008047d4 @ 1
+[    0.000000] initcall 0x008047d4 returned 0 after 0 usecs
+[    0.000000] calling  0x00804808 @ 1
+[    0.000000] initcall 0x00804808 returned 0 after 0 usecs
+[    0.000000] calling  0x00804fbc @ 1
+[    0.000000] initcall 0x00804fbc returned 0 after 0 usecs
+[    0.000000] calling  0x00806310 @ 1
+[    0.000000] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.000000] initcall 0x00806310 returned 0 after 0 usecs
+[    0.000000] calling  0x008065d8 @ 1
+[    0.000000] initcall 0x008065d8 returned 0 after 0 usecs
+[    0.000000] calling  0x007f167c @ 1
+[    0.000000] initcall 0x007f167c returned 0 after 0 usecs
+[    0.000000] calling  0x007f1728 @ 1
+[    0.000000] initcall 0x007f1728 returned 0 after 0 usecs
+[    0.000000] calling  0x007f72dc @ 1
+[    0.000000] initcall 0x007f72dc returned 0 after 0 usecs
+[    0.000000] calling  0x00801f30 @ 1
+[    0.000000] initcall 0x00801f30 returned 0 after 0 usecs
+[    0.000000] calling  0x00802c88 @ 1
+[    0.000000] initcall 0x00802c88 returned 0 after 0 usecs
+[    0.000000] calling  0x00803af8 @ 1
+[    0.000000] initcall 0x00803af8 returned 0 after 0 usecs
+[    0.000000] calling  0x00816658 @ 1
+[    0.000000] initcall 0x00816658 returned 0 after 0 usecs
+[    0.000000] calling  0x004f80ac @ 1
+[    0.000000] initcall 0x004f80ac returned 0 after 0 usecs
+[    0.000000] calling  0x007ec35c @ 1
+[    0.000000] initcall 0x007ec35c returned 0 after 0 usecs
+[    0.000000] calling  0x007ed6c0 @ 1
+[    0.000000] initcall 0x007ed6c0 returned 0 after 0 usecs
+[    0.000000] calling  0x007ee44c @ 1
+[    0.000000] initcall 0x007ee44c returned 0 after 0 usecs
+[    0.000000] calling  0x007f0fcc @ 1
+[    0.000000] initcall 0x007f0fcc returned 0 after 0 usecs
+[    0.000000] calling  0x007f152c @ 1
+[    0.000000] initcall 0x007f152c returned 0 after 0 usecs
+[    0.000000] calling  0x007f16b8 @ 1
+[    0.000000] initcall 0x007f16b8 returned 0 after 0 usecs
+[    0.000000] calling  0x007f4610 @ 1
+[    0.000000] initcall 0x007f4610 returned 0 after 0 usecs
+[    0.000000] calling  0x007f6388 @ 1
+[    0.000000] initcall 0x007f6388 returned 0 after 0 usecs
+[    0.000000] calling  0x00209e04 @ 1
+[    0.000000] initcall 0x00209e04 returned 0 after 0 usecs
+[    0.000000] calling  0x00209d94 @ 1
+[    0.000000] initcall 0x00209d94 returned 0 after 0 usecs
+[    0.000000] calling  0x007fbe3c @ 1
+[    0.000000] initcall 0x007fbe3c returned 0 after 0 usecs
+[    0.000000] calling  0x007fbf70 @ 1
+[    0.000000] initcall 0x007fbf70 returned 0 after 0 usecs
+[    0.000000] calling  0x0080089c @ 1
+[    0.000000] initcall 0x0080089c returned 0 after 0 usecs
+[    0.000000] calling  0x00800a90 @ 1
+[    0.000000] initcall 0x00800a90 returned 0 after 0 usecs
+[    0.000000] calling  0x00800cfc @ 1
+[    0.000000] initcall 0x00800cfc returned 0 after 0 usecs
+[    0.000000] calling  0x00800dcc @ 1
+[    0.000000] initcall 0x00800dcc returned 0 after 0 usecs
+[    0.000000] calling  0x00800ec8 @ 1
+[    0.000000] initcall 0x00800ec8 returned 0 after 0 usecs
+[    0.000000] calling  0x00801e38 @ 1
+[    0.000000] initcall 0x00801e38 returned 0 after 0 usecs
+[    0.000000] calling  0x00802b58 @ 1
+[    0.000000] initcall 0x00802b58 returned 0 after 0 usecs
+[    0.000000] calling  0x008042ec @ 1
+[    0.000000] initcall 0x008042ec returned 0 after 0 usecs
+[    0.000000] calling  0x008043d4 @ 1
+[    0.000000] pps_core: LinuxPPS API ver. 1 registered
+[    0.000000] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.000000] initcall 0x008043d4 returned 0 after 0 usecs
+[    0.000000] calling  0x00804504 @ 1
+[    0.000000] PTP clock support registered
+[    0.000000] initcall 0x00804504 returned 0 after 0 usecs
+[    0.000000] calling  0x008045f0 @ 1
+[    0.000000] initcall 0x008045f0 returned 0 after 0 usecs
+[    0.000000] calling  0x00804864 @ 1
+[    0.000000] initcall 0x00804864 returned 0 after 0 usecs
+[    0.000000] calling  0x008051e8 @ 1
+[    0.000000] initcall 0x008051e8 returned 0 after 0 usecs
+[    0.000000] calling  0x0080575c @ 1
+[    0.000000] initcall 0x0080575c returned 0 after 0 usecs
+[    0.000000] calling  0x00805da0 @ 1
+[    0.000000] initcall 0x00805da0 returned 0 after 0 usecs
+[    0.000000] calling  0x00805e10 @ 1
+[    0.000000] initcall 0x00805e10 returned 0 after 0 usecs
+[    0.000000] calling  0x00806670 @ 1
+[    0.000000] initcall 0x00806670 returned 0 after 0 usecs
+[    0.000000] calling  0x00809d08 @ 1
+[    0.000000] initcall 0x00809d08 returned 0 after 0 usecs
+[    0.000000] calling  0x00816930 @ 1
+[    0.000000] initcall 0x00816930 returned 0 after 0 usecs
+[    0.000000] calling  0x007ebc38 @ 1
+[    0.000000] initcall 0x007ebc38 returned 0 after 0 usecs
+[    0.000000] calling  0x007f0a4c @ 1
+[    0.000000] clocksource: Switched to clocksource myemulator2-time
+[    0.000000] initcall 0x007f0a4c returned 0 after 26 usecs
+[    0.000000] calling  0x007fc024 @ 1
+[    0.000000] initcall 0x007fc024 returned 0 after 4 usecs
+[    0.000000] calling  0x007fc1f8 @ 1
+[    0.000000] initcall 0x007fc1f8 returned 0 after 2 usecs
+[    0.000000] calling  0x007fc24c @ 1
+[    0.000000] initcall 0x007fc24c returned 0 after 27 usecs
+[    0.000000] calling  0x007fc31c @ 1
+[    0.010000] initcall 0x007fc31c returned 0 after 7 usecs
+[    0.010000] calling  0x007fc3fc @ 1
+[    0.010000] initcall 0x007fc3fc returned 0 after 2 usecs
+[    0.010000] calling  0x007fca68 @ 1
+[    0.010000] initcall 0x007fca68 returned 0 after 3 usecs
+[    0.010000] calling  0x007fe044 @ 1
+[    0.010000] initcall 0x007fe044 returned 0 after 8 usecs
+[    0.010000] calling  0x007fe184 @ 1
+[    0.010000] initcall 0x007fe184 returned 0 after 13 usecs
+[    0.010000] calling  0x007fe2e4 @ 1
+[    0.010000] initcall 0x007fe2e4 returned 0 after 22 usecs
+[    0.010000] calling  0x007fe514 @ 1
+[    0.010000] initcall 0x007fe514 returned 0 after 3 usecs
+[    0.010000] calling  0x007fe7a4 @ 1
+[    0.010000] initcall 0x007fe7a4 returned 0 after 7 usecs
+[    0.010000] calling  0x007fe84c @ 1
+[    0.010000] initcall 0x007fe84c returned 0 after 24 usecs
+[    0.010000] calling  0x007fe894 @ 1
+[    0.010000] initcall 0x007fe894 returned 0 after 394 usecs
+[    0.010000] calling  0x007fed3c @ 1
+[    0.010000] initcall 0x007fed3c returned 0 after 2 usecs
+[    0.010000] calling  0x007fedb8 @ 1
+[    0.010000] initcall 0x007fedb8 returned 0 after 2 usecs
+[    0.010000] calling  0x007fee10 @ 1
+[    0.010000] initcall 0x007fee10 returned 0 after 4 usecs
+[    0.010000] calling  0x007fee60 @ 1
+[    0.010000] initcall 0x007fee60 returned 0 after 3 usecs
+[    0.010000] calling  0x007feec4 @ 1
+[    0.010000] initcall 0x007feec4 returned 0 after 2 usecs
+[    0.010000] calling  0x007fef1c @ 1
+[    0.010000] initcall 0x007fef1c returned 0 after 2 usecs
+[    0.010000] calling  0x007fef7c @ 1
+[    0.010000] initcall 0x007fef7c returned 0 after 2 usecs
+[    0.010000] calling  0x007fefdc @ 1
+[    0.010000] initcall 0x007fefdc returned 0 after 2 usecs
+[    0.010000] calling  0x007ff02c @ 1
+[    0.010000] initcall 0x007ff02c returned 0 after 2 usecs
+[    0.010000] calling  0x007ff08c @ 1
+[    0.010000] initcall 0x007ff08c returned 0 after 3 usecs
+[    0.010000] calling  0x007ff0ec @ 1
+[    0.010000] initcall 0x007ff0ec returned 0 after 3 usecs
+[    0.010000] calling  0x007ff450 @ 1
+[    0.010000] initcall 0x007ff450 returned 0 after 2 usecs
+[    0.010000] calling  0x007ff4a0 @ 1
+[    0.010000] initcall 0x007ff4a0 returned 0 after 4 usecs
+[    0.010000] calling  0x00800788 @ 1
+[    0.010000] initcall 0x00800788 returned 0 after 1 usecs
+[    0.010000] calling  0x00802678 @ 1
+[    0.010000] initcall 0x00802678 returned 0 after 1081 usecs
+[    0.010000] calling  0x0080518c @ 1
+[    0.010000] initcall 0x0080518c returned 0 after 42 usecs
+[    0.010000] calling  0x008061e8 @ 1
+[    0.010000] initcall 0x008061e8 returned 0 after 0 usecs
+[    0.010000] calling  0x00808f78 @ 1
+[    0.010000] NET: Registered PF_INET protocol family
+[    0.010000] IP idents hash table entries: 2048 (order: 2, 16384 bytes, linear)
+[    0.010000] tcp_listen_portaddr_hash hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.010000] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.010000] TCP established hash table entries: 1024 (order: 0, 4096 bytes, linear)
+[    0.010000] TCP bind hash table entries: 1024 (order: 1, 8192 bytes, linear)
+[    0.010000] TCP: Hash tables configured (established 1024 bind 1024)
+[    0.010000] UDP hash table entries: 256 (order: 0, 4096 bytes, linear)
+[    0.010000] UDP-Lite hash table entries: 256 (order: 0, 4096 bytes, linear)
+[    0.010000] initcall 0x00808f78 returned 0 after 1831 usecs
+[    0.010000] calling  0x00808bd0 @ 1
+[    0.010000] initcall 0x00808bd0 returned 0 after 1 usecs
+[    0.010000] calling  0x0080d358 @ 1
+[    0.010000] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    0.010000] initcall 0x0080d358 returned 0 after 45 usecs
+[    0.010000] calling  0x00810fe4 @ 1
+[    0.010000] initcall 0x00810fe4 returned 0 after 1 usecs
+[    0.010000] calling  0x007e98d8 @ 1
+[    0.010000] initcall 0x007e98d8 returned 0 after 3 usecs
+[    0.010000] virtio-mmio: Registering device virtio-mmio.0 at 0xf0200000-0xf02001ff, IRQ 5.
+[    0.010000] calling  0x007ea1c0 @ 1
+[    0.010000] probe of myemulator2-uart:0 returned 0 after 40 usecs
+[    0.010000] probe of myemulator2-uart:0 returned 0 after 40 usecs
+[    0.010000] probe of myemulator2-uart:0.0 returned 0 after 42 usecs
+[    0.010000] probe of myemulator2-uart:0.0 returned 0 after 42 usecs
+[    0.010000] myemulator2-uart: ttyMY0 at MMIO 0xf0000000 (irq = 4, base_baud = 0) is a myemulator2
+[    0.010000] myemulator2-uart: ttyMY0 at MMIO 0xf0000000 (irq = 4, base_baud = 0) is a myemulator2
+[    0.010000] initcall 0x007ea1c0 returned 0 after 539 usecs
+[    0.010000] initcall 0x007ea1c0 returned 0 after 539 usecs
+[    0.010000] calling  0x007ea7ac @ 1
+[    0.010000] calling  0x007ea7ac @ 1
+[    0.010000] myemulator2-block: 20971520 sectors dev=259:0
+[    0.010000] myemulator2-block: 20971520 sectors dev=259:0
+[    0.010000] initcall 0x007ea7ac returned 0 after 1320 usecs
+[    0.010000] initcall 0x007ea7ac returned 0 after 1320 usecs
+[    0.010000] calling  0x007eb3f4 @ 1
+[    0.010000] calling  0x007eb3f4 @ 1
+[    0.010000] initcall 0x007eb3f4 returned 0 after 3 usecs
+[    0.010000] initcall 0x007eb3f4 returned 0 after 3 usecs
+[    0.010000] calling  0x007eb448 @ 1
+[    0.010000] calling  0x007eb448 @ 1
+[    0.010000] initcall 0x007eb448 returned 0 after 0 usecs
+[    0.010000] initcall 0x007eb448 returned 0 after 0 usecs
+[    0.010000] calling  0x007ebb90 @ 1
+[    0.010000] calling  0x007ebb90 @ 1
+[    0.010000] initcall 0x007ebb90 returned 0 after 4 usecs
+[    0.010000] initcall 0x007ebb90 returned 0 after 4 usecs
+[    0.010000] calling  0x007f0390 @ 1
+[    0.010000] calling  0x007f0390 @ 1
+[    0.010000] initcall 0x007f0390 returned 0 after 0 usecs
+[    0.010000] initcall 0x007f0390 returned 0 after 0 usecs
+[    0.010000] calling  0x007f08ec @ 1
+[    0.010000] calling  0x007f08ec @ 1
+[    0.010000] initcall 0x007f08ec returned 0 after 118 usecs
+[    0.010000] initcall 0x007f08ec returned 0 after 118 usecs
+[    0.010000] calling  0x007f0b3c @ 1
+[    0.010000] calling  0x007f0b3c @ 1
+[    0.010000] initcall 0x007f0b3c returned 0 after 3 usecs
+[    0.010000] initcall 0x007f0b3c returned 0 after 3 usecs
+[    0.010000] calling  0x007f0bb4 @ 1
+[    0.010000] calling  0x007f0bb4 @ 1
+[    0.010000] initcall 0x007f0bb4 returned 0 after 43 usecs
+[    0.010000] initcall 0x007f0bb4 returned 0 after 43 usecs
+[    0.010000] calling  0x007f0c48 @ 1
+[    0.010000] calling  0x007f0c48 @ 1
+[    0.010000] initcall 0x007f0c48 returned 0 after 8 usecs
+[    0.010000] initcall 0x007f0c48 returned 0 after 8 usecs
+[    0.010000] calling  0x007f0cd4 @ 1
+[    0.010000] calling  0x007f0cd4 @ 1
+[    0.010000] initcall 0x007f0cd4 returned 0 after 113 usecs
+[    0.010000] initcall 0x007f0cd4 returned 0 after 113 usecs
+[    0.010000] calling  0x007f0ebc @ 1
+[    0.010000] calling  0x007f0ebc @ 1
+[    0.010000] initcall 0x007f0ebc returned 0 after 7 usecs
+[    0.010000] initcall 0x007f0ebc returned 0 after 7 usecs
+[    0.010000] calling  0x007f1324 @ 1
+[    0.010000] calling  0x007f1324 @ 1
+[    0.010000] initcall 0x007f1324 returned 0 after 263 usecs
+[    0.010000] initcall 0x007f1324 returned 0 after 263 usecs
+[    0.010000] calling  0x007f5934 @ 1
+[    0.010000] calling  0x007f5934 @ 1
+[    0.010000] initcall 0x007f5934 returned 0 after 2 usecs
+[    0.010000] initcall 0x007f5934 returned 0 after 2 usecs
+[    0.010000] calling  0x007f611c @ 1
+[    0.010000] calling  0x007f611c @ 1
+[    0.010000] workingset: timestamp_bits=30 max_order=15 bucket_order=0
+[    0.010000] workingset: timestamp_bits=30 max_order=15 bucket_order=0
+[    0.010000] initcall 0x007f611c returned 0 after 28 usecs
+[    0.010000] initcall 0x007f611c returned 0 after 28 usecs
+[    0.010000] calling  0x007f6554 @ 1
+[    0.010000] calling  0x007f6554 @ 1
+[    0.010000] initcall 0x007f6554 returned 0 after 2 usecs
+[    0.010000] initcall 0x007f6554 returned 0 after 2 usecs
+[    0.010000] calling  0x007fbf20 @ 1
+[    0.010000] calling  0x007fbf20 @ 1
+[    0.010000] initcall 0x007fbf20 returned 0 after 2 usecs
+[    0.010000] initcall 0x007fbf20 returned 0 after 2 usecs
+[    0.010000] calling  0x007fc370 @ 1
+[    0.010000] calling  0x007fc370 @ 1
+[    0.010000] initcall 0x007fc370 returned 0 after 1 usecs
+[    0.010000] initcall 0x007fc370 returned 0 after 1 usecs
+[    0.010000] calling  0x007fc820 @ 1
+[    0.010000] calling  0x007fc820 @ 1
+[    0.010000] initcall 0x007fc820 returned 0 after 3 usecs
+[    0.010000] initcall 0x007fc820 returned 0 after 3 usecs
+[    0.010000] calling  0x007fce9c @ 1
+[    0.010000] calling  0x007fce9c @ 1
+[    0.010000] initcall 0x007fce9c returned 0 after 0 usecs
+[    0.010000] initcall 0x007fce9c returned 0 after 0 usecs
+[    0.010000] calling  0x007fdf24 @ 1
+[    0.010000] calling  0x007fdf24 @ 1
+[    0.010000] initcall 0x007fdf24 returned 0 after 7 usecs
+[    0.010000] initcall 0x007fdf24 returned 0 after 7 usecs
+[    0.010000] calling  0x007fe3a4 @ 1
+[    0.010000] calling  0x007fe3a4 @ 1
+[    0.010000] initcall 0x007fe3a4 returned 0 after 26 usecs
+[    0.010000] initcall 0x007fe3a4 returned 0 after 26 usecs
+[    0.010000] calling  0x007fe714 @ 1
+[    0.010000] calling  0x007fe714 @ 1
+[    0.010000] initcall 0x007fe714 returned 0 after 8 usecs
+[    0.010000] initcall 0x007fe714 returned 0 after 8 usecs
+[    0.010000] calling  0x007ff738 @ 1
+[    0.010000] calling  0x007ff738 @ 1
+[    0.010000] initcall 0x007ff738 returned 0 after 7 usecs
+[    0.010000] initcall 0x007ff738 returned 0 after 7 usecs
+[    0.010000] calling  0x007ffd20 @ 1
+[    0.010000] calling  0x007ffd20 @ 1
+[    0.010000] initcall 0x007ffd20 returned 0 after 83 usecs
+[    0.010000] initcall 0x007ffd20 returned 0 after 83 usecs
+[    0.010000] calling  0x008004ec @ 1
+[    0.010000] calling  0x008004ec @ 1
+[    0.010000] initcall 0x008004ec returned 0 after 19 usecs
+[    0.010000] initcall 0x008004ec returned 0 after 19 usecs
+[    0.010000] calling  0x00800a48 @ 1
+[    0.010000] calling  0x00800a48 @ 1
+[    0.010000] initcall 0x00800a48 returned 0 after 13 usecs
+[    0.010000] initcall 0x00800a48 returned 0 after 13 usecs
+[    0.010000] calling  0x00800f6c @ 1
+[    0.010000] calling  0x00800f6c @ 1
+[    0.010000] initcall 0x00800f6c returned 0 after 5 usecs
+[    0.010000] initcall 0x00800f6c returned 0 after 5 usecs
+[    0.010000] calling  0x00801b38 @ 1
+[    0.010000] calling  0x00801b38 @ 1
+[    0.010000] io scheduler mq-deadline registered
+[    0.010000] io scheduler mq-deadline registered
+[    0.010000] initcall 0x00801b38 returned 0 after 21 usecs
+[    0.010000] initcall 0x00801b38 returned 0 after 21 usecs
+[    0.010000] calling  0x00801b74 @ 1
+[    0.010000] calling  0x00801b74 @ 1
+[    0.010000] io scheduler kyber registered
+[    0.010000] io scheduler kyber registered
+[    0.010000] initcall 0x00801b74 returned 0 after 20 usecs
+[    0.010000] initcall 0x00801b74 returned 0 after 20 usecs
+[    0.010000] calling  0x00801bb0 @ 1
+[    0.010000] calling  0x00801bb0 @ 1
+[    0.010000] initcall 0x00801bb0 returned 0 after 23 usecs
+[    0.010000] initcall 0x00801bb0 returned 0 after 23 usecs
+[    0.010000] calling  0x00801ebc @ 1
+[    0.010000] calling  0x00801ebc @ 1
+[    0.010000] initcall 0x00801ebc returned 0 after 0 usecs
+[    0.010000] initcall 0x00801ebc returned 0 after 0 usecs
+[    0.010000] calling  0x00801ef0 @ 1
+[    0.010000] calling  0x00801ef0 @ 1
+[    0.010000] probe of virtio-mmio.0 returned 0 after 114 usecs
+[    0.010000] probe of virtio-mmio.0 returned 0 after 114 usecs
+[    0.010000] initcall 0x00801ef0 returned 0 after 183 usecs
+[    0.010000] initcall 0x00801ef0 returned 0 after 183 usecs
+[    0.010000] calling  0x00802194 @ 1
+[    0.010000] calling  0x00802194 @ 1
+[    0.010000] initcall 0x00802194 returned 0 after 1 usecs
+[    0.010000] initcall 0x00802194 returned 0 after 1 usecs
+[    0.010000] calling  0x00802210 @ 1
+[    0.010000] calling  0x00802210 @ 1
+[    0.010000] initcall 0x00802210 returned 0 after 124 usecs
+[    0.010000] initcall 0x00802210 returned 0 after 124 usecs
+[    0.010000] calling  0x00802818 @ 1
+[    0.010000] calling  0x00802818 @ 1
+[    0.010000] initcall 0x00802818 returned 0 after 10 usecs
+[    0.010000] initcall 0x00802818 returned 0 after 10 usecs
+[    0.010000] calling  0x008039cc @ 1
+[    0.010000] calling  0x008039cc @ 1
+[    0.010000] ------------[ cut here ]------------
+[    0.010000] ------------[ cut here ]------------
+[    0.010000] WARNING: CPU: 0 PID: 1 at fs/sysfs/group.c:128 0x007caac8
+[    0.010000] WARNING: CPU: 0 PID: 1 at fs/sysfs/group.c:128 0x007caac8
+[    0.010000] CPU: 0 UID: 0 PID: 1 Comm: swapper Not tainted 6.12.1 #3
+[    0.010000] CPU: 0 UID: 0 PID: 1 Comm: swapper Not tainted 6.12.1 #3
+[    0.010000] ---[ end trace 0000000000000000 ]---
+[    0.010000] ---[ end trace 0000000000000000 ]---
+[    0.010000] initcall 0x008039cc returned -22 after 102 usecs
+[    0.010000] initcall 0x008039cc returned -22 after 102 usecs
+[    0.010000] calling  0x00803a98 @ 1
+[    0.010000] calling  0x00803a98 @ 1
+[    0.010000] initcall 0x00803a98 returned -2 after 0 usecs
+[    0.010000] initcall 0x00803a98 returned -2 after 0 usecs
+[    0.010000] calling  0x0080409c @ 1
+[    0.010000] calling  0x0080409c @ 1
+[    0.010000] initcall 0x0080409c returned 0 after 19 usecs
+[    0.010000] initcall 0x0080409c returned 0 after 19 usecs
+[    0.010000] calling  0x00804170 @ 1
+[    0.010000] calling  0x00804170 @ 1
+[    0.010000] probe of virtio0 returned 0 after 1608 usecs
+[    0.010000] probe of virtio0 returned 0 after 1608 usecs
+[    0.010000] initcall 0x00804170 returned 0 after 1677 usecs
+[    0.010000] initcall 0x00804170 returned 0 after 1677 usecs
+[    0.010000] calling  0x008042b8 @ 1
+[    0.010000] calling  0x008042b8 @ 1
+[    0.010000] initcall 0x008042b8 returned 0 after 0 usecs
+[    0.010000] initcall 0x008042b8 returned 0 after 0 usecs
+[    0.010000] calling  0x00804358 @ 1
+[    0.010000] calling  0x00804358 @ 1
+[    0.010000] initcall 0x00804358 returned 0 after 0 usecs
+[    0.010000] initcall 0x00804358 returned 0 after 0 usecs
+[    0.010000] calling  0x00805c00 @ 1
+[    0.010000] calling  0x00805c00 @ 1
+[    0.010000] initcall 0x00805c00 returned 0 after 15 usecs
+[    0.010000] initcall 0x00805c00 returned 0 after 15 usecs
+[    0.010000] calling  0x008061a8 @ 1
+[    0.010000] calling  0x008061a8 @ 1
+[    0.010000] initcall 0x008061a8 returned 0 after 1 usecs
+[    0.010000] initcall 0x008061a8 returned 0 after 1 usecs
+[    0.010000] calling  0x00809c50 @ 1
+[    0.010000] calling  0x00809c50 @ 1
+[    0.010000] initcall 0x00809c50 returned 0 after 1 usecs
+[    0.010000] initcall 0x00809c50 returned 0 after 1 usecs
+[    0.010000] calling  0x00809f14 @ 1
+[    0.010000] calling  0x00809f14 @ 1
+[    0.010000] initcall 0x00809f14 returned 0 after 259 usecs
+[    0.010000] initcall 0x00809f14 returned 0 after 259 usecs
+[    0.010000] calling  0x0080a204 @ 1
+[    0.010000] calling  0x0080a204 @ 1
+[    0.010000] initcall 0x0080a204 returned 0 after 1 usecs
+[    0.010000] initcall 0x0080a204 returned 0 after 1 usecs
+[    0.010000] calling  0x0080d150 @ 1
+[    0.010000] calling  0x0080d150 @ 1
+[    0.010000] initcall 0x0080d150 returned 0 after 12 usecs
+[    0.010000] initcall 0x0080d150 returned 0 after 12 usecs
+[    0.010000] calling  0x0080d268 @ 1
+[    0.010000] calling  0x0080d268 @ 1
+[    0.010000] initcall 0x0080d268 returned 0 after 1 usecs
+[    0.010000] initcall 0x0080d268 returned 0 after 1 usecs
+[    0.010000] calling  0x0080d2a4 @ 1
+[    0.010000] calling  0x0080d2a4 @ 1
+[    0.010000] initcall 0x0080d2a4 returned 0 after 2 usecs
+[    0.010000] initcall 0x0080d2a4 returned 0 after 2 usecs
+[    0.010000] calling  0x0080d664 @ 1
+[    0.010000] calling  0x0080d664 @ 1
+[    0.010000] NET: Registered PF_INET6 protocol family
+[    0.010000] NET: Registered PF_INET6 protocol family
+[    0.010000] Segment Routing with IPv6
+[    0.010000] Segment Routing with IPv6
+[    0.010000] In-situ OAM (IOAM) with IPv6
+[    0.010000] In-situ OAM (IOAM) with IPv6
+[    0.010000] initcall 0x0080d664 returned 0 after 1572 usecs
+[    0.010000] initcall 0x0080d664 returned 0 after 1572 usecs
+[    0.010000] calling  0x00810e94 @ 1
+[    0.010000] calling  0x00810e94 @ 1
+[    0.010000] sit: IPv6, IPv4 and MPLS over IPv4 tunneling driver
+[    0.010000] sit: IPv6, IPv4 and MPLS over IPv4 tunneling driver
+[    0.010000] initcall 0x00810e94 returned 0 after 643 usecs
+[    0.010000] initcall 0x00810e94 returned 0 after 643 usecs
+[    0.010000] calling  0x00811314 @ 1
+[    0.010000] calling  0x00811314 @ 1
+[    0.010000] NET: Registered PF_PACKET protocol family
+[    0.010000] NET: Registered PF_PACKET protocol family
+[    0.010000] initcall 0x00811314 returned 0 after 25 usecs
+[    0.010000] initcall 0x00811314 returned 0 after 25 usecs
+[    0.010000] calling  0x007e7d8c @ 1
+[    0.010000] calling  0x007e7d8c @ 1
+[    0.010000] initcall 0x007e7d8c returned 0 after 2 usecs
+[    0.010000] initcall 0x007e7d8c returned 0 after 2 usecs
+[    0.010000] calling  0x007ea608 @ 1
+[    0.010000] calling  0x007ea608 @ 1
+[    0.010000] MyEmulator2 vmalloc selftest: PASS
+[    0.010000] MyEmulator2 vmalloc selftest: PASS
+[    0.010000] initcall 0x007ea608 returned 0 after 258 usecs
+[    0.010000] initcall 0x007ea608 returned 0 after 258 usecs
+[    0.010000] calling  0x007eb4d0 @ 1
+[    0.010000] calling  0x007eb4d0 @ 1
+[    0.010000] initcall 0x007eb4d0 returned 0 after 3 usecs
+[    0.010000] initcall 0x007eb4d0 returned 0 after 3 usecs
+[    0.010000] calling  0x007eb47c @ 1
+[    0.010000] calling  0x007eb47c @ 1
+[    0.010000] initcall 0x007eb47c returned 0 after 3 usecs
+[    0.010000] initcall 0x007eb47c returned 0 after 3 usecs
+[    0.010000] calling  0x007eb9a0 @ 1
+[    0.010000] calling  0x007eb9a0 @ 1
+[    0.010000] initcall 0x007eb9a0 returned 0 after 3 usecs
+[    0.010000] initcall 0x007eb9a0 returned 0 after 3 usecs
+[    0.010000] calling  0x007eb94c @ 1
+[    0.010000] calling  0x007eb94c @ 1
+[    0.010000] initcall 0x007eb94c returned 0 after 2 usecs
+[    0.010000] initcall 0x007eb94c returned 0 after 2 usecs
+[    0.010000] calling  0x007ed8b4 @ 1
+[    0.010000] calling  0x007ed8b4 @ 1
+[    0.010000] initcall 0x007ed8b4 returned 0 after 1987 usecs
+[    0.010000] initcall 0x007ed8b4 returned 0 after 1987 usecs
+[    0.010000] calling  0x007ee2c4 @ 1
+[    0.010000] calling  0x007ee2c4 @ 1
+[    0.010000] initcall 0x007ee2c4 returned 0 after 9 usecs
+[    0.010000] initcall 0x007ee2c4 returned 0 after 9 usecs
+[    0.010000] calling  0x007ee5ac @ 1
+[    0.010000] calling  0x007ee5ac @ 1
+[    0.010000] initcall 0x007ee5ac returned 0 after 2 usecs
+[    0.010000] initcall 0x007ee5ac returned 0 after 2 usecs
+[    0.010000] calling  0x007eea48 @ 1
+[    0.010000] calling  0x007eea48 @ 1
+[    0.010000] initcall 0x007eea48 returned 0 after 2 usecs
+[    0.010000] initcall 0x007eea48 returned 0 after 2 usecs
+[    0.010000] calling  0x007eeb64 @ 1
+[    0.010000] calling  0x007eeb64 @ 1
+[    0.010000] initcall 0x007eeb64 returned 0 after 4 usecs
+[    0.010000] initcall 0x007eeb64 returned 0 after 4 usecs
+[    0.010000] calling  0x007eeb10 @ 1
+[    0.010000] calling  0x007eeb10 @ 1
+[    0.010000] initcall 0x007eeb10 returned 0 after 7 usecs
+[    0.010000] initcall 0x007eeb10 returned 0 after 7 usecs
+[    0.010000] calling  0x007efb48 @ 1
+[    0.010000] calling  0x007efb48 @ 1
+[    0.010000] initcall 0x007efb48 returned 0 after 12 usecs
+[    0.010000] initcall 0x007efb48 returned 0 after 12 usecs
+[    0.010000] calling  0x007fbc94 @ 1
+[    0.010000] calling  0x007fbc94 @ 1
+[    0.020000] initcall 0x007fbc94 returned 0 after 5904 usecs
+[    0.020000] initcall 0x007fbc94 returned 0 after 5904 usecs
+[    0.020000] calling  0x00800810 @ 1
+[    0.020000] calling  0x00800810 @ 1
+[    0.020000] initcall 0x00800810 returned 0 after 3 usecs
+[    0.020000] initcall 0x00800810 returned 0 after 3 usecs
+[    0.020000] calling  0x00800d88 @ 1
+[    0.020000] calling  0x00800d88 @ 1
+[    0.020000] initcall 0x00800d88 returned 0 after 0 usecs
+[    0.020000] initcall 0x00800d88 returned 0 after 0 usecs
+[    0.020000] calling  0x00507fa4 @ 1
+[    0.020000] calling  0x00507fa4 @ 1
+[    0.020000] initcall 0x00507fa4 returned 0 after 1 usecs
+[    0.020000] initcall 0x00507fa4 returned 0 after 1 usecs
+[    0.020000] calling  0x0050d0c8 @ 1
+[    0.020000] calling  0x0050d0c8 @ 1
+[    0.020000] initcall 0x0050d0c8 returned 0 after 43 usecs
+[    0.020000] initcall 0x0050d0c8 returned 0 after 43 usecs
+[    0.020000] calling  0x005bef2c @ 1
+[    0.020000] calling  0x005bef2c @ 1
+[    0.020000] initcall 0x005bef2c returned 0 after 1 usecs
+[    0.020000] initcall 0x005bef2c returned 0 after 1 usecs
+[    0.020000] calling  0x00805bcc @ 1
+[    0.020000] calling  0x00805bcc @ 1
+[    0.020000] initcall 0x00805bcc returned 0 after 1 usecs
+[    0.020000] initcall 0x00805bcc returned 0 after 1 usecs
+[    0.020000] calling  0x00805ddc @ 1
+[    0.020000] calling  0x00805ddc @ 1
+[    0.020000] initcall 0x00805ddc returned 0 after 1 usecs
+[    0.020000] initcall 0x00805ddc returned 0 after 1 usecs
+[    0.020000] calling  0x00807b18 @ 1
+[    0.020000] calling  0x00807b18 @ 1
+[    0.020000] initcall 0x00807b18 returned 0 after 1 usecs
+[    0.020000] initcall 0x00807b18 returned 0 after 1 usecs
+[    0.020000] calling  0x008087c8 @ 1
+[    0.020000] calling  0x008087c8 @ 1
+[    0.020000] initcall 0x008087c8 returned 0 after 36 usecs
+[    0.020000] initcall 0x008087c8 returned 0 after 36 usecs
+[    0.020000] calling  0x0080ba44 @ 1
+[    0.020000] calling  0x0080ba44 @ 1
+[    0.020000] initcall 0x0080ba44 returned 0 after 10 usecs
+[    0.020000] initcall 0x0080ba44 returned 0 after 10 usecs
+[    0.020000] EXT4-fs (myemu0): mounted filesystem 4fb9a189-0c30-49ae-a1f6-33b6f7fbf2aa r/w with ordered data mode. Quota mode: disabled.
+[    0.020000] EXT4-fs (myemu0): mounted filesystem 4fb9a189-0c30-49ae-a1f6-33b6f7fbf2aa r/w with ordered data mode. Quota mode: disabled.
+[    0.020000] VFS: Mounted root (ext4 filesystem) on device 259:0.
+[    0.020000] VFS: Mounted root (ext4 filesystem) on device 259:0.
+[    0.020000] devtmpfs: mounted
+[    0.020000] devtmpfs: mounted
+[    0.030000] Freeing unused kernel image (initmem) memory: 208K
+[    0.030000] Freeing unused kernel image (initmem) memory: 208K
+[    0.030000] This architecture does not have kernel memory protection.
+[    0.030000] This architecture does not have kernel memory protection.
+[    0.030000] Run /sbin/init as init process
+[    0.030000] Run /sbin/init as init process
+[    0.030000]   with arguments:
+[    0.030000]   with arguments:
+[    0.030000]     /sbin/init
+[    0.030000]     /sbin/init
+[    0.030000]   with environment:
+[    0.030000]   with environment:
+[    0.030000]     HOME=/
+[    0.030000]     HOME=/
+[    0.030000]     TERM=linux
+[    0.030000]     TERM=linux
+[    0.030000] process '/bin/busybox-human-baseline' started with executable stack
+[    0.030000] process '/bin/busybox-human-baseline' started with executable stack
+init started: BusyBox v1.37.0 (2026-10-08 02:38:50 BST)
+init started: BusyBox v1.37.0 (2026-10-08 02:38:50 BST)
+command='/etc/init.d/rcS' action=1 tty=''
+
+command='/etc/init.d/rcS' action=1 tty=''
+
+command='/sbin/getty 115200 ttyMY0 ansi' action=8 tty='/dev/ttyMY0'
+
+command='/sbin/getty 115200 ttyMY0 ansi' action=8 tty='/dev/ttyMY0'
+
+command='/sbin/reboot' action=20 tty=''
+
+command='/sbin/reboot' action=20 tty=''
+
+command='/etc/init.d/rc shutdown' action=40 tty=''
+
+command='/etc/init.d/rc shutdown' action=40 tty=''
+
+command='/sbin/init' action=80 tty=''
+
+command='/sbin/init' action=80 tty=''
+
+REM_TTY child setsid pid=24 result=24 errno=22
+REM_TTY child stdio opened pid=24 tty= isatty=1
+starting pid 24, tty '': '/etc/init.d/rcS'
+runlevel 3: start network
+network: eth0 configured as 10.0.2.15/24 (QEMU user networking)
+runlevel 3: start local
+FOLD_REAL_LIBC_SYSV_BOOT
+FOLD_LIBC_INPUT_SHA256=0bc5770f3d1b84a97a1030f5c2911b164a375d89c2db9e4a89a4f51c4f2b3186
+FOLD_LIBC_UPDATED_SHA256=269b1d6b5a15a3e2b3c4f8fe48dc0f9f8b5922e2c90937586ec7167d22a1c7c2
+PASS test -r /proc/mounts
+PASS test -r /proc/partitions
+PASS test -r /proc/cmdline
+PASS test -d /sys/block/myemu0
+PASS sh -c mount | grep -q " / "
+PASS sh -c df / | grep -q /
+PASS sh -c df -h / | grep -q /
+PASS sh -c stat -f / | grep -q -i blocks
+PASS sh -c echo abc | grep -E "a|z"
+PASS sh -c echo abc | wc -l | grep -q 1
+PASS sh -c printf AB | od -An -tx1 | grep -q 41
+PASS sh -c find /etc -type f -name inittab | grep -q inittab
+PASS sh -c echo 1 2 | awk "{print \$2}" | grep -q 2
+PASS sh -c echo /bin/bu* | grep -q busybox
+PASS sh -c rm -f /tmp/.rl; ln -s /etc /tmp/.rl && test -L /tmp/.rl && rm /tmp/.rl
+PASS exit status 3
+--- root filesystem
+Filesystem                Size      Used Available Use% Mounted on
+/dev/root                 9.8G    521.2M      8.8G   5% /
+/dev/root / ext4 rw,relatime 0 0
+--- compiler qualification (log: /home/dev/rem-native-userland/rem-update-compiler.log)
