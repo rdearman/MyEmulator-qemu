@@ -1,0 +1,4743 @@
+--- a/.gitignore	2020-12-07 03:00:06.000000000 +0000
++++ b/.gitignore	1970-01-01 01:00:00.000000000 +0100
+@@ -1,10 +0,0 @@
+-**/*~
+-**/\#*
+-**/*.o
+-**/*.s
+-**/a.out
+-/tmp*
+-/thirdparty
+-/chibicc
+-/test/*.exe
+-/stage2
+--- a/Makefile	2020-12-07 03:00:06.000000000 +0000
++++ b/Makefile	1970-01-01 01:00:00.000000000 +0100
+@@ -1,50 +0,0 @@
+-CFLAGS=-std=c11 -g -fno-common -Wall -Wno-switch
+-
+-SRCS=$(wildcard *.c)
+-OBJS=$(SRCS:.c=.o)
+-
+-TEST_SRCS=$(wildcard test/*.c)
+-TESTS=$(TEST_SRCS:.c=.exe)
+-
+-# Stage 1
+-
+-chibicc: $(OBJS)
+-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+-
+-$(OBJS): chibicc.h
+-
+-test/%.exe: chibicc test/%.c
+-	./chibicc -Iinclude -Itest -c -o test/$*.o test/$*.c
+-	$(CC) -pthread -o $@ test/$*.o -xc test/common
+-
+-test: $(TESTS)
+-	for i in $^; do echo $$i; ./$$i || exit 1; echo; done
+-	test/driver.sh ./chibicc
+-
+-test-all: test test-stage2
+-
+-# Stage 2
+-
+-stage2/chibicc: $(OBJS:%=stage2/%)
+-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+-
+-stage2/%.o: chibicc %.c
+-	mkdir -p stage2/test
+-	./chibicc -c -o $(@D)/$*.o $*.c
+-
+-stage2/test/%.exe: stage2/chibicc test/%.c
+-	mkdir -p stage2/test
+-	./stage2/chibicc -Iinclude -Itest -c -o stage2/test/$*.o test/$*.c
+-	$(CC) -pthread -o $@ stage2/test/$*.o -xc test/common
+-
+-test-stage2: $(TESTS:test/%=stage2/test/%)
+-	for i in $^; do echo $$i; ./$$i || exit 1; echo; done
+-	test/driver.sh ./stage2/chibicc
+-
+-# Misc.
+-
+-clean:
+-	rm -rf chibicc tmp* $(TESTS) test/*.s test/*.exe stage2
+-	find * -type f '(' -name '*~' -o -name '*.o' ')' -exec rm {} ';'
+-
+-.PHONY: test clean test-stage2
+--- a/README.md	2020-12-07 03:00:06.000000000 +0000
++++ b/README.md	1970-01-01 01:00:00.000000000 +0100
+@@ -1,209 +0,0 @@
+-# chibicc: A Small C Compiler
+-
+-(The old master has moved to
+-[historical/old](https://github.com/rui314/chibicc/tree/historical/old)
+-branch. This is a new one uploaded in September 2020.)
+-
+-chibicc is yet another small C compiler that implements most C11
+-features. Even though it still probably falls into the "toy compilers"
+-category just like other small compilers do, chibicc can compile
+-several real-world programs, including [Git](https://git-scm.com/),
+-[SQLite](https://sqlite.org),
+-[libpng](http://www.libpng.org/pub/png/libpng.html) and chibicc
+-itself, without making modifications to the compiled programs.
+-Generated executables of these programs pass their corresponding test
+-suites. So, chibicc actually supports a wide variety of C11 features
+-and is able to compile hundreds of thousands of lines of real-world C
+-code correctly.
+-
+-chibicc is developed as the reference implementation for a book I'm
+-currently writing about the C compiler and the low-level programming.
+-The book covers the vast topic with an incremental approach; in the first
+-chapter, readers will implement a "compiler" that accepts just a single
+-number as a "language", which will then gain one feature at a time in each
+-section of the book until the language that the compiler accepts matches
+-what the C11 spec specifies. I took this incremental approach from [the
+-paper](http://scheme2006.cs.uchicago.edu/11-ghuloum.pdf) by Abdulaziz
+-Ghuloum.
+-
+-Each commit of this project corresponds to a section of the book. For this
+-purpose, not only the final state of the project but each commit was
+-carefully written with readability in mind. Readers should be able to learn
+-how a C language feature can be implemented just by reading one or a few
+-commits of this project. For example, this is how
+-[while](https://github.com/rui314/chibicc/commit/773115ab2a9c4b96f804311b95b20e9771f0190a),
+-[[]](https://github.com/rui314/chibicc/commit/75fbd3dd6efde12eac8225d8b5723093836170a5),
+-[?:](https://github.com/rui314/chibicc/commit/1d0e942fd567a35d296d0f10b7693e98b3dd037c),
+-and [thread-local
+-variable](https://github.com/rui314/chibicc/commit/79644e54cc1805e54428cde68b20d6d493b76d34)
+-are implemented. If you have plenty of spare time, it might be fun to read
+-it from the [first
+-commit](https://github.com/rui314/chibicc/commit/0522e2d77e3ab82d3b80a5be8dbbdc8d4180561c).
+-
+-If you like this project, please consider purchasing a copy of the book
+-when it becomes available! 😀 I publish the source code here to give people
+-early access to it, because I was planing to do that anyway with a
+-permissive open-source license after publishing the book. If I don't charge
+-for the source code, it doesn't make much sense to me to keep it private. I
+-hope to publish the book in 2021.
+-You can sign up [here](https://forms.gle/sgrMWHGeGjeeEJcX7) to receive a
+-notification when a free chapter is available online or the book is published.
+-
+-I pronounce chibicc as _chee bee cee cee_. "chibi" means "mini" or
+-"small" in Japanese. "cc" stands for C compiler.
+-
+-## Status
+-
+-chibicc supports almost all mandatory features and most optional
+-features of C11 as well as a few GCC language extensions.
+-
+-Features that are often missing in a small compiler but supported by
+-chibicc include (but not limited to):
+-
+-- Preprocessor
+-- float, double and long double (x87 80-bit floating point numbers)
+-- Bit-fields
+-- alloca()
+-- Variable-length arrays
+-- Compound literals
+-- Thread-local variables
+-- Atomic variables
+-- Common symbols
+-- Designated initializers
+-- L, u, U and u8 string literals
+-- Functions that take or return structs as values, as specified by the
+-  x86-64 SystemV ABI
+-
+-chibicc does not support complex numbers, K&R-style function prototypes
+-and GCC-style inline assembly. Digraphs and trigraphs are intentionally
+-left out.
+-
+-chibicc outputs a simple but nice error message when it finds an error in
+-source code.
+-
+-There's no optimization pass. chibicc emits terrible code which is probably
+-twice or more slower than GCC's output. I have a plan to add an
+-optimization pass once the frontend is done.
+-
+-I'm using Ubuntu 20.04 for x86-64 as a development platform. I made a
+-few small changes so that chibicc works on Ubuntu 18.04, Fedora 32 and
+-Gentoo 2.6, but portability is not my goal at this moment. It may or
+-may not work on systems other than Ubuntu 20.04.
+-
+-## Internals
+-
+-chibicc consists of the following stages:
+-
+-- Tokenize: A tokenizer takes a string as an input, breaks it into a list
+-  of tokens and returns them.
+-
+-- Preprocess: A preprocessor takes as an input a list of tokens and output
+-  a new list of macro-expanded tokens. It interprets preprocessor
+-  directives while expanding macros.
+-
+-- Parse: A recursive descendent parser constructs abstract syntax trees
+-  from the output of the preprocessor. It also adds a type to each AST
+-  node.
+-
+-- Codegen: A code generator emits an assembly text for given AST nodes.
+-
+-## Contributing
+-
+-When I find a bug in this compiler, I go back to the original commit that
+-introduced the bug and rewrite the commit history as if there were no such
+-bug from the beginning. This is an unusual way of fixing bugs, but as a
+-part of a book, it is important to keep every commit bug-free.
+-
+-Thus, I do not take pull requests in this repo. You can send me a pull
+-request if you find a bug, but it is very likely that I will read your
+-patch and then apply that to my previous commits by rewriting history. I'll
+-credit your name somewhere, but your changes will be rewritten by me before
+-submitted to this repository.
+-
+-Also, please assume that I will occasionally force-push my local repository
+-to this public one to rewrite history. If you clone this project and make
+-local commits on top of it, your changes will have to be rebased by hand
+-when I force-push new commits.
+-
+-## Design principles
+-
+-chibicc's core value is its simplicity and the reability of its source
+-code. To achieve this goal, I was careful not to be too clever when
+-writing code. Let me explain what that means.
+-
+-Oftentimes, as you get used to the code base, you are tempted to
+-_improve_ the code using more abstractions and clever tricks.
+-But that kind of _improvements_ don't always improve readability for
+-first-time readers and can actually hurts it. I tried to avoid the
+-pitfall as much as possible. I wrote this code not for me but for
+-first-time readers.
+-
+-If you take a look at the source code, you'll find a couple of
+-dumb-looking pieces of code. These are written intentionally that way
+-(but at some places I might be actually missing something,
+-though). Here is a few notable examples:
+-
+-- The recursive descendent parser contains many similar-looking functions
+-  for similar-looking generative grammar rules. You might be tempted
+-  to _improve_ it to reduce the duplication using higher-order functions
+-  or macros, but I thought that that's too complicated. It's better to
+-  allow small duplications instead.
+-
+-- chibicc doesn't try too hard to save memory. An entire input source
+-  file is read to memory first before the tokenizer kicks in, for example.
+-
+-- Slow algorithms are fine if we know that n isn't too big.
+-  For example, we use a linked list as a set in the preprocessor, so
+-  the membership check takes O(n) where n is the size of the set.  But
+-  that's fine because we know n is usually very small.
+-  And even if n can be very big, I stick with a simple slow algorithm
+-  until it is proved by benchmarks that that's a bottleneck.
+-
+-- Each AST node type uses only a few members of the `Node` struct members.
+-  Other unused `Node` members are just a waste of memory at runtime.
+-  We could save memory using unions, but I decided to simply put everything
+-  in the same struct instead. I believe the inefficiency is negligible.
+-  Even if it matters, we can always change the code to use unions
+-  at any time. I wanted to avoid premature optimization.
+-
+-- chibicc always allocates heap memory using `calloc`, which is a
+-  variant of `malloc` that clears memory with zero. `calloc` is
+-  slightly slower than `malloc`, but that should be neligible.
+-
+-- Last but not least, chibicc allocates memory using `calloc` but never
+-  calls `free`. Allocated heap memory is not freed until the process exits.
+-  I'm sure that this memory management policy (or lack thereof) looks
+-  very odd, but it makes sense for short-lived programs such as compilers.
+-  DMD, a compiler for the D programming language, uses the same memory
+-  management scheme for the same reason, for example [1].
+-
+-## About the Author
+-
+-I'm Rui Ueyama. I'm the creator of [8cc](https://github.com/rui314/8cc),
+-which is a hobby C compiler, and also the original creator of the current
+-version of [LLVM lld](https://lld.llvm.org) linker, which is a
+-production-quality linker used by various operating systems and large-scale
+-build systems.
+-
+-## References
+-
+-- [tcc](https://bellard.org/tcc/): A small C compiler written by Fabrice
+-  Bellard. I learned a lot from this compiler, but the design of tcc and
+-  chibicc are different. In particular, tcc is a one-pass compiler, while
+-  chibicc is a multi-pass one.
+-
+-- [lcc](https://github.com/drh/lcc): Another small C compiler. The creators
+-  wrote a [book](https://sites.google.com/site/lccretargetablecompiler/)
+-  about the internals of lcc, which I found a good resource to see how a
+-  compiler is implemented.
+-
+-- [An Incremental Approach to Compiler
+-  Construction](http://scheme2006.cs.uchicago.edu/11-ghuloum.pdf)
+-
+-- [Rob Pike's 5 Rules of Programming](https://users.ece.utexas.edu/~adnan/pike.html)
+-
+-[1] https://www.drdobbs.com/cpp/increasing-compiler-speed-by-over-75/240158941
+-
+-> DMD does memory allocation in a bit of a sneaky way. Since compilers
+-> are short-lived programs, and speed is of the essence, DMD just
+-> mallocs away, and never frees.
+--- a/build-native.sh	1970-01-01 01:00:00.000000000 +0100
++++ b/build-native.sh	2026-10-06 23:17:00.689168551 +0100
+@@ -0,0 +1,22 @@
++#!/bin/sh
++# Build chibicc natively on REM with the installed chibicc, as and ld.  No make.
++# Output: ./chibicc-native  (the installed compiler is NOT touched).
++# "ld -r" first, then the final link: a one-step native link of all objects
++# crashed ld historically, so this is the established workaround.
++set -eu
++CC=${CC:-chibicc}
++OBJS=""
++for f in codegen hashmap main parse preprocess strings tokenize type unicode rem_float; do
++	echo "CC $f.c"
++	"$CC" -DCHIBICC_REM ${BOOTSTRAP_FLAGS:-} -I. -c -o "$f.o" "$f.c"
++	OBJS="$OBJS $f.o"
++done
++if [ "${REM_BOOTSTRAP_FLOAT:-0}" = 1 ]; then
++    "$CC" -DRYU_ONLY_64_BIT_OPS -I../ryu -c ../ryu/ryu/s2d.c -o ryu-s2d.o
++    OBJS="$OBJS ryu-s2d.o"
++fi
++ld -r -T ../rem-reloc.ld -o chibicc-partial.o $OBJS
++"$CC" -o chibicc-native chibicc-partial.o
++ls -l chibicc-native
++echo "To try it:   ./chibicc-native -g hello.c -o hello   (uses ./include next to the binary)"
++echo "To install:  cp ~/.local/bin/chibicc ~/.local/bin/chibicc.orig; cp chibicc-native ~/.local/bin/chibicc"
+--- a/chibicc.h	2020-12-07 03:00:06.000000000 +0000
++++ b/chibicc.h	2026-10-07 09:03:48.234987479 +0100
+@@ -42,6 +42,8 @@
+ } StringArray;
+ 
+ void strarray_push(StringArray *arr, char *s);
++void rem_float_bits(const double *value, uint32_t *bits);
++void rem_parse_float(const char *text, int length, double *value);
+ char *format(char *fmt, ...) __attribute__((format(printf, 1, 2)));
+ 
+ //
+@@ -63,6 +65,7 @@
+   char *name;
+   int file_no;
+   char *contents;
++  int include_next_idx;
+ 
+   // For #line directive
+   char *display_name;
+@@ -75,7 +78,11 @@
+   TokenKind kind;   // Token kind
+   Token *next;      // Next token
+   int64_t val;      // If kind is TK_NUM, its value
++#ifdef CHIBICC_REM
++  double fval;      // REM native compiler uses the supported double runtime
++#else
+   long double fval; // If kind is TK_NUM, its value
++#endif
+   char *loc;        // Token location
+   int len;          // Token length
+   Type *ty;         // Used if TK_NUM or TK_STR
+@@ -134,11 +141,14 @@
+ 
+   // Local variable
+   int offset;
++  bool is_by_ref;
+ 
+   // Global variable or function
+   bool is_function;
+   bool is_definition;
+   bool is_static;
++  bool is_weak;
++  char *alias_name;
+ 
+   // Global variable
+   bool is_tentative;
+@@ -220,6 +230,10 @@
+   ND_CAST,      // Type cast
+   ND_MEMZERO,   // Zero-clear a stack variable
+   ND_ASM,       // "asm"
++  ND_VA_START,  // __builtin_va_start
++  ND_VA_ARG,    // __builtin_va_arg
++  ND_VA_END,    // __builtin_va_end
++  ND_VA_COPY,   // __builtin_va_copy
+   ND_CAS,       // Atomic compare-and-swap
+   ND_EXCH,      // Atomic exchange
+ } NodeKind;
+@@ -242,6 +256,10 @@
+   Node *inc;
+ 
+   // "break" and "continue" labels
++  // The loop header label is kept on the node as well.  This is distinct
++  // from cont_label: for a `for` loop continue must run the increment
++  // expression before testing the condition again.
++  char *begin_label;
+   char *brk_label;
+   char *cont_label;
+ 
+@@ -278,6 +296,9 @@
+   Node *cas_old;
+   Node *cas_new;
+ 
++  // Variadic builtin type argument
++  Type *va_arg_ty;
++
+   // Atomic op= operators
+   Obj *atomic_addr;
+   Node *atomic_expr;
+@@ -287,7 +308,11 @@
+ 
+   // Numeric literal
+   int64_t val;
++#ifdef CHIBICC_REM
++  double fval;
++#else
+   long double fval;
++#endif
+ };
+ 
+ Node *new_cast(Node *expr, Type *ty);
+@@ -305,6 +330,7 @@
+   TY_SHORT,
+   TY_INT,
+   TY_LONG,
++  TY_LLONG,
+   TY_FLOAT,
+   TY_DOUBLE,
+   TY_LDOUBLE,
+@@ -338,6 +364,8 @@
+   // Declaration
+   Token *name;
+   Token *name_pos;
++  bool decl_is_weak;
++  char *decl_alias_name;
+ 
+   // Array
+   int array_len;
+@@ -355,6 +383,11 @@
+   Type *return_ty;
+   Type *params;
+   bool is_variadic;
++  // A function declared with an empty parameter list has an old-style
++  // unspecified parameter list; it is not a variadic function.  Keep this
++  // distinction so code generation does not create a va_list save area for
++  // ordinary definitions such as `int main()`.
++  bool has_prototype;
+   Type *next;
+ };
+ 
+@@ -381,11 +414,13 @@
+ extern Type *ty_short;
+ extern Type *ty_int;
+ extern Type *ty_long;
++extern Type *ty_llong;
+ 
+ extern Type *ty_uchar;
+ extern Type *ty_ushort;
+ extern Type *ty_uint;
+ extern Type *ty_ulong;
++extern Type *ty_ullong;
+ 
+ extern Type *ty_float;
+ extern Type *ty_double;
+@@ -408,6 +443,7 @@
+ // codegen.c
+ //
+ 
++extern bool opt_g;
+ void codegen(Obj *prog, FILE *out);
+ int align_to(int n, int align);
+ 
+--- a/codegen.c
++++ b/codegen.c
+@@ -1,18 +1,24 @@
+ #include "chibicc.h"
+ 
+-#define GP_MAX 6
+-#define FP_MAX 8
+-
++/* MyEmulator2 backend.  This first port deliberately implements the integer
++ * and pointer subset used by ordinary small C programs.  Unsupported ABI
++ * cases fail explicitly instead of being emitted as misleading assembly. */
+ static FILE *output_file;
+-static int depth;
+-static char *argreg8[] = {"%dil", "%sil", "%dl", "%cl", "%r8b", "%r9b"};
+-static char *argreg16[] = {"%di", "%si", "%dx", "%cx", "%r8w", "%r9w"};
+-static char *argreg32[] = {"%edi", "%esi", "%edx", "%ecx", "%r8d", "%r9d"};
+-static char *argreg64[] = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
+ static Obj *current_fn;
++static int labelseq;
++static int eval_depth;
+ 
+-static void gen_expr(Node *node);
+-static void gen_stmt(Node *node);
++/* Keep the compiler itself within the C subset accepted by the native REM
++ * bootstrap.  This is only used to encode an alignment exponent. */
++static int rem_ctz(unsigned x) {
++  int n = 0;
++  if (!x) return 32;
++  while ((x & 1) == 0) {
++    x >>= 1;
++    n++;
++  }
++  return n;
++}
+ 
+ __attribute__((format(printf, 1, 2)))
+ static void println(char *fmt, ...) {
+@@ -20,1575 +26,1007 @@
+   va_start(ap, fmt);
+   vfprintf(output_file, fmt, ap);
+   va_end(ap);
+-  fprintf(output_file, "\n");
++  fputc('\n', output_file);
+ }
+ 
+-static int count(void) {
+-  static int i = 1;
+-  return i++;
++int align_to(int n, int align) { return (n + align - 1) / align * align; }
++
++static int count(void) { return ++labelseq; }
++/* Keep BRANCH13 local; the following J reaches large generated bodies. */
++static void branch_zero(int reg, bool nonzero, char *target) {
++  int n = count();
++  println("  %s r%d, r0, .Lbranch_skip%d", nonzero ? "beq" : "bne", reg, n);
++  println("  j %s", target);
++  println(".Lbranch_skip%d:", n);
++}
++static void unsupported(Node *n, char *s) {
++  if (n && n->tok) error_tok(n->tok, "REM backend: %s", s);
++  error("REM backend: %s", s);
+ }
+ 
+-static void push(void) {
+-  println("  push %%rax");
+-  depth++;
++/* REM immediate fields are signed 12-bit values.  Large local frames and
++ * arrays therefore need an explicit address calculation; allowing GAS to
++ * truncate an addi/subi silently turns (for example) a 4160-byte frame into
++ * a 64-byte frame and corrupts the compiler at runtime. */
++static bool fits_imm12(int n) { return n >= -2048 && n <= 2047; }
++static void emit_imm(int reg, int64_t value) {
++  if (value >= -2048 && value <= 2047) {
++    println("  li r%d, %ld", reg, (long)value);
++    return;
++  }
++  uint32_t u = (uint32_t)value;
++  /* LUI supplies bits 31:12 and ORI supplies the low 12 bits. */
++  println("  lui r%d, %u", reg, (unsigned)(u >> 12));
++  println("  ori r%d, r%d, %u", reg, reg, (unsigned)(u & 0xfff));
++}
++static void add_offset(int dst, int base, int off, int tmp) {
++  if (fits_imm12(off)) {
++    println("  addi r%d, r%d, %d", dst, base, off);
++    return;
++  }
++  emit_imm(tmp, off);
++  println("  add r%d, r%d, r%d", dst, base, tmp);
++}
++static void load_fp(int dst, int off) {
++  if (fits_imm12(off)) println("  lw r%d, %d(r5)", dst, off);
++  else { emit_imm(12, off); println("  add r12, r5, r12"); println("  lw r%d, 0(r12)", dst); }
++}
++static void store_fp(int src, int off) {
++  if (fits_imm12(off)) println("  sw r%d, %d(r5)", src, off);
++  else {
++    emit_imm(12, off);
++    println("  add r12, r5, r12");
++    println("  sw r%d, 0(r12)", src);
++  }
+ }
+ 
+-static void pop(char *arg) {
+-  println("  pop %s", arg);
+-  depth--;
++static void push_reg(int r) {
++  println("  subi r13, r13, 4");
++  println("  sw r%d, 0(r13)", r);
++  eval_depth++;
++}
++static void pop_reg(int r) {
++  println("  lw r%d, 0(r13)", r);
++  println("  addi r13, r13, 4");
++  eval_depth--;
+ }
+ 
+-static void pushf(void) {
+-  println("  sub $8, %%rsp");
+-  println("  movsd %%xmm0, (%%rsp)");
+-  depth++;
++/* Arrays decay to one pointer-sized argument at a call boundary.  The
++ * expression still has its array type here (notably for string literals), so
++ * using ty->size > 4 directly would incorrectly pass a string as two words
++ * and shift every following argument. */
++static int arg_words(Type *ty) {
++  if (!ty || ty->kind == TY_ARRAY || ty->kind == TY_FUNC)
++    return 1;
++  if (ty->kind == TY_STRUCT || ty->kind == TY_UNION)
++    return 1;
++  return ty->size > 4 ? 2 : 1;
+ }
+ 
+-static void popf(int reg) {
+-  println("  movsd (%%rsp), %%xmm%d", reg);
+-  println("  add $8, %%rsp");
+-  depth--;
++static void load(Type *ty) {
++  if (ty->kind == TY_ARRAY || ty->kind == TY_STRUCT || ty->kind == TY_UNION ||
++      ty->kind == TY_FUNC || ty->kind == TY_VLA)
++    return;
++  if (ty->kind == TY_DOUBLE || ty->kind == TY_LDOUBLE) {
++    println("  lw r2, 4(r1)");
++    println("  lw r1, 0(r1)");
++    return;
++  }
++  if (ty->kind == TY_FLOAT)
++    { println("  lw r1, 0(r1)"); return; }
++  if (ty->size == 8) {
++    println("  lw r2, 4(r1)");
++    println("  lw r1, 0(r1)");
++    return;
++  }
++  switch (ty->size) {
++  case 1: println("  %s r1, 0(r1)", ty->is_unsigned ? "lbu" : "lb"); return;
++  case 2: println("  %s r1, 0(r1)", ty->is_unsigned ? "lhu" : "lh"); return;
++  case 4: println("  lw r1, 0(r1)"); return;
++  default: unsupported(NULL, "loads wider than 32 bits are not implemented yet");
++  }
+ }
+ 
+-// Round up `n` to the nearest multiple of `align`. For instance,
+-// align_to(5, 8) returns 8 and align_to(11, 8) returns 16.
+-int align_to(int n, int align) {
+-  return (n + align - 1) / align * align;
++static void store(Type *ty) {
++  /* A 64-bit value occupies r1:r2.  Preserve both value words while
++   * recovering the destination address in r3; using r2 here aliases the
++   * high value word and leaves the later 64-bit stores targeting whatever
++   * stale value happens to be in r3. */
++  bool aggregate = ty->kind == TY_STRUCT || ty->kind == TY_UNION ||
++                   ty->kind == TY_ARRAY;
++  int addr_reg = !aggregate && (ty->kind == TY_DOUBLE || ty->kind == TY_LDOUBLE ||
++                  ty->size == 8) ? 3 : 2;
++  pop_reg(addr_reg);                 /* address */
++  if (ty->kind == TY_STRUCT || ty->kind == TY_UNION || ty->kind == TY_ARRAY) {
++    int n = count();
++    println("  add r6, r2, r0");
++    println("  add r3, r1, r0");
++    emit_imm(4, ty->size);
++    println(".Lcopy%d:", n);
++    println("  beq r4, r0, .Lcopy_end%d", n);
++    println("  lbu r1, 0(r3)");
++    println("  sb r1, 0(r2)");
++    println("  addi r3, r3, 1");
++    println("  addi r2, r2, 1");
++    println("  subi r4, r4, 1");
++    println("  j .Lcopy%d", n);
++    println(".Lcopy_end%d:", n);
++    println("  add r1, r6, r0");
++    return;
++  }
++  if (ty->kind == TY_DOUBLE || ty->kind == TY_LDOUBLE) {
++    println("  sw r1, 0(r3)");
++    println("  sw r2, 4(r3)");
++    return;
++  }
++  if (ty->kind == TY_FLOAT) { println("  sw r1, 0(r2)"); return; }
++  if (ty->size == 8) {
++    println("  sw r1, 0(r3)");
++    println("  sw r2, 4(r3)");
++    return;
++  }
++  switch (ty->size) {
++  case 1: println("  sb r1, 0(r2)"); return;
++  case 2: println("  sh r1, 0(r2)"); return;
++  case 4: println("  sw r1, 0(r2)"); return;
++  default: unsupported(NULL, "stores wider than 32 bits are not implemented yet");
++  }
++}
++
++static void extract_bitfield(Member *mem) {
++  if (mem->ty->size > 4 || mem->bit_width + mem->bit_offset > 32)
++    unsupported(NULL, "64-bit bitfield storage is not implemented yet");
++  println("  slli r1, r1, %d", 32 - mem->bit_width - mem->bit_offset);
++  println("  %s r1, r1, %d",
++          mem->ty->is_unsigned || mem->ty->kind == TY_BOOL ? "srli" : "srai",
++          32 - mem->bit_width);
++}
++
++static void store_bitfield(Member *mem) {
++  if (mem->ty->size > 4 || mem->bit_width + mem->bit_offset > 32)
++    unsupported(NULL, "64-bit bitfield storage is not implemented yet");
++  uint32_t mask = mem->bit_width == 32 ? UINT32_MAX :
++                  (1U << mem->bit_width) - 1;
++  pop_reg(2);
++  emit_imm(3, mask);
++  println("  and r1, r1, r3");
++  println("  slli r1, r1, %d", mem->bit_offset);
++  emit_imm(4, ~(mask << mem->bit_offset));
++  println("  %s r3, 0(r2)",
++          mem->ty->size == 1 ? "lbu" : mem->ty->size == 2 ? "lhu" : "lw");
++  println("  and r3, r3, r4");
++  println("  or r3, r3, r1");
++  println("  %s r3, 0(r2)",
++          mem->ty->size == 1 ? "sb" : mem->ty->size == 2 ? "sh" : "sw");
++  println("  add r1, r3, r0");
++  extract_bitfield(mem);
+ }
+ 
+-static char *reg_dx(int sz) {
+-  switch (sz) {
+-  case 1: return "%dl";
+-  case 2: return "%dx";
+-  case 4: return "%edx";
+-  case 8: return "%rdx";
+-  }
+-  unreachable();
++static void gen_expr(Node *node);
++static void gen_stmt(Node *node);
++
++static void push_pair(void) {
++  println("  subi r13, r13, 4");
++  println("  sw r2, 0(r13)");
++  println("  subi r13, r13, 4");
++  println("  sw r1, 0(r13)");
++  eval_depth += 2;
++}
++
++static void pop_pair(int lo, int hi) {
++  pop_reg(lo);
++  pop_reg(hi);
++}
++
++/* libgcc's 64-bit helpers are ordinary hosted ABI callees.  They may save
++ * incoming argument registers in the caller-provided home area, just like a
++ * libc function.  The stage-1 compiler happened to survive without this
++ * reservation because its own generated callers did not exercise the helper
++ * path; stage-2's 64-bit hashmap code exposed the missing area as a SIGBUS.
++ */
++static void call_wide_helper(char *name) {
++  /* Values left on the expression stack (notably an assignment
++   * destination) can leave SP four or eight bytes off the ABI boundary.
++   * Align before reserving the helper's register home area. */
++  int pad = (16 - (eval_depth * 4) % 16) & 15;
++  if (pad)
++    println("  subi r13, r13, %d", pad);
++  println("  subi r13, r13, 32");
++  println("  jal %s", name);
++  println("  addi r13, r13, %d", 32 + pad);
+ }
+ 
+-static char *reg_ax(int sz) {
+-  switch (sz) {
+-  case 1: return "%al";
+-  case 2: return "%ax";
+-  case 4: return "%eax";
+-  case 8: return "%rax";
++static void gen_wide_binary(Node *node) {
++  gen_expr(node->lhs);
++  push_pair();
++  gen_expr(node->rhs);
++  pop_pair(3, 4);             /* lhs low/high; rhs remains r1:r2 */
++  switch (node->kind) {
++  case ND_ADD:
++    println("  add r1, r3, r1");
++    println("  sltu r3, r1, r3");
++    println("  add r2, r4, r2");
++    println("  add r2, r2, r3");
++    return;
++  case ND_SUB:
++    println("  sltu r6, r3, r1");
++    println("  sub r1, r3, r1");
++    println("  sub r2, r4, r2");
++    println("  sub r2, r2, r6");
++    return;
++  case ND_BITAND: println("  and r1, r3, r1"); println("  and r2, r4, r2"); return;
++  case ND_BITOR:  println("  or r1, r3, r1");  println("  or r2, r4, r2");  return;
++  case ND_BITXOR: println("  xor r1, r3, r1"); println("  xor r2, r4, r2"); return;
++  case ND_EQ:
++    println("  seq r1, r3, r1"); println("  seq r2, r4, r2");
++    println("  and r1, r1, r2"); println("  li r2, 0"); return;
++  case ND_NE:
++    println("  sne r1, r3, r1"); println("  sne r2, r4, r2");
++    println("  or r1, r1, r2"); println("  li r2, 0"); return;
++  case ND_LT:
++  case ND_LE: {
++    /* Compare the high word first.  A low-word comparison is relevant only
++     * when the high words are equal; ORing the two comparisons directly
++     * makes (high_lhs > high_rhs, low_lhs < low_rhs) incorrectly true. */
++    const char *cmp = node->lhs->ty->is_unsigned ? "sltu" : "slt";
++    println("  %s r6, r4, r2", cmp);       /* high_lhs < high_rhs */
++    println("  seq r7, r4, r2");           /* high words equal */
++    println("  sltu r8, r3, r1");
++    println("  seq r9, r3, r1");
++    println("  and r8, r8, r7");
++    println("  or r1, r6, r8");
++    if (node->kind == ND_LE) {
++      println("  and r9, r9, r7");
++      println("  or r1, r1, r9");
++    }
++    println("  li r2, 0");
++    return;
++  }
++  case ND_MUL:
++    println("  add r6, r1, r0"); println("  add r7, r2, r0");
++    println("  add r1, r3, r0"); println("  add r2, r4, r0");
++    println("  add r3, r6, r0"); println("  add r4, r7, r0");
++    call_wide_helper("__muldi3");
++    return;
++  case ND_DIV:
++  case ND_MOD:
++    println("  add r6, r1, r0"); println("  add r7, r2, r0");
++    println("  add r1, r3, r0"); println("  add r2, r4, r0");
++    println("  add r3, r6, r0"); println("  add r4, r7, r0");
++    if (node->ty->is_unsigned)
++      call_wide_helper(node->kind == ND_DIV ? "__udivdi3" : "__umoddi3");
++    else
++      call_wide_helper(node->kind == ND_DIV ? "__divdi3" : "__moddi3");
++    return;
++  case ND_SHL:
++    println("  add r6, r1, r0");
++    println("  add r1, r3, r0"); println("  add r2, r4, r0");
++    println("  add r3, r6, r0");
++    call_wide_helper("__ashldi3"); return;
++  case ND_SHR:
++    println("  add r6, r1, r0");
++    println("  add r1, r3, r0"); println("  add r2, r4, r0");
++    println("  add r3, r6, r0");
++    call_wide_helper(node->lhs->ty->is_unsigned ? "__lshrdi3" : "__ashrdi3");
++    return;
++  default:
++    unsupported(node, "64-bit operator is not implemented yet");
+   }
+-  unreachable();
+ }
+ 
+-// Compute the absolute address of a given node.
+-// It's an error if a given node does not reside in memory.
+ static void gen_addr(Node *node) {
+   switch (node->kind) {
+   case ND_VAR:
+-    // Variable-length array, which is always local.
+-    if (node->var->ty->kind == TY_VLA) {
+-      println("  mov %d(%%rbp), %%rax", node->var->offset);
+-      return;
+-    }
+-
+-    // Local variable
+     if (node->var->is_local) {
+-      println("  lea %d(%%rbp), %%rax", node->var->offset);
+-      return;
+-    }
+-
+-    if (opt_fpic) {
+-      // Thread-local variable
+-      if (node->var->is_tls) {
+-        println("  data16 lea %s@tlsgd(%%rip), %%rdi", node->var->name);
+-        println("  .value 0x6666");
+-        println("  rex64");
+-        println("  call __tls_get_addr@PLT");
++      if (node->var->is_by_ref || node->var->ty->kind == TY_VLA) {
++        load_fp(1, node->var->offset);
+         return;
+       }
+-
+-      // Function or global variable
+-      println("  mov %s@GOTPCREL(%%rip), %%rax", node->var->name);
++      add_offset(1, 5, node->var->offset, 2);
+       return;
+     }
+-
+-    // Thread-local variable
+-    if (node->var->is_tls) {
+-      println("  mov %%fs:0, %%rax");
+-      println("  add $%s@tpoff, %%rax", node->var->name);
+-      return;
+-    }
+-
+-    // Here, we generate an absolute address of a function or a global
+-    // variable. Even though they exist at a certain address at runtime,
+-    // their addresses are not known at link-time for the following
+-    // two reasons.
+-    //
+-    //  - Address randomization: Executables are loaded to memory as a
+-    //    whole but it is not known what address they are loaded to.
+-    //    Therefore, at link-time, relative address in the same
+-    //    exectuable (i.e. the distance between two functions in the
+-    //    same executable) is known, but the absolute address is not
+-    //    known.
+-    //
+-    //  - Dynamic linking: Dynamic shared objects (DSOs) or .so files
+-    //    are loaded to memory alongside an executable at runtime and
+-    //    linked by the runtime loader in memory. We know nothing
+-    //    about addresses of global stuff that may be defined by DSOs
+-    //    until the runtime relocation is complete.
+-    //
+-    // In order to deal with the former case, we use RIP-relative
+-    // addressing, denoted by `(%rip)`. For the latter, we obtain an
+-    // address of a stuff that may be in a shared object file from the
+-    // Global Offset Table using `@GOTPCREL(%rip)` notation.
+-
+-    // Function
+-    if (node->ty->kind == TY_FUNC) {
+-      if (node->var->is_definition)
+-        println("  lea %s(%%rip), %%rax", node->var->name);
+-      else
+-        println("  mov %s@GOTPCREL(%%rip), %%rax", node->var->name);
+-      return;
+-    }
+-
+-    // Global variable
+-    println("  lea %s(%%rip), %%rax", node->var->name);
++    println("  lui r1, %%hi(%s)", node->var->name);
++    println("  ori r1, r1, %%lo(%s)", node->var->name);
+     return;
+   case ND_DEREF:
+-    gen_expr(node->lhs);
+-    return;
++    gen_expr(node->lhs); return;
+   case ND_COMMA:
+-    gen_expr(node->lhs);
+-    gen_addr(node->rhs);
+-    return;
++    gen_expr(node->lhs); gen_addr(node->rhs); return;
+   case ND_MEMBER:
+     gen_addr(node->lhs);
+-    println("  add $%d, %%rax", node->member->offset);
++    if (node->member->offset)
++      add_offset(1, 1, node->member->offset, 2);
+     return;
++  case ND_VLA_PTR:
++    add_offset(1, 5, node->var->offset, 2); return;
+   case ND_FUNCALL:
+-    if (node->ret_buffer) {
+-      gen_expr(node);
+-      return;
+-    }
+-    break;
+   case ND_ASSIGN:
+   case ND_COND:
++  case ND_STMT_EXPR:
+     if (node->ty->kind == TY_STRUCT || node->ty->kind == TY_UNION) {
+       gen_expr(node);
+       return;
+     }
+     break;
+-  case ND_VLA_PTR:
+-    println("  lea %d(%%rbp), %%rax", node->var->offset);
+-    return;
+-  }
+-
+-  error_tok(node->tok, "not an lvalue");
+-}
+-
+-// Load a value from where %rax is pointing to.
+-static void load(Type *ty) {
+-  switch (ty->kind) {
+-  case TY_ARRAY:
+-  case TY_STRUCT:
+-  case TY_UNION:
+-  case TY_FUNC:
+-  case TY_VLA:
+-    // If it is an array, do not attempt to load a value to the
+-    // register because in general we can't load an entire array to a
+-    // register. As a result, the result of an evaluation of an array
+-    // becomes not the array itself but the address of the array.
+-    // This is where "array is automatically converted to a pointer to
+-    // the first element of the array in C" occurs.
+-    return;
+-  case TY_FLOAT:
+-    println("  movss (%%rax), %%xmm0");
+-    return;
+-  case TY_DOUBLE:
+-    println("  movsd (%%rax), %%xmm0");
+-    return;
+-  case TY_LDOUBLE:
+-    println("  fldt (%%rax)");
+-    return;
++  default: break;
+   }
+-
+-  char *insn = ty->is_unsigned ? "movz" : "movs";
+-
+-  // When we load a char or a short value to a register, we always
+-  // extend them to the size of int, so we can assume the lower half of
+-  // a register always contains a valid value. The upper half of a
+-  // register for char, short and int may contain garbage. When we load
+-  // a long value to a register, it simply occupies the entire register.
+-  if (ty->size == 1)
+-    println("  %sbl (%%rax), %%eax", insn);
+-  else if (ty->size == 2)
+-    println("  %swl (%%rax), %%eax", insn);
+-  else if (ty->size == 4)
+-    println("  movsxd (%%rax), %%rax");
+-  else
+-    println("  mov (%%rax), %%rax");
+-}
+-
+-// Store %rax to an address that the stack top is pointing to.
+-static void store(Type *ty) {
+-  pop("%rdi");
+-
+-  switch (ty->kind) {
+-  case TY_STRUCT:
+-  case TY_UNION:
+-    for (int i = 0; i < ty->size; i++) {
+-      println("  mov %d(%%rax), %%r8b", i);
+-      println("  mov %%r8b, %d(%%rdi)", i);
+-    }
+-    return;
+-  case TY_FLOAT:
+-    println("  movss %%xmm0, (%%rdi)");
+-    return;
+-  case TY_DOUBLE:
+-    println("  movsd %%xmm0, (%%rdi)");
+-    return;
+-  case TY_LDOUBLE:
+-    println("  fstpt (%%rdi)");
+-    return;
+-  }
+-
+-  if (ty->size == 1)
+-    println("  mov %%al, (%%rdi)");
+-  else if (ty->size == 2)
+-    println("  mov %%ax, (%%rdi)");
+-  else if (ty->size == 4)
+-    println("  mov %%eax, (%%rdi)");
+-  else
+-    println("  mov %%rax, (%%rdi)");
++  unsupported(node, "expression is not an lvalue");
+ }
+ 
+ static void cmp_zero(Type *ty) {
+-  switch (ty->kind) {
+-  case TY_FLOAT:
+-    println("  xorps %%xmm1, %%xmm1");
+-    println("  ucomiss %%xmm1, %%xmm0");
+-    return;
+-  case TY_DOUBLE:
+-    println("  xorpd %%xmm1, %%xmm1");
+-    println("  ucomisd %%xmm1, %%xmm0");
+-    return;
+-  case TY_LDOUBLE:
+-    println("  fldz");
+-    println("  fucomip");
+-    println("  fstp %%st(0)");
+-    return;
+-  }
+-
+-  if (is_integer(ty) && ty->size <= 4)
+-    println("  cmp $0, %%eax");
+-  else
+-    println("  cmp $0, %%rax");
++  if (is_flonum(ty)) {
++    emit_imm(3, 0x7fffffff);
++    if (ty->size == 8) {
++      println("  and r2, r2, r3");
++      println("  or r1, r1, r2");
++    } else
++      println("  and r1, r1, r3");
++  } else if (ty->size == 8)
++    println("  or r1, r1, r2");
++  println("  sne r1, r1, r0");
+ }
+ 
+-enum { I8, I16, I32, I64, U8, U16, U32, U64, F32, F64, F80 };
+-
+-static int getTypeId(Type *ty) {
+-  switch (ty->kind) {
+-  case TY_CHAR:
+-    return ty->is_unsigned ? U8 : I8;
+-  case TY_SHORT:
+-    return ty->is_unsigned ? U16 : I16;
+-  case TY_INT:
+-    return ty->is_unsigned ? U32 : I32;
+-  case TY_LONG:
+-    return ty->is_unsigned ? U64 : I64;
+-  case TY_FLOAT:
+-    return F32;
+-  case TY_DOUBLE:
+-    return F64;
+-  case TY_LDOUBLE:
+-    return F80;
+-  }
+-  return U64;
+-}
+-
+-// The table for type casts
+-static char i32i8[] = "movsbl %al, %eax";
+-static char i32u8[] = "movzbl %al, %eax";
+-static char i32i16[] = "movswl %ax, %eax";
+-static char i32u16[] = "movzwl %ax, %eax";
+-static char i32f32[] = "cvtsi2ssl %eax, %xmm0";
+-static char i32i64[] = "movsxd %eax, %rax";
+-static char i32f64[] = "cvtsi2sdl %eax, %xmm0";
+-static char i32f80[] = "mov %eax, -4(%rsp); fildl -4(%rsp)";
+-
+-static char u32f32[] = "mov %eax, %eax; cvtsi2ssq %rax, %xmm0";
+-static char u32i64[] = "mov %eax, %eax";
+-static char u32f64[] = "mov %eax, %eax; cvtsi2sdq %rax, %xmm0";
+-static char u32f80[] = "mov %eax, %eax; mov %rax, -8(%rsp); fildll -8(%rsp)";
+-
+-static char i64f32[] = "cvtsi2ssq %rax, %xmm0";
+-static char i64f64[] = "cvtsi2sdq %rax, %xmm0";
+-static char i64f80[] = "movq %rax, -8(%rsp); fildll -8(%rsp)";
+-
+-static char u64f32[] = "cvtsi2ssq %rax, %xmm0";
+-static char u64f64[] =
+-  "test %rax,%rax; js 1f; pxor %xmm0,%xmm0; cvtsi2sd %rax,%xmm0; jmp 2f; "
+-  "1: mov %rax,%rdi; and $1,%eax; pxor %xmm0,%xmm0; shr %rdi; "
+-  "or %rax,%rdi; cvtsi2sd %rdi,%xmm0; addsd %xmm0,%xmm0; 2:";
+-static char u64f80[] =
+-  "mov %rax, -8(%rsp); fildq -8(%rsp); test %rax, %rax; jns 1f;"
+-  "mov $1602224128, %eax; mov %eax, -4(%rsp); fadds -4(%rsp); 1:";
+-
+-static char f32i8[] = "cvttss2sil %xmm0, %eax; movsbl %al, %eax";
+-static char f32u8[] = "cvttss2sil %xmm0, %eax; movzbl %al, %eax";
+-static char f32i16[] = "cvttss2sil %xmm0, %eax; movswl %ax, %eax";
+-static char f32u16[] = "cvttss2sil %xmm0, %eax; movzwl %ax, %eax";
+-static char f32i32[] = "cvttss2sil %xmm0, %eax";
+-static char f32u32[] = "cvttss2siq %xmm0, %rax";
+-static char f32i64[] = "cvttss2siq %xmm0, %rax";
+-static char f32u64[] = "cvttss2siq %xmm0, %rax";
+-static char f32f64[] = "cvtss2sd %xmm0, %xmm0";
+-static char f32f80[] = "movss %xmm0, -4(%rsp); flds -4(%rsp)";
+-
+-static char f64i8[] = "cvttsd2sil %xmm0, %eax; movsbl %al, %eax";
+-static char f64u8[] = "cvttsd2sil %xmm0, %eax; movzbl %al, %eax";
+-static char f64i16[] = "cvttsd2sil %xmm0, %eax; movswl %ax, %eax";
+-static char f64u16[] = "cvttsd2sil %xmm0, %eax; movzwl %ax, %eax";
+-static char f64i32[] = "cvttsd2sil %xmm0, %eax";
+-static char f64u32[] = "cvttsd2siq %xmm0, %rax";
+-static char f64i64[] = "cvttsd2siq %xmm0, %rax";
+-static char f64u64[] = "cvttsd2siq %xmm0, %rax";
+-static char f64f32[] = "cvtsd2ss %xmm0, %xmm0";
+-static char f64f80[] = "movsd %xmm0, -8(%rsp); fldl -8(%rsp)";
+-
+-#define FROM_F80_1                                           \
+-  "fnstcw -10(%rsp); movzwl -10(%rsp), %eax; or $12, %ah; " \
+-  "mov %ax, -12(%rsp); fldcw -12(%rsp); "
+-
+-#define FROM_F80_2 " -24(%rsp); fldcw -10(%rsp); "
+-
+-static char f80i8[] = FROM_F80_1 "fistps" FROM_F80_2 "movsbl -24(%rsp), %eax";
+-static char f80u8[] = FROM_F80_1 "fistps" FROM_F80_2 "movzbl -24(%rsp), %eax";
+-static char f80i16[] = FROM_F80_1 "fistps" FROM_F80_2 "movzbl -24(%rsp), %eax";
+-static char f80u16[] = FROM_F80_1 "fistpl" FROM_F80_2 "movswl -24(%rsp), %eax";
+-static char f80i32[] = FROM_F80_1 "fistpl" FROM_F80_2 "mov -24(%rsp), %eax";
+-static char f80u32[] = FROM_F80_1 "fistpl" FROM_F80_2 "mov -24(%rsp), %eax";
+-static char f80i64[] = FROM_F80_1 "fistpq" FROM_F80_2 "mov -24(%rsp), %rax";
+-static char f80u64[] = FROM_F80_1 "fistpq" FROM_F80_2 "mov -24(%rsp), %rax";
+-static char f80f32[] = "fstps -8(%rsp); movss -8(%rsp), %xmm0";
+-static char f80f64[] = "fstpl -8(%rsp); movsd -8(%rsp), %xmm0";
+-
+-static char *cast_table[][11] = {
+-  // i8   i16     i32     i64     u8     u16     u32     u64     f32     f64     f80
+-  {NULL,  NULL,   NULL,   i32i64, i32u8, i32u16, NULL,   i32i64, i32f32, i32f64, i32f80}, // i8
+-  {i32i8, NULL,   NULL,   i32i64, i32u8, i32u16, NULL,   i32i64, i32f32, i32f64, i32f80}, // i16
+-  {i32i8, i32i16, NULL,   i32i64, i32u8, i32u16, NULL,   i32i64, i32f32, i32f64, i32f80}, // i32
+-  {i32i8, i32i16, NULL,   NULL,   i32u8, i32u16, NULL,   NULL,   i64f32, i64f64, i64f80}, // i64
+-
+-  {i32i8, NULL,   NULL,   i32i64, NULL,  NULL,   NULL,   i32i64, i32f32, i32f64, i32f80}, // u8
+-  {i32i8, i32i16, NULL,   i32i64, i32u8, NULL,   NULL,   i32i64, i32f32, i32f64, i32f80}, // u16
+-  {i32i8, i32i16, NULL,   u32i64, i32u8, i32u16, NULL,   u32i64, u32f32, u32f64, u32f80}, // u32
+-  {i32i8, i32i16, NULL,   NULL,   i32u8, i32u16, NULL,   NULL,   u64f32, u64f64, u64f80}, // u64
+-
+-  {f32i8, f32i16, f32i32, f32i64, f32u8, f32u16, f32u32, f32u64, NULL,   f32f64, f32f80}, // f32
+-  {f64i8, f64i16, f64i32, f64i64, f64u8, f64u16, f64u32, f64u64, f64f32, NULL,   f64f80}, // f64
+-  {f80i8, f80i16, f80i32, f80i64, f80u8, f80u16, f80u32, f80u64, f80f32, f80f64, NULL},   // f80
+-};
+-
+-static void cast(Type *from, Type *to) {
+-  if (to->kind == TY_VOID)
+-    return;
+-
+-  if (to->kind == TY_BOOL) {
+-    cmp_zero(from);
+-    println("  setne %%al");
+-    println("  movzx %%al, %%eax");
+-    return;
+-  }
+-
+-  int t1 = getTypeId(from);
+-  int t2 = getTypeId(to);
+-  if (cast_table[t1][t2])
+-    println("  %s", cast_table[t1][t2]);
+-}
+-
+-// Structs or unions equal or smaller than 16 bytes are passed
+-// using up to two registers.
+-//
+-// If the first 8 bytes contains only floating-point type members,
+-// they are passed in an XMM register. Otherwise, they are passed
+-// in a general-purpose register.
+-//
+-// If a struct/union is larger than 8 bytes, the same rule is
+-// applied to the the next 8 byte chunk.
+-//
+-// This function returns true if `ty` has only floating-point
+-// members in its byte range [lo, hi).
+-static bool has_flonum(Type *ty, int lo, int hi, int offset) {
+-  if (ty->kind == TY_STRUCT || ty->kind == TY_UNION) {
+-    for (Member *mem = ty->members; mem; mem = mem->next)
+-      if (!has_flonum(mem->ty, lo, hi, offset + mem->offset))
+-        return false;
+-    return true;
+-  }
+-
+-  if (ty->kind == TY_ARRAY) {
+-    for (int i = 0; i < ty->array_len; i++)
+-      if (!has_flonum(ty->base, lo, hi, offset + ty->base->size * i))
+-        return false;
+-    return true;
+-  }
+-
+-  return offset < lo || hi <= offset || ty->kind == TY_FLOAT || ty->kind == TY_DOUBLE;
+-}
+-
+-static bool has_flonum1(Type *ty) {
+-  return has_flonum(ty, 0, 8, 0);
+-}
+-
+-static bool has_flonum2(Type *ty) {
+-  return has_flonum(ty, 8, 16, 0);
+-}
+-
+-static void push_struct(Type *ty) {
+-  int sz = align_to(ty->size, 8);
+-  println("  sub $%d, %%rsp", sz);
+-  depth += sz / 8;
+-
+-  for (int i = 0; i < ty->size; i++) {
+-    println("  mov %d(%%rax), %%r10b", i);
+-    println("  mov %%r10b, %d(%%rsp)", i);
+-  }
+-}
+-
+-static void push_args2(Node *args, bool first_pass) {
+-  if (!args)
+-    return;
+-  push_args2(args->next, first_pass);
+-
+-  if ((first_pass && !args->pass_by_stack) || (!first_pass && args->pass_by_stack))
+-    return;
+-
+-  gen_expr(args);
+-
+-  switch (args->ty->kind) {
+-  case TY_STRUCT:
+-  case TY_UNION:
+-    push_struct(args->ty);
+-    break;
+-  case TY_FLOAT:
+-  case TY_DOUBLE:
+-    pushf();
+-    break;
+-  case TY_LDOUBLE:
+-    println("  sub $16, %%rsp");
+-    println("  fstpt (%%rsp)");
+-    depth += 2;
+-    break;
+-  default:
+-    push();
+-  }
+-}
+-
+-// Load function call arguments. Arguments are already evaluated and
+-// stored to the stack as local variables. What we need to do in this
+-// function is to load them to registers or push them to the stack as
+-// specified by the x86-64 psABI. Here is what the spec says:
+-//
+-// - Up to 6 arguments of integral type are passed using RDI, RSI,
+-//   RDX, RCX, R8 and R9.
+-//
+-// - Up to 8 arguments of floating-point type are passed using XMM0 to
+-//   XMM7.
+-//
+-// - If all registers of an appropriate type are already used, push an
+-//   argument to the stack in the right-to-left order.
+-//
+-// - Each argument passed on the stack takes 8 bytes, and the end of
+-//   the argument area must be aligned to a 16 byte boundary.
+-//
+-// - If a function is variadic, set the number of floating-point type
+-//   arguments to RAX.
+-static int push_args(Node *node) {
+-  int stack = 0, gp = 0, fp = 0;
+-
+-  // If the return type is a large struct/union, the caller passes
+-  // a pointer to a buffer as if it were the first argument.
+-  if (node->ret_buffer && node->ty->size > 16)
+-    gp++;
+-
+-  // Load as many arguments to the registers as possible.
+-  for (Node *arg = node->args; arg; arg = arg->next) {
+-    Type *ty = arg->ty;
+-
+-    switch (ty->kind) {
+-    case TY_STRUCT:
+-    case TY_UNION:
+-      if (ty->size > 16) {
+-        arg->pass_by_stack = true;
+-        stack += align_to(ty->size, 8) / 8;
+-      } else {
+-        bool fp1 = has_flonum1(ty);
+-        bool fp2 = has_flonum2(ty);
+-
+-        if (fp + fp1 + fp2 < FP_MAX && gp + !fp1 + !fp2 < GP_MAX) {
+-          fp = fp + fp1 + fp2;
+-          gp = gp + !fp1 + !fp2;
+-        } else {
+-          arg->pass_by_stack = true;
+-          stack += align_to(ty->size, 8) / 8;
+-        }
+-      }
+-      break;
+-    case TY_FLOAT:
+-    case TY_DOUBLE:
+-      if (fp++ >= FP_MAX) {
+-        arg->pass_by_stack = true;
+-        stack++;
+-      }
+-      break;
+-    case TY_LDOUBLE:
+-      arg->pass_by_stack = true;
+-      stack += 2;
+-      break;
+-    default:
+-      if (gp++ >= GP_MAX) {
+-        arg->pass_by_stack = true;
+-        stack++;
+-      }
+-    }
++static void gen_float_binary(Node *node) {
++  bool wide = node->lhs->ty->size == 8;
++  gen_expr(node->lhs);
++  if (wide) push_pair(); else push_reg(1);
++  gen_expr(node->rhs);
++  if (wide) {
++    println("  add r3, r1, r0");
++    println("  add r4, r2, r0");
++    pop_pair(1, 2);
++  } else {
++    println("  add r2, r1, r0");
++    pop_reg(1);
+   }
+-
+-  if ((depth + stack) % 2 == 1) {
+-    println("  sub $8, %%rsp");
+-    depth++;
+-    stack++;
++  char *op;
++  switch (node->kind) {
++  case ND_ADD: op = "add"; break;
++  case ND_SUB: op = "sub"; break;
++  case ND_MUL: op = "mul"; break;
++  case ND_DIV: op = "div"; break;
++  case ND_EQ: case ND_NE: op = "eq"; break;
++  case ND_LT: op = "lt"; break;
++  case ND_LE: op = "le"; break;
++  default: unsupported(node, "invalid floating-point operator");
++  }
++  char *helper = format("__%s%s%s", op, wide ? "df" : "sf",
++                       node->kind == ND_EQ || node->kind == ND_NE ||
++                       node->kind == ND_LT || node->kind == ND_LE ? "2" : "3");
++  call_wide_helper(helper);
++  free(helper);
++  switch (node->kind) {
++  case ND_EQ: println("  seq r1, r1, r0"); break;
++  case ND_NE: println("  sne r1, r1, r0"); break;
++  case ND_LT: println("  slt r1, r1, r0"); break;
++  case ND_LE: println("  slt r1, r0, r1"); println("  xori r1, r1, 1"); break;
++  default: break;
++  }
++}
++
++static void gen_cast(Type *from, Type *to) {
++  if (to->kind == TY_VOID) return;
++  if (to->kind == TY_BOOL) { cmp_zero(from); return; }
++  if (is_flonum(from) && is_flonum(to)) {
++    if (from->size != to->size)
++      call_wide_helper(to->size == 8 ? "__extendsfdf2" : "__truncdfsf2");
++    return;
++  }
++  if (is_flonum(to)) {
++    char *helper = format("__float%s%s%s",
++                          from->is_unsigned ? "un" : "",
++                          from->size == 8 ? "di" : "si",
++                          to->size == 8 ? "df" : "sf");
++    call_wide_helper(helper);
++    free(helper);
++    return;
++  }
++  if (is_flonum(from)) {
++    char *helper = format("__fix%s%s%s",
++                          to->is_unsigned ? "uns" : "",
++                          from->size == 8 ? "df" : "sf",
++                          to->size == 8 ? "di" : "si");
++    call_wide_helper(helper);
++    free(helper);
++  } else if (to->size == 8 && from->size < 8)
++    println(from->is_unsigned ? "  li r2, 0" : "  srai r2, r1, 31");
++  if (to->size < 4) {
++    int shift = 32 - to->size * 8;
++    println("  slli r1, r1, %d", shift);
++    println("  %s r1, r1, %d", to->is_unsigned ? "srli" : "srai", shift);
++  }
++}
++
++static void gen_call(Node *node) {
++  if (node->lhs->kind == ND_VAR &&
++      !strcmp(node->lhs->var->name, "alloca")) {
++    gen_expr(node->args);
++    println("  addi r1, r1, 15");
++    emit_imm(2, -16);
++    println("  and r1, r1, r2");
++    println("  add r3, r13, r0");
++    println("  sub r13, r13, r1");
++    if (eval_depth) {
++      int label = count();
++      println("  add r2, r13, r0");
++      emit_imm(4, eval_depth * 4);
++      println(".Lalloca_copy%d:", label);
++      println("  beq r4, r0, .Lalloca_end%d", label);
++      println("  lbu r1, 0(r3)");
++      println("  sb r1, 0(r2)");
++      println("  addi r3, r3, 1");
++      println("  addi r2, r2, 1");
++      println("  subi r4, r4, 1");
++      println("  j .Lalloca_copy%d", label);
++      println(".Lalloca_end%d:", label);
++    }
++    add_offset(1, 13, eval_depth * 4, 12);
++    return;
++  }
++  int nargs = 0;
++  for (Node *a = node->args; a; a = a->next) nargs++;
++  bool indirect = !(node->lhs->kind == ND_VAR && node->lhs->var->is_function);
++  int nwords = 0;
++  bool aggregate_return = node->ty->kind == TY_STRUCT || node->ty->kind == TY_UNION;
++  bool hidden_return = aggregate_return;
++  if (hidden_return) nwords++;
++  for (Node *a = node->args; a; a = a->next)
++    nwords += arg_words(a->ty);
++  /* The REM ABI requires SP to be 16-byte aligned at every call boundary.
++     Register arguments are popped before the call, so only arguments which
++     remain on the outgoing stack (plus the ABI's 32-byte home area) affect
++     the boundary alignment.  Padding the complete argument list here is
++     wrong for ordinary one- and two-argument calls: it leaves that padding
++     below an otherwise register-only call and passes a misaligned SP to the
++     callee. */
++  int regwords = 0;
++  regwords = nwords < 4 ? nwords : 4;
++  int stackwords = nwords - regwords;
++  /* An indirect callee address is kept below outgoing stack arguments until
++     after the call.  Include that temporary word in alignment when needed. */
++  int tempwords = indirect && stackwords ? 1 : 0;
++  int call_pad = (16 - ((eval_depth + stackwords + tempwords) * 4) % 16) & 15;
++  if (call_pad) {
++    println("  subi r13, r13, %d", call_pad);
++    eval_depth += call_pad / 4;
+   }
+-
+-  push_args2(node->args, true);
+-  push_args2(node->args, false);
+-
+-  // If the return type is a large struct/union, the caller passes
+-  // a pointer to a buffer as if it were the first argument.
+-  if (node->ret_buffer && node->ty->size > 16) {
+-    println("  lea %d(%%rbp), %%rax", node->ret_buffer->offset);
+-    push();
++  Node **args = calloc(nargs, sizeof(Node *));
++  if (indirect) {
++    gen_expr(node->lhs);
++    push_reg(1);
+   }
+-
+-  return stack;
+-}
+-
+-static void copy_ret_buffer(Obj *var) {
+-  Type *ty = var->ty;
+-  int gp = 0, fp = 0;
+-
+-  if (has_flonum1(ty)) {
+-    assert(ty->size == 4 || 8 <= ty->size);
+-    if (ty->size == 4)
+-      println("  movss %%xmm0, %d(%%rbp)", var->offset);
++  int ai = 0;
++  for (Node *a = node->args; a; a = a->next) args[ai++] = a;
++  /* Evaluate right-to-left so that the first four values can be popped into
++     registers while additional values remain in call order on the stack. */
++  for (int i = nargs - 1; i >= 0; i--) {
++    gen_expr(args[i]);
++    if (arg_words(args[i]->ty) == 2)
++      push_pair();
+     else
+-      println("  movsd %%xmm0, %d(%%rbp)", var->offset);
+-    fp++;
+-  } else {
+-    for (int i = 0; i < MIN(8, ty->size); i++) {
+-      println("  mov %%al, %d(%%rbp)", var->offset + i);
+-      println("  shr $8, %%rax");
+-    }
+-    gp++;
++      push_reg(1);
+   }
+-
+-  if (ty->size > 8) {
+-    if (has_flonum2(ty)) {
+-      assert(ty->size == 12 || ty->size == 16);
+-      if (ty->size == 12)
+-        println("  movss %%xmm%d, %d(%%rbp)", fp, var->offset + 8);
+-      else
+-        println("  movsd %%xmm%d, %d(%%rbp)", fp, var->offset + 8);
++  if (hidden_return) {
++    add_offset(1, 5, node->ret_buffer->offset, 12);
++    push_reg(1);
++  }
++  int argreg = 1;
++  if (hidden_return) pop_reg(argreg++);
++  for (int i = 0; i < nargs; i++) {
++    for (int j = 0; j < arg_words(args[i]->ty) && argreg <= 4; j++)
++      pop_reg(argreg++);
++  }
++  int extra = stackwords;
++  if (indirect) {
++    if (!extra) {
++      pop_reg(15);
+     } else {
+-      char *reg1 = (gp == 0) ? "%al" : "%dl";
+-      char *reg2 = (gp == 0) ? "%rax" : "%rdx";
+-      for (int i = 8; i < MIN(16, ty->size); i++) {
+-        println("  mov %s, %d(%%rbp)", reg1, var->offset + i);
+-        println("  shr $8, %s", reg2);
+-      }
++      /* Stack arguments are above the saved callee address. */
++      println("  lw r15, %d(r13)", extra * 4);
+     }
+   }
+-}
+-
+-static void copy_struct_reg(void) {
+-  Type *ty = current_fn->ty->return_ty;
+-  int gp = 0, fp = 0;
+-
+-  println("  mov %%rax, %%rdi");
+-
+-  if (has_flonum(ty, 0, 8, 0)) {
+-    assert(ty->size == 4 || 8 <= ty->size);
+-    if (ty->size == 4)
+-      println("  movss (%%rdi), %%xmm0");
+-    else
+-      println("  movsd (%%rdi), %%xmm0");
+-    fp++;
+-  } else {
+-    println("  mov $0, %%rax");
+-    for (int i = MIN(8, ty->size) - 1; i >= 0; i--) {
+-      println("  shl $8, %%rax");
+-      println("  mov %d(%%rdi), %%al", i);
+-    }
+-    gp++;
+-  }
+-
+-  if (ty->size > 8) {
+-    if (has_flonum(ty, 8, 16, 0)) {
+-      assert(ty->size == 12 || ty->size == 16);
+-      if (ty->size == 4)
+-        println("  movss 8(%%rdi), %%xmm%d", fp);
+-      else
+-        println("  movsd 8(%%rdi), %%xmm%d", fp);
+-    } else {
+-      char *reg1 = (gp == 0) ? "%al" : "%dl";
+-      char *reg2 = (gp == 0) ? "%rax" : "%rdx";
+-      println("  mov $0, %s", reg2);
+-      for (int i = MIN(16, ty->size) - 1; i >= 8; i--) {
+-        println("  shl $8, %s", reg2);
+-        println("  mov %d(%%rdi), %s", i, reg1);
++  /* REM's hosted ABI gives every callee an outgoing register home area.
++     The musl/GCC prologue saves incoming r1-r4 at old-SP+16..28 even for
++     fixed-arity functions.  Omitting this area lets a callee overwrite its
++     caller's saved frame/link words; the corruption is especially visible
++     when a fixed-arity libc call is made from a helper function. */
++  bool reserve_home = true;
++  if (reserve_home)
++    println("  subi r13, r13, 32");
++  if (!indirect)
++    println("  jal %s", node->lhs->var->name);
++  else
++    println("  jalr r15");
++  if (reserve_home) {
++    println("  addi r13, r13, %d", 32 + extra * 4 + call_pad);
++    eval_depth -= extra;
++    if (indirect && extra) {
++      println("  addi r13, r13, 4");
++      eval_depth--;
++    }
++  } else if (call_pad)
++    println("  addi r13, r13, %d", call_pad);
++  eval_depth -= call_pad / 4;
++  if (aggregate_return) {
++    add_offset(3, 5, node->ret_buffer->offset, 12);
++    if (!hidden_return) {
++      for (int i = 0; i < node->ty->size; i++) {
++        println("  srli r4, r%d, %d", i < 4 ? 1 : 2, (i % 4) * 8);
++        println("  sb r4, %d(r3)", i);
+       }
+     }
++    println("  add r1, r3, r0");
+   }
++  free(args);
+ }
+ 
+-static void copy_struct_mem(void) {
+-  Type *ty = current_fn->ty->return_ty;
+-  Obj *var = current_fn->params;
+-
+-  println("  mov %d(%%rbp), %%rdi", var->offset);
+-
+-  for (int i = 0; i < ty->size; i++) {
+-    println("  mov %d(%%rax), %%dl", i);
+-    println("  mov %%dl, %d(%%rdi)", i);
+-  }
+-}
+-
+-static void builtin_alloca(void) {
+-  // Align size to 16 bytes.
+-  println("  add $15, %%rdi");
+-  println("  and $0xfffffff0, %%edi");
+-
+-  // Shift the temporary area by %rdi.
+-  println("  mov %d(%%rbp), %%rcx", current_fn->alloca_bottom->offset);
+-  println("  sub %%rsp, %%rcx");
+-  println("  mov %%rsp, %%rax");
+-  println("  sub %%rdi, %%rsp");
+-  println("  mov %%rsp, %%rdx");
+-  println("1:");
+-  println("  cmp $0, %%rcx");
+-  println("  je 2f");
+-  println("  mov (%%rax), %%r8b");
+-  println("  mov %%r8b, (%%rdx)");
+-  println("  inc %%rdx");
+-  println("  inc %%rax");
+-  println("  dec %%rcx");
+-  println("  jmp 1b");
+-  println("2:");
+-
+-  // Move alloca_bottom pointer.
+-  println("  mov %d(%%rbp), %%rax", current_fn->alloca_bottom->offset);
+-  println("  sub %%rdi, %%rax");
+-  println("  mov %%rax, %d(%%rbp)", current_fn->alloca_bottom->offset);
+-}
+-
+-// Generate code for a given node.
+ static void gen_expr(Node *node) {
+-  println("  .loc %d %d", node->tok->file->file_no, node->tok->line_no);
+-
++  if (!node) return;
+   switch (node->kind) {
+-  case ND_NULL_EXPR:
+-    return;
+-  case ND_NUM: {
+-    switch (node->ty->kind) {
+-    case TY_FLOAT: {
+-      union { float f32; uint32_t u32; } u = { node->fval };
+-      println("  mov $%u, %%eax  # float %Lf", u.u32, node->fval);
+-      println("  movq %%rax, %%xmm0");
+-      return;
+-    }
+-    case TY_DOUBLE: {
+-      union { double f64; uint64_t u64; } u = { node->fval };
+-      println("  mov $%lu, %%rax  # double %Lf", u.u64, node->fval);
+-      println("  movq %%rax, %%xmm0");
+-      return;
+-    }
+-    case TY_LDOUBLE: {
+-      union { long double f80; uint64_t u64[2]; } u;
+-      memset(&u, 0, sizeof(u));
+-      u.f80 = node->fval;
+-      println("  mov $%lu, %%rax  # long double %Lf", u.u64[0], node->fval);
+-      println("  mov %%rax, -16(%%rsp)");
+-      println("  mov $%lu, %%rax", u.u64[1]);
+-      println("  mov %%rax, -8(%%rsp)");
+-      println("  fldt -16(%%rsp)");
++  case ND_NULL_EXPR: return;
++  case ND_MEMZERO: {
++    int label = count();
++    gen_addr((Node *)&(Node){.kind = ND_VAR, .var = node->var});
++    emit_imm(3, node->var->ty->size);
++    println(".Lzero%d:", label);
++    println("  beq r3, r0, .Lzero_end%d", label);
++    println("  sb r0, 0(r1)");
++    println("  addi r1, r1, 1");
++    println("  subi r3, r3, 1");
++    println("  j .Lzero%d", label);
++    println(".Lzero_end%d:", label);
++    return;
++  }
++  case ND_NUM:
++    if (node->ty->kind == TY_FLOAT || node->ty->kind == TY_DOUBLE || node->ty->kind == TY_LDOUBLE) {
++      /* The initial REM port only needs the zero constant for Samurai's
++         optional load-average path.  Keep the representation ABI-correct:
++         doubles are returned as r1:r2. */
++      if (node->ty->size == 4) {
++        uint32_t bits;
++        rem_float_bits(&node->fval, &bits);
++        emit_imm(1, bits);
++      } else {
++        uint64_t bits;
++        memcpy(&bits, &node->fval, sizeof(bits));
++        emit_imm(1, (uint32_t)bits);
++        emit_imm(2, (uint32_t)(bits >> 32));
++      }
+       return;
+     }
++    /* Integer literals used in 64-bit expressions can arrive here with a
++       narrower apparent type while still carrying a full-width value (for
++       example the FNV constants in hashmap.c).  Do not print such values
++       through the 32-bit immediate form: GAS quite correctly rejects the
++       resulting out-of-range literal, and a bootstrap compiler would emit
++       corrupt code.  Materialise both words whenever the value is outside
++       the signed 32-bit range. */
++    if (node->ty->size == 8 || node->val > INT32_MAX || node->val < INT32_MIN) {
++      uint64_t v = (uint64_t)node->val;
++      emit_imm(1, (uint32_t)v);
++      emit_imm(2, (uint32_t)(v >> 32));
++    } else {
++      println("  li r1, %ld", (long)node->val);
+     }
+-
+-    println("  mov $%ld, %%rax", node->val);
+-    return;
+-  }
+-  case ND_NEG:
+-    gen_expr(node->lhs);
+-
+-    switch (node->ty->kind) {
+-    case TY_FLOAT:
+-      println("  mov $1, %%rax");
+-      println("  shl $31, %%rax");
+-      println("  movq %%rax, %%xmm1");
+-      println("  xorps %%xmm1, %%xmm0");
+-      return;
+-    case TY_DOUBLE:
+-      println("  mov $1, %%rax");
+-      println("  shl $63, %%rax");
+-      println("  movq %%rax, %%xmm1");
+-      println("  xorpd %%xmm1, %%xmm0");
+-      return;
+-    case TY_LDOUBLE:
+-      println("  fchs");
+-      return;
+-    }
+-
+-    println("  neg %%rax");
+     return;
+   case ND_VAR:
++    gen_addr(node); load(node->ty); return;
++  case ND_MEMBER:
+     gen_addr(node);
+     load(node->ty);
++    if (node->member->is_bitfield)
++      extract_bitfield(node->member);
+     return;
+-  case ND_MEMBER: {
+-    gen_addr(node);
+-    load(node->ty);
+-
+-    Member *mem = node->member;
+-    if (mem->is_bitfield) {
+-      println("  shl $%d, %%rax", 64 - mem->bit_width - mem->bit_offset);
+-      if (mem->ty->is_unsigned)
+-        println("  shr $%d, %%rax", 64 - mem->bit_width);
+-      else
+-        println("  sar $%d, %%rax", 64 - mem->bit_width);
+-    }
+-    return;
+-  }
+   case ND_DEREF:
+-    gen_expr(node->lhs);
+-    load(node->ty);
+-    return;
+-  case ND_ADDR:
+-    gen_addr(node->lhs);
+-    return;
++    gen_expr(node->lhs); load(node->ty); return;
++  case ND_ADDR: gen_addr(node->lhs); return;
+   case ND_ASSIGN:
+     gen_addr(node->lhs);
+-    push();
++    push_reg(1);
+     gen_expr(node->rhs);
+-
+-    if (node->lhs->kind == ND_MEMBER && node->lhs->member->is_bitfield) {
+-      println("  mov %%rax, %%r8");
+-
+-      // If the lhs is a bitfield, we need to read the current value
+-      // from memory and merge it with a new value.
+-      Member *mem = node->lhs->member;
+-      println("  mov %%rax, %%rdi");
+-      println("  and $%ld, %%rdi", (1L << mem->bit_width) - 1);
+-      println("  shl $%d, %%rdi", mem->bit_offset);
+-
+-      println("  mov (%%rsp), %%rax");
+-      load(mem->ty);
+-
+-      long mask = ((1L << mem->bit_width) - 1) << mem->bit_offset;
+-      println("  mov $%ld, %%r9", ~mask);
+-      println("  and %%r9, %%rax");
+-      println("  or %%rdi, %%rax");
++    if (node->lhs->kind == ND_MEMBER && node->lhs->member->is_bitfield)
++      store_bitfield(node->lhs->member);
++    else
+       store(node->ty);
+-      println("  mov %%r8, %%rax");
+-      return;
+-    }
+-
+-    store(node->ty);
+-    return;
+-  case ND_STMT_EXPR:
+-    for (Node *n = node->body; n; n = n->next)
+-      gen_stmt(n);
+-    return;
+-  case ND_COMMA:
+-    gen_expr(node->lhs);
+-    gen_expr(node->rhs);
+     return;
++  case ND_COMMA: gen_expr(node->lhs); gen_expr(node->rhs); return;
+   case ND_CAST:
+     gen_expr(node->lhs);
+-    cast(node->lhs->ty, node->ty);
+-    return;
+-  case ND_MEMZERO:
+-    // `rep stosb` is equivalent to `memset(%rdi, %al, %rcx)`.
+-    println("  mov $%d, %%rcx", node->var->ty->size);
+-    println("  lea %d(%%rbp), %%rdi", node->var->offset);
+-    println("  mov $0, %%al");
+-    println("  rep stosb");
+-    return;
+-  case ND_COND: {
+-    int c = count();
+-    gen_expr(node->cond);
+-    cmp_zero(node->cond->ty);
+-    println("  je .L.else.%d", c);
+-    gen_expr(node->then);
+-    println("  jmp .L.end.%d", c);
+-    println(".L.else.%d:", c);
+-    gen_expr(node->els);
+-    println(".L.end.%d:", c);
++    gen_cast(node->lhs->ty, node->ty);
+     return;
+-  }
+-  case ND_NOT:
++  case ND_NEG:
+     gen_expr(node->lhs);
+-    cmp_zero(node->lhs->ty);
+-    println("  sete %%al");
+-    println("  movzx %%al, %%rax");
++    if (is_flonum(node->ty)) {
++      emit_imm(3, 0x80000000);
++      println("  xor r%d, r%d, r3", node->ty->size == 8 ? 2 : 1,
++              node->ty->size == 8 ? 2 : 1);
++    } else if (node->ty->size == 8) {
++      println("  sub r1, r0, r1");
++      println("  not r2, r2, r0");
++      println("  seq r3, r1, r0");
++      println("  add r2, r2, r3");
++    } else println("  sub r1, r0, r1");
+     return;
+   case ND_BITNOT:
+     gen_expr(node->lhs);
+-    println("  not %%rax");
++    if (node->ty->size == 8) { println("  not r1, r1, r0"); println("  not r2, r2, r0"); }
++    else println("  not r1, r1, r0");
+     return;
++  case ND_NOT: gen_expr(node->lhs); cmp_zero(node->lhs->ty); println("  xori r1, r1, 1"); return;
+   case ND_LOGAND: {
+-    int c = count();
+-    gen_expr(node->lhs);
+-    cmp_zero(node->lhs->ty);
+-    println("  je .L.false.%d", c);
+-    gen_expr(node->rhs);
+-    cmp_zero(node->rhs->ty);
+-    println("  je .L.false.%d", c);
+-    println("  mov $1, %%rax");
+-    println("  jmp .L.end.%d", c);
+-    println(".L.false.%d:", c);
+-    println("  mov $0, %%rax");
+-    println(".L.end.%d:", c);
+-    return;
++    int n = count(); gen_expr(node->lhs); cmp_zero(node->lhs->ty); branch_zero(1, false, format(".Lfalse%d", n));
++    gen_expr(node->rhs); cmp_zero(node->rhs->ty); branch_zero(1, false, format(".Lfalse%d", n)); println("  li r1, 1");
++    println("  j .Lend%d", n); println(".Lfalse%d:", n); println("  li r1, 0"); println(".Lend%d:", n); return;
+   }
+   case ND_LOGOR: {
+-    int c = count();
+-    gen_expr(node->lhs);
+-    cmp_zero(node->lhs->ty);
+-    println("  jne .L.true.%d", c);
+-    gen_expr(node->rhs);
+-    cmp_zero(node->rhs->ty);
+-    println("  jne .L.true.%d", c);
+-    println("  mov $0, %%rax");
+-    println("  jmp .L.end.%d", c);
+-    println(".L.true.%d:", c);
+-    println("  mov $1, %%rax");
+-    println(".L.end.%d:", c);
+-    return;
++    int n = count(); gen_expr(node->lhs); cmp_zero(node->lhs->ty); branch_zero(1, true, format(".Ltrue%d", n));
++    gen_expr(node->rhs); cmp_zero(node->rhs->ty); branch_zero(1, true, format(".Ltrue%d", n)); println("  li r1, 0");
++    println("  j .Lend%d", n); println(".Ltrue%d:", n); println("  li r1, 1"); println(".Lend%d:", n); return;
+   }
+-  case ND_FUNCALL: {
+-    if (node->lhs->kind == ND_VAR && !strcmp(node->lhs->var->name, "alloca")) {
+-      gen_expr(node->args);
+-      println("  mov %%rax, %%rdi");
+-      builtin_alloca();
+-      return;
+-    }
+-
+-    int stack_args = push_args(node);
+-    gen_expr(node->lhs);
+-
+-    int gp = 0, fp = 0;
+-
+-    // If the return type is a large struct/union, the caller passes
+-    // a pointer to a buffer as if it were the first argument.
+-    if (node->ret_buffer && node->ty->size > 16)
+-      pop(argreg64[gp++]);
+-
+-    for (Node *arg = node->args; arg; arg = arg->next) {
+-      Type *ty = arg->ty;
+-
+-      switch (ty->kind) {
+-      case TY_STRUCT:
+-      case TY_UNION:
+-        if (ty->size > 16)
+-          continue;
+-
+-        bool fp1 = has_flonum1(ty);
+-        bool fp2 = has_flonum2(ty);
+-
+-        if (fp + fp1 + fp2 < FP_MAX && gp + !fp1 + !fp2 < GP_MAX) {
+-          if (fp1)
+-            popf(fp++);
+-          else
+-            pop(argreg64[gp++]);
+-
+-          if (ty->size > 8) {
+-            if (fp2)
+-              popf(fp++);
+-            else
+-              pop(argreg64[gp++]);
+-          }
+-        }
+-        break;
+-      case TY_FLOAT:
+-      case TY_DOUBLE:
+-        if (fp < FP_MAX)
+-          popf(fp++);
+-        break;
+-      case TY_LDOUBLE:
+-        break;
+-      default:
+-        if (gp < GP_MAX)
+-          pop(argreg64[gp++]);
+-      }
+-    }
+-
+-    println("  mov %%rax, %%r10");
+-    println("  mov $%d, %%rax", fp);
+-    println("  call *%%r10");
+-    println("  add $%d, %%rsp", stack_args * 8);
+-
+-    depth -= stack_args;
+-
+-    // It looks like the most significant 48 or 56 bits in RAX may
+-    // contain garbage if a function return type is short or bool/char,
+-    // respectively. We clear the upper bits here.
+-    switch (node->ty->kind) {
+-    case TY_BOOL:
+-      println("  movzx %%al, %%eax");
+-      return;
+-    case TY_CHAR:
+-      if (node->ty->is_unsigned)
+-        println("  movzbl %%al, %%eax");
+-      else
+-        println("  movsbl %%al, %%eax");
+-      return;
+-    case TY_SHORT:
+-      if (node->ty->is_unsigned)
+-        println("  movzwl %%ax, %%eax");
+-      else
+-        println("  movswl %%ax, %%eax");
+-      return;
+-    }
+-
+-    // If the return type is a small struct, a value is returned
+-    // using up to two registers.
+-    if (node->ret_buffer && node->ty->size <= 16) {
+-      copy_ret_buffer(node->ret_buffer);
+-      println("  lea %d(%%rbp), %%rax", node->ret_buffer->offset);
+-    }
+-
+-    return;
++  case ND_COND: {
++    int n = count(); gen_expr(node->cond); cmp_zero(node->cond->ty); branch_zero(1, false, format(".Lelse%d", n));
++    gen_expr(node->then); println("  j .Lend%d", n); println(".Lelse%d:", n); gen_expr(node->els); println(".Lend%d:", n); return;
+   }
+-  case ND_LABEL_VAL:
+-    println("  lea %s(%%rip), %%rax", node->unique_label);
+-    return;
+-  case ND_CAS: {
+-    gen_expr(node->cas_addr);
+-    push();
+-    gen_expr(node->cas_new);
+-    push();
+-    gen_expr(node->cas_old);
+-    println("  mov %%rax, %%r8");
+-    load(node->cas_old->ty->base);
+-    pop("%rdx"); // new
+-    pop("%rdi"); // addr
+-
+-    int sz = node->cas_addr->ty->base->size;
+-    println("  lock cmpxchg %s, (%%rdi)", reg_dx(sz));
+-    println("  sete %%cl");
+-    println("  je 1f");
+-    println("  mov %s, (%%r8)", reg_ax(sz));
+-    println("1:");
+-    println("  movzbl %%cl, %%eax");
++  case ND_FUNCALL: gen_call(node); return;
++  case ND_VA_START: {
++    if (!node->rhs || node->rhs->kind != ND_VAR)
++      unsupported(node, "va_start requires a named parameter");
++    gen_addr(node->lhs);
++    push_reg(1);
++    /* Variadic entry points keep a canonical incoming-register save area at
++       16..28.  Named parameters are homed separately (after that area), so
++       the va_list cursor must be derived from the parameter's argument
++       position rather than its local home offset. */
++    int arg_index = 0;
++    for (Obj *v = current_fn->params; v && v != node->rhs->var; v = v->next)
++      arg_index += v->ty->size > 4 ? 2 : 1;
++    /* The register save area starts at old-SP+16, which is above this
++       function's frame. */
++    arg_index += arg_words(node->rhs->var->ty);
++    load_fp(1, 28);
++    add_offset(1, 1, 16 + arg_index * 4, 2);
++    store(pointer_to(ty_char));
+     return;
+   }
+-  case ND_EXCH: {
+-    gen_expr(node->lhs);
+-    push();
+-    gen_expr(node->rhs);
+-    pop("%rdi");
+-
+-    int sz = node->lhs->ty->base->size;
+-    println("  xchg %s, (%%rdi)", reg_ax(sz));
++  case ND_VA_ARG: {
++    gen_addr(node->lhs);
++    println("  add r4, r1, r0");
++    println("  lw r3, 0(r4)");
++    switch (node->va_arg_ty->size) {
++    case 4: println("  lw r1, 0(r3)"); break;
++    case 8: println("  lw r1, 0(r3)"); println("  lw r2, 4(r3)"); break;
++    default: unsupported(node, "va_arg requires a promoted scalar type");
++    }
++    println("  addi r3, r3, %d", node->va_arg_ty->size);
++    println("  sw r3, 0(r4)");
+     return;
+   }
+-  }
+-
+-  switch (node->lhs->ty->kind) {
+-  case TY_FLOAT:
+-  case TY_DOUBLE: {
++  case ND_VA_END: return;
++  case ND_VA_COPY:
+     gen_expr(node->rhs);
+-    pushf();
+-    gen_expr(node->lhs);
+-    popf(1);
+-
+-    char *sz = (node->lhs->ty->kind == TY_FLOAT) ? "ss" : "sd";
+-
+-    switch (node->kind) {
+-    case ND_ADD:
+-      println("  add%s %%xmm1, %%xmm0", sz);
+-      return;
+-    case ND_SUB:
+-      println("  sub%s %%xmm1, %%xmm0", sz);
+-      return;
+-    case ND_MUL:
+-      println("  mul%s %%xmm1, %%xmm0", sz);
+-      return;
+-    case ND_DIV:
+-      println("  div%s %%xmm1, %%xmm0", sz);
+-      return;
+-    case ND_EQ:
+-    case ND_NE:
+-    case ND_LT:
+-    case ND_LE:
+-      println("  ucomi%s %%xmm0, %%xmm1", sz);
+-
+-      if (node->kind == ND_EQ) {
+-        println("  sete %%al");
+-        println("  setnp %%dl");
+-        println("  and %%dl, %%al");
+-      } else if (node->kind == ND_NE) {
+-        println("  setne %%al");
+-        println("  setp %%dl");
+-        println("  or %%dl, %%al");
+-      } else if (node->kind == ND_LT) {
+-        println("  seta %%al");
+-      } else {
+-        println("  setae %%al");
+-      }
+-
+-      println("  and $1, %%al");
+-      println("  movzb %%al, %%rax");
+-      return;
+-    }
+-
+-    error_tok(node->tok, "invalid expression");
++    push_reg(1);
++    gen_addr(node->lhs);
++    pop_reg(2);
++    println("  sw r2, 0(r1)");
++    return;
++  default: break;
+   }
+-  case TY_LDOUBLE: {
+-    gen_expr(node->lhs);
+-    gen_expr(node->rhs);
+ 
+-    switch (node->kind) {
+-    case ND_ADD:
+-      println("  faddp");
+-      return;
+-    case ND_SUB:
+-      println("  fsubrp");
+-      return;
+-    case ND_MUL:
+-      println("  fmulp");
+-      return;
+-    case ND_DIV:
+-      println("  fdivrp");
+-      return;
+-    case ND_EQ:
+-    case ND_NE:
+-    case ND_LT:
+-    case ND_LE:
+-      println("  fcomip");
+-      println("  fstp %%st(0)");
+-
+-      if (node->kind == ND_EQ)
+-        println("  sete %%al");
+-      else if (node->kind == ND_NE)
+-        println("  setne %%al");
+-      else if (node->kind == ND_LT)
+-        println("  seta %%al");
+-      else
+-        println("  setae %%al");
+-
+-      println("  movzb %%al, %%rax");
+-      return;
+-    }
+-
+-    error_tok(node->tok, "invalid expression");
+-  }
++  if (node->lhs && node->lhs->ty && is_flonum(node->lhs->ty)) {
++    gen_float_binary(node);
++    return;
+   }
+-
+-  gen_expr(node->rhs);
+-  push();
+-  gen_expr(node->lhs);
+-  pop("%rdi");
+-
+-  char *ax, *di, *dx;
+-
+-  if (node->lhs->ty->kind == TY_LONG || node->lhs->ty->base) {
+-    ax = "%rax";
+-    di = "%rdi";
+-    dx = "%rdx";
+-  } else {
+-    ax = "%eax";
+-    di = "%edi";
+-    dx = "%edx";
++  if (node->lhs && node->lhs->ty && node->lhs->ty->size == 8) {
++    gen_wide_binary(node);
++    return;
+   }
+ 
++  gen_expr(node->lhs); push_reg(1); gen_expr(node->rhs); pop_reg(2);
+   switch (node->kind) {
+-  case ND_ADD:
+-    println("  add %s, %s", di, ax);
+-    return;
+-  case ND_SUB:
+-    println("  sub %s, %s", di, ax);
+-    return;
+-  case ND_MUL:
+-    println("  imul %s, %s", di, ax);
+-    return;
+-  case ND_DIV:
+-  case ND_MOD:
+-    if (node->ty->is_unsigned) {
+-      println("  mov $0, %s", dx);
+-      println("  div %s", di);
+-    } else {
+-      if (node->lhs->ty->size == 8)
+-        println("  cqo");
+-      else
+-        println("  cdq");
+-      println("  idiv %s", di);
+-    }
+-
+-    if (node->kind == ND_MOD)
+-      println("  mov %%rdx, %%rax");
+-    return;
+-  case ND_BITAND:
+-    println("  and %s, %s", di, ax);
+-    return;
+-  case ND_BITOR:
+-    println("  or %s, %s", di, ax);
+-    return;
+-  case ND_BITXOR:
+-    println("  xor %s, %s", di, ax);
+-    return;
+-  case ND_EQ:
+-  case ND_NE:
+-  case ND_LT:
++  case ND_ADD: println("  add r1, r2, r1"); return;
++  case ND_SUB: println("  sub r1, r2, r1"); return;
++  case ND_MUL: println("  mul r1, r2, r1"); return;
++  case ND_DIV: println("  %s r1, r2, r1", node->ty->is_unsigned ? "divu" : "div"); return;
++  case ND_MOD: println("  %s r1, r2, r1", node->ty->is_unsigned ? "remu" : "rem"); return;
++  case ND_BITAND: println("  and r1, r2, r1"); return;
++  case ND_BITOR: println("  or r1, r2, r1"); return;
++  case ND_BITXOR: println("  xor r1, r2, r1"); return;
++  case ND_SHL: println("  sll r1, r2, r1"); return;
++  case ND_SHR: println("  %s r1, r2, r1", node->lhs->ty->is_unsigned ? "srl" : "sra"); return;
++  case ND_EQ: println("  seq r1, r2, r1"); return;
++  case ND_NE: println("  sne r1, r2, r1"); return;
++  case ND_LT: println("  %s r1, r2, r1", node->lhs->ty->is_unsigned ? "sltu" : "slt"); return;
+   case ND_LE:
+-    println("  cmp %s, %s", di, ax);
+-
+-    if (node->kind == ND_EQ) {
+-      println("  sete %%al");
+-    } else if (node->kind == ND_NE) {
+-      println("  setne %%al");
+-    } else if (node->kind == ND_LT) {
+-      if (node->lhs->ty->is_unsigned)
+-        println("  setb %%al");
+-      else
+-        println("  setl %%al");
+-    } else if (node->kind == ND_LE) {
+-      if (node->lhs->ty->is_unsigned)
+-        println("  setbe %%al");
+-      else
+-        println("  setle %%al");
+-    }
+-
+-    println("  movzb %%al, %%rax");
+-    return;
+-  case ND_SHL:
+-    println("  mov %%rdi, %%rcx");
+-    println("  shl %%cl, %s", ax);
+-    return;
+-  case ND_SHR:
+-    println("  mov %%rdi, %%rcx");
+-    if (node->lhs->ty->is_unsigned)
+-      println("  shr %%cl, %s", ax);
+-    else
+-      println("  sar %%cl, %s", ax);
+-    return;
++    println("  %s r1, r1, r2", node->lhs->ty->is_unsigned ? "sltu" : "slt");
++    println("  xori r1, r1, 1"); return;
++  default: unsupported(node, "expression operator is not implemented yet");
+   }
++}
+ 
+-  error_tok(node->tok, "invalid expression");
++// Emit a DWARF line-table entry (.loc) for the source line of a token.
++static void emit_loc(Token *tok) {
++  static int last_file = -1;
++  static int last_line = -1;
++  if (!opt_g || !tok || !tok->file) return;
++  if (tok->file->file_no == last_file && tok->line_no == last_line) return;
++  last_file = tok->file->file_no;
++  last_line = tok->line_no;
++  println("  .loc %d %d", last_file, last_line);
+ }
+ 
+ static void gen_stmt(Node *node) {
+-  println("  .loc %d %d", node->tok->file->file_no, node->tok->line_no);
+-
++  if (!node) return;
++  if (node->kind != ND_BLOCK) emit_loc(node->tok);
+   switch (node->kind) {
+   case ND_IF: {
+-    int c = count();
+-    gen_expr(node->cond);
+-    cmp_zero(node->cond->ty);
+-    println("  je  .L.else.%d", c);
+-    gen_stmt(node->then);
+-    println("  jmp .L.end.%d", c);
+-    println(".L.else.%d:", c);
+-    if (node->els)
+-      gen_stmt(node->els);
+-    println(".L.end.%d:", c);
++    int n = count(); gen_expr(node->cond); cmp_zero(node->cond->ty); branch_zero(1, false, format(".Lelse%d", n));
++    gen_stmt(node->then); println("  j .Lend%d", n); println(".Lelse%d:", n);
++    if (node->els) gen_stmt(node->els);
++    println(".Lend%d:", n);
+     return;
+   }
+   case ND_FOR: {
+-    int c = count();
+-    if (node->init)
+-      gen_stmt(node->init);
+-    println(".L.begin.%d:", c);
+-    if (node->cond) {
+-      gen_expr(node->cond);
+-      cmp_zero(node->cond->ty);
+-      println("  je %s", node->brk_label);
+-    }
++    if (node->init) gen_stmt(node->init);
++    println("%s:", node->begin_label);
++    if (node->cond) { gen_expr(node->cond); cmp_zero(node->cond->ty); branch_zero(1, false, node->brk_label); }
+     gen_stmt(node->then);
+-    println("%s:", node->cont_label);
+-    if (node->inc)
++    if (node->cont_label) println("%s:", node->cont_label);
++    if (node->inc) {
++      emit_loc(node->inc->tok);
+       gen_expr(node->inc);
+-    println("  jmp .L.begin.%d", c);
+-    println("%s:", node->brk_label);
+-    return;
++    }
++    println("  j %s", node->begin_label);
++    println("%s:", node->brk_label); return;
+   }
+   case ND_DO: {
+-    int c = count();
+-    println(".L.begin.%d:", c);
+-    gen_stmt(node->then);
+-    println("%s:", node->cont_label);
++    println("%s:", node->begin_label); gen_stmt(node->then);
++    if (node->cont_label) println("%s:", node->cont_label);
++    emit_loc(node->cond->tok);
+     gen_expr(node->cond);
+     cmp_zero(node->cond->ty);
+-    println("  jne .L.begin.%d", c);
+-    println("%s:", node->brk_label);
+-    return;
++    branch_zero(1, true, node->begin_label); println("%s:", node->brk_label); return;
+   }
+-  case ND_SWITCH:
++  case ND_BLOCK: for (Node *n = node->body; n; n = n->next) gen_stmt(n); return;
++  case ND_RETURN:
++    if (node->lhs) gen_expr(node->lhs);
++    else println("  li r1, 0");
++    if (current_fn->ty->return_ty->kind == TY_STRUCT ||
++        current_fn->ty->return_ty->kind == TY_UNION) {
++      Type *ty = current_fn->ty->return_ty;
++      println("  add r3, r1, r0");
++      load_fp(1, current_fn->params->offset);
++      push_reg(1);
++      println("  add r1, r3, r0");
++      store(ty);
++      println("  j .Lreturn.%s", current_fn->name);
++      return;
++    }
++    /* A 32-bit expression returned from a 64-bit function must still
++       populate the high return word.  Without this, `return -1` leaves r2
++       stale and callers comparing an int64_t sentinel observe garbage. */
++    if (current_fn->ty->return_ty->size == 8 &&
++        (!node->lhs || node->lhs->ty->size < 8)) {
++      if (node->lhs && node->lhs->ty->is_unsigned)
++        println("  li r2, 0");
++      else
++        println("  srai r2, r1, 31");
++    }
++    println("  j .Lreturn.%s", current_fn->name); return;
++  case ND_EXPR_STMT: gen_expr(node->lhs); return;
++  case ND_NULL_EXPR: return;
++  case ND_GOTO: println("  j %s", node->unique_label); return;
++  case ND_LABEL: println("%s:", node->unique_label); gen_stmt(node->lhs); return;
++  case ND_CASE: println("%s:", node->label); gen_stmt(node->lhs); return;
++  case ND_SWITCH: {
+     gen_expr(node->cond);
+-
+-    for (Node *n = node->case_next; n; n = n->case_next) {
+-      char *ax = (node->cond->ty->size == 8) ? "%rax" : "%eax";
+-      char *di = (node->cond->ty->size == 8) ? "%rdi" : "%edi";
+-
+-      if (n->begin == n->end) {
+-        println("  cmp $%ld, %s", n->begin, ax);
+-        println("  je %s", n->label);
+-        continue;
+-      }
+-
+-      // [GNU] Case ranges
+-      println("  mov %s, %s", ax, di);
+-      println("  sub $%ld, %s", n->begin, di);
+-      println("  cmp $%ld, %s", n->end - n->begin, di);
+-      println("  jbe %s", n->label);
++    println("  add r15, r1, r0");
++    for (Node *c = node->case_next; c; c = c->case_next) {
++      println("  li r1, %ld", c->begin);
++      println("  seq r1, r15, r1");
++      branch_zero(1, true, c->label);
+     }
+-
+     if (node->default_case)
+-      println("  jmp %s", node->default_case->label);
+-
+-    println("  jmp %s", node->brk_label);
++      println("  j %s", node->default_case->label);
++    else
++      println("  j %s", node->brk_label);
+     gen_stmt(node->then);
+     println("%s:", node->brk_label);
+     return;
+-  case ND_CASE:
+-    println("%s:", node->label);
+-    gen_stmt(node->lhs);
+-    return;
+-  case ND_BLOCK:
+-    for (Node *n = node->body; n; n = n->next)
+-      gen_stmt(n);
+-    return;
+-  case ND_GOTO:
+-    println("  jmp %s", node->unique_label);
+-    return;
+-  case ND_GOTO_EXPR:
+-    gen_expr(node->lhs);
+-    println("  jmp *%%rax");
+-    return;
+-  case ND_LABEL:
+-    println("%s:", node->unique_label);
+-    gen_stmt(node->lhs);
+-    return;
+-  case ND_RETURN:
+-    if (node->lhs) {
+-      gen_expr(node->lhs);
+-      Type *ty = node->lhs->ty;
+-
+-      switch (ty->kind) {
+-      case TY_STRUCT:
+-      case TY_UNION:
+-        if (ty->size <= 16)
+-          copy_struct_reg();
+-        else
+-          copy_struct_mem();
+-        break;
+-      }
+-    }
+-
+-    println("  jmp .L.return.%s", current_fn->name);
+-    return;
+-  case ND_EXPR_STMT:
+-    gen_expr(node->lhs);
+-    return;
+-  case ND_ASM:
+-    println("  %s", node->asm_str);
+-    return;
+   }
+-
+-  error_tok(node->tok, "invalid statement");
++  case ND_ASM: println("  %s", node->asm_str); return;
++  default: unsupported(node, "statement is not implemented yet");
++  }
+ }
+ 
+-// Assign offsets to local variables.
+ static void assign_lvar_offsets(Obj *prog) {
+   for (Obj *fn = prog; fn; fn = fn->next) {
+-    if (!fn->is_function)
+-      continue;
+-
+-    // If a function has many parameters, some parameters are
+-    // inevitably passed by stack rather than by register.
+-    // The first passed-by-stack parameter resides at RBP+16.
+-    int top = 16;
+-    int bottom = 0;
+-
+-    int gp = 0, fp = 0;
+-
+-    // Assign offsets to pass-by-stack parameters.
+-    for (Obj *var = fn->params; var; var = var->next) {
+-      Type *ty = var->ty;
+-
+-      switch (ty->kind) {
+-      case TY_STRUCT:
+-      case TY_UNION:
+-        if (ty->size <= 16) {
+-          bool fp1 = has_flonum(ty, 0, 8, 0);
+-          bool fp2 = has_flonum(ty, 8, 16, 8);
+-          if (fp + fp1 + fp2 < FP_MAX && gp + !fp1 + !fp2 < GP_MAX) {
+-            fp = fp + fp1 + fp2;
+-            gp = gp + !fp1 + !fp2;
+-            continue;
+-          }
+-        }
+-        break;
+-      case TY_FLOAT:
+-      case TY_DOUBLE:
+-        if (fp++ < FP_MAX)
+-          continue;
+-        break;
+-      case TY_LDOUBLE:
+-        break;
+-      default:
+-        if (gp++ < GP_MAX)
+-          continue;
++    if (!fn->is_function) continue;
++    /* Variadic functions reserve 16..28 for the canonical incoming r1-r4
++       save area.  Their named parameter homes therefore begin at 32. */
++    /* Each call reserves a 32-byte register home area below the caller's
++     * frame.  The callee writes incoming r1-r4 at caller-SP+16..28, so a
++     * caller's own locals and parameter homes must begin above that area.
++     * Keeping the first user slot at +48 prevents a four-argument call from
++     * overwriting the caller's locals (stage-3 chibicc exposed this through
++     * fwrite during preprocessing). */
++    int off = 48;
++    if (fn->va_area)
++      off = 64;
++    int nparams = 0;
++    for (Obj *v = fn->params; v; v = v->next) {
++      if (v->ty->kind == TY_STRUCT || v->ty->kind == TY_UNION) {
++        v->is_by_ref = true;
++        nparams++;
++        continue;
+       }
+-
+-      top = align_to(top, 8);
+-      var->offset = top;
+-      top += var->ty->size;
++      if ((v->ty->kind == TY_STRUCT || v->ty->kind == TY_UNION || v->ty->size > 4) &&
++          v->ty->kind != TY_DOUBLE && v->ty->kind != TY_LDOUBLE &&
++          v->ty->kind != TY_LLONG) {
++        fprintf(stderr, "REM unsupported param %s kind=%d size=%d in %s\n",
++                v->name, v->ty->kind, v->ty->size, fn->name);
++        unsupported(NULL, "aggregate or 64-bit parameters are not implemented yet");
++      }
++      nparams++;
+     }
+-
+-    // Assign offsets to pass-by-register parameters and local variables.
+-    for (Obj *var = fn->locals; var; var = var->next) {
+-      if (var->offset)
+-        continue;
+-
+-      // AMD64 System V ABI has a special alignment rule for an array of
+-      // length at least 16 bytes. We need to align such array to at least
+-      // 16-byte boundaries. See p.14 of
+-      // https://github.com/hjl-tools/x86-psABI/wiki/x86-64-psABI-draft.pdf.
+-      int align = (var->ty->kind == TY_ARRAY && var->ty->size >= 16)
+-        ? MAX(16, var->align) : var->align;
+-
+-      bottom += var->ty->size;
+-      bottom = align_to(bottom, align);
+-      var->offset = -bottom;
++    Obj **params = calloc(nparams, sizeof(Obj *));
++    int pi = 0;
++    for (Obj *v = fn->params; v; v = v->next) params[pi++] = v;
++    /* parse.c stores parameter locals in reverse declaration order. */
++    for (int i = nparams - 1; i >= 0; i--) {
++      params[i]->offset = off;
++      off += !params[i]->is_by_ref && params[i]->ty->size > 4 ? 8 : 4;
++    }
++    free(params);
++    /* Locals follow the parameter homes. */
++    for (Obj *v = fn->locals; v; v = v->next) {
++      if (v->offset) continue;
++      if (v->ty->kind != TY_VLA &&
++          (v->ty->kind != TY_ARRAY && v->ty->kind != TY_STRUCT &&
++           v->ty->kind != TY_UNION && v->ty->kind != TY_DOUBLE &&
++           v->ty->kind != TY_LDOUBLE && v->ty->kind != TY_LLONG &&
++           v->ty->size > 4)) {
++        fprintf(stderr, "REM unsupported local %s kind=%d size=%d in %s\n",
++                v->name, v->ty->kind, v->ty->size, fn->name);
++        unsupported(NULL, "local type is not implemented yet");
++      }
++      off = align_to(off, v->align > v->ty->align ? v->align : v->ty->align);
++      v->offset = off;
++      off += v->ty->kind == TY_VLA ? 4 : v->ty->size;
+     }
+-
+-    fn->stack_size = align_to(bottom, 16);
++    fn->stack_size = align_to(off + 16, 16);
+   }
+ }
+ 
+ static void emit_data(Obj *prog) {
+-  for (Obj *var = prog; var; var = var->next) {
+-    if (var->is_function || !var->is_definition)
+-      continue;
+-
+-    if (var->is_static)
+-      println("  .local %s", var->name);
+-    else
+-      println("  .globl %s", var->name);
+-
+-    int align = (var->ty->kind == TY_ARRAY && var->ty->size >= 16)
+-      ? MAX(16, var->align) : var->align;
+-
+-    // Common symbol
+-    if (opt_fcommon && var->is_tentative) {
+-      println("  .comm %s, %d, %d", var->name, var->ty->size, align);
+-      continue;
+-    }
+-
+-    // .data or .tdata
+-    if (var->init_data) {
+-      if (var->is_tls)
+-        println("  .section .tdata,\"awT\",@progbits");
+-      else
+-        println("  .data");
+-
+-      println("  .type %s, @object", var->name);
+-      println("  .size %s, %d", var->name, var->ty->size);
+-      println("  .align %d", align);
+-      println("%s:", var->name);
+-
+-      Relocation *rel = var->rel;
+-      int pos = 0;
+-      while (pos < var->ty->size) {
+-        if (rel && rel->offset == pos) {
+-          println("  .quad %s%+ld", *rel->label, rel->addend);
+-          rel = rel->next;
+-          pos += 8;
+-        } else {
+-          println("  .byte %d", var->init_data[pos++]);
+-        }
++  for (Obj *v = prog; v; v = v->next) {
++    if (v->is_function || !v->is_definition || v->alias_name) continue;
++    println("  %s %s", v->is_static ? ".local" : v->is_weak ? ".weak" : ".global", v->name);
++    println("  .type %s, @object", v->name);
++    println("  .align %d", v->align > 0 ? rem_ctz(v->align) : 0);
++    println("%s:", v->name);
++    if (!v->init_data) { println("  .zero %d", v->ty->size); continue; }
++    /* Global pointer initializers are recorded as relocations by the
++       parser.  Emitting only init_data leaves those words as zero, which
++       breaks tables such as Samurai's keyword names. */
++    Relocation *rel = v->rel;
++    int pos = 0;
++    while (pos < v->ty->size) {
++      if (rel && rel->offset == pos) {
++        if (rel->addend)
++          println("  .word %s%+ld", *rel->label, rel->addend);
++        else
++          println("  .word %s", *rel->label);
++        rel = rel->next;
++        pos += 4;
++      } else {
++        println("  .byte %d", (unsigned char)v->init_data[pos++]);
+       }
+-      continue;
+     }
+-
+-    // .bss or .tbss
+-    if (var->is_tls)
+-      println("  .section .tbss,\"awT\",@nobits");
+-    else
+-      println("  .bss");
+-
+-    println("  .align %d", align);
+-    println("%s:", var->name);
+-    println("  .zero %d", var->ty->size);
+-  }
+-}
+-
+-static void store_fp(int r, int offset, int sz) {
+-  switch (sz) {
+-  case 4:
+-    println("  movss %%xmm%d, %d(%%rbp)", r, offset);
+-    return;
+-  case 8:
+-    println("  movsd %%xmm%d, %d(%%rbp)", r, offset);
+-    return;
+-  }
+-  unreachable();
+-}
+-
+-static void store_gp(int r, int offset, int sz) {
+-  switch (sz) {
+-  case 1:
+-    println("  mov %s, %d(%%rbp)", argreg8[r], offset);
+-    return;
+-  case 2:
+-    println("  mov %s, %d(%%rbp)", argreg16[r], offset);
+-    return;
+-  case 4:
+-    println("  mov %s, %d(%%rbp)", argreg32[r], offset);
+-    return;
+-  case 8:
+-    println("  mov %s, %d(%%rbp)", argreg64[r], offset);
+-    return;
+-  default:
+-    for (int i = 0; i < sz; i++) {
+-      println("  mov %s, %d(%%rbp)", argreg8[r], offset + i);
+-      println("  shr $8, %s", argreg64[r]);
+-    }
+-    return;
+   }
+ }
+ 
+ static void emit_text(Obj *prog) {
+   for (Obj *fn = prog; fn; fn = fn->next) {
+-    if (!fn->is_function || !fn->is_definition)
+-      continue;
+-
+-    // No code is emitted for "static inline" functions
+-    // if no one is referencing them.
+-    if (!fn->is_live)
+-      continue;
+-
+-    if (fn->is_static)
+-      println("  .local %s", fn->name);
+-    else
+-      println("  .globl %s", fn->name);
+-
++    /* Emit every defined function.  Function pointers and callback tables
++       (used heavily by Samurai) are not always visible to the lightweight
++       reference liveness pass. */
++    if (!fn->is_function || !fn->is_definition || fn->alias_name) continue;
++    if (fn->ty->return_ty->kind == TY_STRUCT ||
++        fn->ty->return_ty->kind == TY_UNION) {
++      Obj *result = fn->params;
++      if (!result || result->name[0] || result->ty->kind != TY_PTR ||
++          result->ty->base != fn->ty->return_ty)
++        error_tok(fn->tok, "REM aggregate return requires a hidden result parameter");
++    }
++    println("  %s %s", fn->is_static ? ".local" : fn->is_weak ? ".weak" : ".global", fn->name);
+     println("  .text");
+-    println("  .type %s, @function", fn->name);
+-    println("%s:", fn->name);
++    println("  .align 2");
++    println("  .type %s, @function", fn->name); println("%s:", fn->name);
++    emit_loc(fn->tok);
+     current_fn = fn;
+-
+-    // Prologue
+-    println("  push %%rbp");
+-    println("  mov %%rsp, %%rbp");
+-    println("  sub $%d, %%rsp", fn->stack_size);
+-    println("  mov %%rsp, %d(%%rbp)", fn->alloca_bottom->offset);
+-
+-    // Save arg registers if function is variadic
++    int alignment = 16;
++    for (Obj *v = fn->locals; v; v = v->next) {
++      if (v->align > alignment) alignment = v->align;
++      if (v->ty->align > alignment) alignment = v->ty->align;
++    }
++    int allocation = fn->stack_size + alignment;
++    if (fits_imm12(allocation)) println("  subi r13, r13, %d", allocation);
++    else { emit_imm(12, allocation); println("  sub r13, r13, r12"); }
++    /* Legacy libc callers can enter with only word alignment. Keep the
++       original SP for arguments/return while realigning the active frame. */
++    add_offset(12, 13, allocation, 12);
++    println("  sw r12, 0(r13)");
++    emit_imm(12, alignment - 1);
++    println("  and r12, r13, r12");
++    println("  sub r13, r13, r12");
++    println("  add r12, r13, r12");
++    println("  lw r12, 0(r12)");
++    println("  sw r12, 28(r13)");
++    println("  sw r5, 0(r13)"); println("  sw r14, 4(r13)"); println("  addi r5, r13, 0");
++    println("  sw r6, 8(r13)");
++    println("  sw r7, 12(r13)");
++    println("  sw r8, 16(r13)");
++    println("  sw r9, 20(r13)");
++    println("  sw r15, 24(r13)");
+     if (fn->va_area) {
+-      int gp = 0, fp = 0;
+-      for (Obj *var = fn->params; var; var = var->next) {
+-        if (is_flonum(var->ty))
+-          fp++;
+-        else
+-          gp++;
+-      }
+-
+-      int off = fn->va_area->offset;
+-
+-      // va_elem
+-      println("  movl $%d, %d(%%rbp)", gp * 8, off);          // gp_offset
+-      println("  movl $%d, %d(%%rbp)", fp * 8 + 48, off + 4); // fp_offset
+-      println("  movq %%rbp, %d(%%rbp)", off + 8);            // overflow_arg_area
+-      println("  addq $16, %d(%%rbp)", off + 8);
+-      println("  movq %%rbp, %d(%%rbp)", off + 16);           // reg_save_area
+-      println("  addq $%d, %d(%%rbp)", off + 24, off + 16);
+-
+-      // __reg_save_area__
+-      println("  movq %%rdi, %d(%%rbp)", off + 24);
+-      println("  movq %%rsi, %d(%%rbp)", off + 32);
+-      println("  movq %%rdx, %d(%%rbp)", off + 40);
+-      println("  movq %%rcx, %d(%%rbp)", off + 48);
+-      println("  movq %%r8, %d(%%rbp)", off + 56);
+-      println("  movq %%r9, %d(%%rbp)", off + 64);
+-      println("  movsd %%xmm0, %d(%%rbp)", off + 72);
+-      println("  movsd %%xmm1, %d(%%rbp)", off + 80);
+-      println("  movsd %%xmm2, %d(%%rbp)", off + 88);
+-      println("  movsd %%xmm3, %d(%%rbp)", off + 96);
+-      println("  movsd %%xmm4, %d(%%rbp)", off + 104);
+-      println("  movsd %%xmm5, %d(%%rbp)", off + 112);
+-      println("  movsd %%xmm6, %d(%%rbp)", off + 120);
+-      println("  movsd %%xmm7, %d(%%rbp)", off + 128);
+-    }
+-
+-    // Save passed-by-register arguments to the stack
+-    int gp = 0, fp = 0;
+-    for (Obj *var = fn->params; var; var = var->next) {
+-      if (var->offset > 0)
+-        continue;
+-
+-      Type *ty = var->ty;
+-
+-      switch (ty->kind) {
+-      case TY_STRUCT:
+-      case TY_UNION:
+-        assert(ty->size <= 16);
+-        if (has_flonum(ty, 0, 8, 0))
+-          store_fp(fp++, var->offset, MIN(8, ty->size));
+-        else
+-          store_gp(gp++, var->offset, MIN(8, ty->size));
+-
+-        if (ty->size > 8) {
+-          if (has_flonum(ty, 8, 16, 0))
+-            store_fp(fp++, var->offset + 8, ty->size - 8);
+-          else
+-            store_gp(gp++, var->offset + 8, ty->size - 8);
++      /* The incoming register save area belongs above the active frame.
++         A callee is allowed to use the caller's current stack area while it
++         builds its own frame.  Keeping the save area at old-SP+16 therefore
++         matches GCC and prevents vfprintf (and other callees) from
++         overwriting the variadic arguments before va_arg consumes them. */
++      println("  sw r1, 16(r12)");
++      println("  sw r2, 20(r12)");
++      println("  sw r3, 24(r12)");
++      println("  sw r4, 28(r12)");
++    }
++    int argreg = 1;
++    int stack_word = 0;
++    for (Obj *v = fn->params; v; v = v->next) {
++      for (int word = 0; word < arg_words(v->ty); word++) {
++        if (argreg <= 4)
++          store_fp(argreg++, v->offset + word * 4);
++        else {
++          load_fp(12, 28);
++          add_offset(12, 12, 32 + stack_word++ * 4, 2);
++          println("  lw r1, 0(r12)");
++          store_fp(1, v->offset + word * 4);
+         }
+-        break;
+-      case TY_FLOAT:
+-      case TY_DOUBLE:
+-        store_fp(fp++, var->offset, ty->size);
+-        break;
+-      default:
+-        store_gp(gp++, var->offset, ty->size);
+       }
+     }
+-
+-    // Emit code
+     gen_stmt(fn->body);
+-    assert(depth == 0);
+-
+-    // [https://www.sigbus.info/n1570#5.1.2.2.3p1] The C spec defines
+-    // a special rule for the main function. Reaching the end of the
+-    // main function is equivalent to returning 0, even though the
+-    // behavior is undefined for the other functions.
+-    if (strcmp(fn->name, "main") == 0)
+-      println("  mov $0, %%rax");
+-
+-    // Epilogue
+-    println(".L.return.%s:", fn->name);
+-    println("  mov %%rbp, %%rsp");
+-    println("  pop %%rbp");
+-    println("  ret");
++    if (!strcmp(fn->name, "main")) println("  li r1, 0");
++    println(".Lreturn.%s:", fn->name);
++    println("  add r13, r5, r0");
++    println("  lw r6, 8(r13)");
++    println("  lw r7, 12(r13)");
++    println("  lw r8, 16(r13)");
++    println("  lw r9, 20(r13)");
++    println("  lw r15, 24(r13)");
++    println("  lw r14, 4(r13)"); println("  lw r5, 0(r13)");
++    println("  lw r12, 28(r13)");
++    println("  add r13, r12, r0");
++    println("  jr r14");
+   }
+ }
+ 
+ void codegen(Obj *prog, FILE *out) {
+   output_file = out;
+-
++  for (Obj *var = prog; var; var = var->next) {
++    if (var->alias_name) {
++      Obj *target = prog;
++      while (target && strcmp(target->name, var->alias_name))
++        target = target->next;
++      if (!target || !target->is_definition || target->alias_name)
++        error("alias %s requires a definition of %s in the same translation unit",
++              var->name, var->alias_name);
++      println("  %s %s", var->is_weak ? ".weak" : ".global", var->name);
++      println("  .set %s, %s", var->name, var->alias_name);
++    } else if (var->is_weak && !var->is_definition) {
++      println("  .weak %s", var->name);
++    }
++  }
+   File **files = get_input_files();
+-  for (int i = 0; files[i]; i++)
+-    println("  .file %d \"%s\"", files[i]->file_no, files[i]->name);
+-
++  for (int i = 0; files[i]; i++) println("  .file %d \"%s\"", files[i]->file_no, files[i]->name);
+   assign_lvar_offsets(prog);
+   emit_data(prog);
+   emit_text(prog);
+--- a/hashmap.c	2020-12-07 03:00:06.000000000 +0000
++++ b/hashmap.c	2026-10-07 09:50:00.816885916 +0100
+@@ -14,10 +14,13 @@
+ // Represents a deleted hash entry
+ #define TOMBSTONE ((void *)-1)
+ 
+-static uint64_t fnv_hash(char *s, int len) {
+-  uint64_t hash = 0xcbf29ce484222325;
++/* REM32 is an ILP32 target.  Keep preprocessor hash arithmetic in one
++ * target word: the 64-bit FNV form required multiword runtime operations and
++ * corrupted include-guard lookups in a native chibicc hosted build. */
++static uint32_t fnv_hash(char *s, int len) {
++  uint32_t hash = 0x811c9dc5u;
+   for (int i = 0; i < len; i++) {
+-    hash *= 0x100000001b3;
++    hash *= 0x01000193u;
+     hash ^= (unsigned char)s[i];
+   }
+   return hash;
+@@ -61,7 +64,7 @@
+   if (!map->buckets)
+     return NULL;
+ 
+-  uint64_t hash = fnv_hash(key, keylen);
++  uint32_t hash = fnv_hash(key, keylen);
+ 
+   for (int i = 0; i < map->capacity; i++) {
+     HashEntry *ent = &map->buckets[(hash + i) % map->capacity];
+@@ -81,8 +84,8 @@
+     rehash(map);
+   }
+ 
+-  uint64_t hash = fnv_hash(key, keylen);
+-
++  uint32_t hash = fnv_hash(key, keylen);
++  HashEntry *deleted = NULL;
+   for (int i = 0; i < map->capacity; i++) {
+     HashEntry *ent = &map->buckets[(hash + i) % map->capacity];
+ 
+@@ -90,18 +93,26 @@
+       return ent;
+ 
+     if (ent->key == TOMBSTONE) {
+-      ent->key = key;
+-      ent->keylen = keylen;
+-      return ent;
++      if (!deleted)
++        deleted = ent;
++      continue;
+     }
+ 
+     if (ent->key == NULL) {
++      if (deleted)
++        ent = deleted;
++      else
++        map->used++;
+       ent->key = key;
+       ent->keylen = keylen;
+-      map->used++;
+       return ent;
+     }
+   }
++  if (deleted) {
++    deleted->key = key;
++    deleted->keylen = keylen;
++    return deleted;
++  }
+   unreachable();
+ }
+ 
+--- a/include/float.h	2020-12-07 03:00:06.000000000 +0000
++++ b/include/float.h	2026-10-06 22:31:56.268187550 +0100
+@@ -1,12 +1,14 @@
+ #ifndef __STDFLOAT_H
+ #define __STDFLOAT_H
+ 
+-#define DECIMAL_DIG 21
++#define DECIMAL_DIG 17
+ #define FLT_EVAL_METHOD 0 // C11 5.2.4.2.2p9
+ #define FLT_RADIX 2
+ #define FLT_ROUNDS 1      // C11 5.2.4.2.2p8: to nearest
+ 
+ #define FLT_DIG 6
++#define FLT_DECIMAL_DIG 9
++#define FLT_HAS_SUBNORM 1
+ #define FLT_EPSILON 0x1p-23
+ #define FLT_MANT_DIG 24
+ #define FLT_MAX 0x1.fffffep+127
+@@ -18,6 +20,8 @@
+ #define FLT_TRUE_MIN 0x1p-149
+ 
+ #define DBL_DIG 15
++#define DBL_DECIMAL_DIG 17
++#define DBL_HAS_SUBNORM 1
+ #define DBL_EPSILON 0x1p-52
+ #define DBL_MANT_DIG 53
+ #define DBL_MAX 0x1.fffffffffffffp+1023
+@@ -29,6 +33,8 @@
+ #define DBL_TRUE_MIN 0x0.0000000000001p-1022
+ 
+ #define LDBL_DIG 15
++#define LDBL_DECIMAL_DIG 17
++#define LDBL_HAS_SUBNORM 1
+ #define LDBL_EPSILON 0x1p-52
+ #define LDBL_MANT_DIG 53
+ #define LDBL_MAX 0x1.fffffffffffffp+1023
+--- a/include/stdarg.h	2020-12-07 03:00:06.000000000 +0000
++++ b/include/stdarg.h	2026-10-06 03:10:45.155021379 +0100
+@@ -1,57 +1,16 @@
+ #ifndef __STDARG_H
+ #define __STDARG_H
+ 
+-typedef struct {
+-  unsigned int gp_offset;
+-  unsigned int fp_offset;
+-  void *overflow_arg_area;
+-  void *reg_save_area;
+-} __va_elem;
++/* REM uses a simple pointer va_list. The backend saves incoming argument
++ * registers in the variadic function prologue and implements these builtins
++ * directly. */
++typedef char *va_list;
++
++#define va_start(ap, last) __builtin_va_start(ap, last)
++#define va_end(ap)         __builtin_va_end(ap)
++#define va_arg(ap, ty)     __builtin_va_arg(ap, ty)
++#define va_copy(dst, src)  __builtin_va_copy(dst, src)
+ 
+-typedef __va_elem va_list[1];
+-
+-#define va_start(ap, last) \
+-  do { *(ap) = *(__va_elem *)__va_area__; } while (0)
+-
+-#define va_end(ap)
+-
+-static void *__va_arg_mem(__va_elem *ap, int sz, int align) {
+-  void *p = ap->overflow_arg_area;
+-  if (align > 8)
+-    p = (p + 15) / 16 * 16;
+-  ap->overflow_arg_area = ((unsigned long)p + sz + 7) / 8 * 8;
+-  return p;
+-}
+-
+-static void *__va_arg_gp(__va_elem *ap, int sz, int align) {
+-  if (ap->gp_offset >= 48)
+-    return __va_arg_mem(ap, sz, align);
+-
+-  void *r = ap->reg_save_area + ap->gp_offset;
+-  ap->gp_offset += 8;
+-  return r;
+-}
+-
+-static void *__va_arg_fp(__va_elem *ap, int sz, int align) {
+-  if (ap->fp_offset >= 112)
+-    return __va_arg_mem(ap, sz, align);
+-
+-  void *r = ap->reg_save_area + ap->fp_offset;
+-  ap->fp_offset += 8;
+-  return r;
+-}
+-
+-#define va_arg(ap, ty)                                                  \
+-  ({                                                                    \
+-    int klass = __builtin_reg_class(ty);                                \
+-    *(ty *)(klass == 0 ? __va_arg_gp(ap, sizeof(ty), _Alignof(ty)) :    \
+-            klass == 1 ? __va_arg_fp(ap, sizeof(ty), _Alignof(ty)) :    \
+-            __va_arg_mem(ap, sizeof(ty), _Alignof(ty)));                \
+-  })
+-
+-#define va_copy(dest, src) ((dest)[0] = (src)[0])
+-
+-#define __GNUC_VA_LIST 1
+ typedef va_list __gnuc_va_list;
+ 
+ #endif
+--- a/include/stdatomic.h	2020-12-07 03:00:06.000000000 +0000
++++ b/include/stdatomic.h	2026-10-07 10:58:48.962747159 +0100
+@@ -1,6 +1,10 @@
+ #ifndef __STDATOMIC_H
+ #define __STDATOMIC_H
+ 
++#ifdef __STDC_NO_ATOMICS__
++#error "C11 atomics are not implemented by the REM backend"
++#endif
++
+ #define ATOMIC_BOOL_LOCK_FREE 1
+ #define ATOMIC_CHAR_LOCK_FREE 1
+ #define ATOMIC_CHAR16_T_LOCK_FREE 1
+--- a/main.c	2020-12-07 03:00:06.000000000 +0000
++++ b/main.c	2026-10-06 22:54:42.257799242 +0100
+@@ -7,6 +7,7 @@
+ StringArray include_paths;
+ bool opt_fcommon = true;
+ bool opt_fpic;
++bool opt_g;
+ 
+ static FileType opt_x;
+ static StringArray opt_include;
+@@ -18,6 +19,11 @@
+ static bool opt_S;
+ static bool opt_c;
+ static bool opt_cc1;
++#ifdef CHIBICC_REM
++static bool opt_rem = true;
++#else
++static bool opt_rem;
++#endif
+ static bool opt_hash_hash_hash;
+ static bool opt_static;
+ static bool opt_shared;
+@@ -55,10 +61,18 @@
+   // to ./include relative to argv[0].
+   strarray_push(&include_paths, format("%s/include", dirname(strdup(argv0))));
+ 
+-  // Add standard include paths.
+-  strarray_push(&include_paths, "/usr/local/include");
+-  strarray_push(&include_paths, "/usr/include/x86_64-linux-gnu");
+-  strarray_push(&include_paths, "/usr/include");
++  // Add standard include paths.  A REM build uses the staged hosted
++  // headers; the path is overridable so the same binary can be tested in a
++  // disposable sysroot.
++  if (opt_rem) {
++    char *root = getenv("CHIBICC_REM_SYSROOT");
++    if (root) strarray_push(&include_paths, format("%s/include", root));
++    else strarray_push(&include_paths, "/usr/include");
++  } else {
++    strarray_push(&include_paths, "/usr/local/include");
++    strarray_push(&include_paths, "/usr/include/x86_64-linux-gnu");
++    strarray_push(&include_paths, "/usr/include");
++  }
+ 
+   // Keep a copy of the standard include paths for -MMD option.
+   for (int i = 0; i < include_paths.len; i++)
+@@ -132,6 +146,11 @@
+       continue;
+     }
+ 
++    if (!strcmp(argv[i], "-mrem")) {
++      opt_rem = true;
++      continue;
++    }
++
+     if (!strcmp(argv[i], "--help"))
+       usage(0);
+ 
+@@ -315,10 +334,21 @@
+       exit(0);
+     }
+ 
++    // Debug information.  -g and -g2 are the same; -g1 is accepted as a
++    // synonym.  -g0 turns debug information off.  Anything else starting
++    // with -g (-g3, -ggdb, ...) is rejected below as an unknown argument.
++    if (!strcmp(argv[i], "-g") || !strcmp(argv[i], "-g1") || !strcmp(argv[i], "-g2")) {
++      opt_g = true;
++      continue;
++    }
++    if (!strcmp(argv[i], "-g0")) {
++      opt_g = false;
++      continue;
++    }
++
+     // These options are ignored for now.
+     if (!strncmp(argv[i], "-O", 2) ||
+         !strncmp(argv[i], "-W", 2) ||
+-        !strncmp(argv[i], "-g", 2) ||
+         !strncmp(argv[i], "-std=", 5) ||
+         !strcmp(argv[i], "-ffreestanding") ||
+         !strcmp(argv[i], "-fno-builtin") ||
+@@ -514,6 +544,8 @@
+ 
+ static void cc1(void) {
+   Token *tok = NULL;
++  bool trace = getenv("CHIBICC_TRACE") != NULL;
++  if (trace) fprintf(stderr, "TRACE cc1 start %s\n", base_file);
+ 
+   // Process -include option
+   for (int i = 0; i < opt_include.len; i++) {
+@@ -534,8 +566,10 @@
+ 
+   // Tokenize and parse.
+   Token *tok2 = must_tokenize_file(base_file);
++  if (trace) fprintf(stderr, "TRACE tokenize complete\n");
+   tok = append_tokens(tok, tok2);
+   tok = preprocess(tok);
++  if (trace) fprintf(stderr, "TRACE preprocess complete\n");
+ 
+   // If -M or -MD are given, print file dependencies.
+   if (opt_M || opt_MD) {
+@@ -551,6 +585,7 @@
+   }
+ 
+   Obj *prog = parse(tok);
++  if (trace) fprintf(stderr, "TRACE parse complete\n");
+ 
+   // Open a temporary output buffer.
+   char *buf;
+@@ -559,17 +594,25 @@
+ 
+   // Traverse the AST to emit assembly.
+   codegen(prog, output_buf);
++  if (trace) fprintf(stderr, "TRACE codegen complete\n");
+   fclose(output_buf);
+ 
+   // Write the asembly text to a file.
+   FILE *out = open_file(output_file);
+   fwrite(buf, buflen, 1, out);
+   fclose(out);
++  if (trace) fprintf(stderr, "TRACE output complete\n");
+ }
+ 
+ static void assemble(char *input, char *output) {
+-  char *cmd[] = {"as", "-c", input, "-o", output, NULL};
+-  run_subprocess(cmd);
++  char *as = (opt_rem && getenv("CHIBICC_REM_AS")) ? getenv("CHIBICC_REM_AS") : "as";
++  if (opt_g) {
++    char *cmd[] = {as, "-g", "-c", input, "-o", output, NULL};
++    run_subprocess(cmd);
++  } else {
++    char *cmd[] = {as, "-c", input, "-o", output, NULL};
++    run_subprocess(cmd);
++  }
+ }
+ 
+ static char *find_file(char *pattern) {
+@@ -615,6 +658,44 @@
+ static void run_linker(StringArray *inputs, char *output) {
+   StringArray arr = {};
+ 
++  if (opt_rem) {
++    char *ld = getenv("CHIBICC_REM_LD");
++    char *script = getenv("CHIBICC_REM_LINKER_SCRIPT");
++    char *crt = getenv("CHIBICC_REM_CRTDIR");
++    char *gcclib = getenv("CHIBICC_REM_GCCLIB");
++    char *runtime = getenv("CHIBICC_REM_LIBC");
++    char *softfloat = getenv("CHIBICC_REM_SOFTFLOAT");
++    strarray_push(&arr, ld ? ld : "ld");
++    strarray_push(&arr, "-T");
++    strarray_push(&arr, script ? script : "/lib/myemulator2-user.ld");
++    strarray_push(&arr, "-o");
++    strarray_push(&arr, output);
++    if (crt) {
++      strarray_push(&arr, format("-L%s", crt));
++      strarray_push(&arr, format("%s/crt1.o", crt));
++      strarray_push(&arr, format("%s/crti.o", crt));
++    }
++    for (int i = 0; i < ld_extra_args.len; i++)
++      strarray_push(&arr, ld_extra_args.data[i]);
++    if (gcclib) strarray_push(&arr, format("-L%s", gcclib));
++    if (softfloat) strarray_push(&arr, softfloat);
++    for (int i = 0; i < inputs->len; i++) strarray_push(&arr, inputs->data[i]);
++    // The REM native linker resolves this archive combination reliably when
++    // libc is presented before the compiler-runtime helpers.  libc references
++    // helpers such as __muldi3; putting libgcc first inside the group leaves
++    // that reference unresolved on the native linker even though the archive
++    // exports it.  Keep both archives in a group so later libc references can
++    // still pull additional runtime members.
++    strarray_push(&arr, "--start-group");
++    strarray_push(&arr, runtime ? runtime : "-lc");
++    if (gcclib) strarray_push(&arr, format("%s/libgcc.a", gcclib));
++    strarray_push(&arr, "--end-group");
++    if (crt) strarray_push(&arr, format("%s/crtn.o", crt));
++    strarray_push(&arr, NULL);
++    run_subprocess(arr.data);
++    return;
++  }
++
+   strarray_push(&arr, "ld");
+   strarray_push(&arr, "-o");
+   strarray_push(&arr, output);
+--- a/parse.c
++++ b/parse.c
+@@ -46,6 +46,8 @@
+   bool is_inline;
+   bool is_tls;
+   int align;
++  bool is_weak;
++  char *alias_name;
+ } VarAttr;
+ 
+ // This struct represents a variable initializer. Since initializers
+@@ -107,7 +109,42 @@
+ static Obj *builtin_alloca;
+ 
+ static bool is_typename(Token *tok);
++static Token *static_assertion(Token *tok);
+ static Type *declspec(Token **rest, Token *tok, VarAttr *attr);
++
++/* Ignore GNU declaration attributes that do not affect REM code generation.
++ * Hosted applications commonly annotate unused parameters, format strings,
++ * and visibility.  These may follow a declarator, including a parameter
++ * declarator, so they must be consumed before the enclosing declaration is
++ * parsed. */
++static Token *read_decl_attributes(Token *tok, VarAttr *attr) {
++  while (equal(tok, "__attribute__")) {
++    tok = skip(tok->next, "(");
++    int depth = 1;
++    while (depth) {
++      if (tok->kind == TK_EOF)
++        error_tok(tok, "unterminated declaration attribute");
++      if (depth == 2 && (equal(tok, "weak") || equal(tok, "__weak__"))) {
++        if (attr) attr->is_weak = true;
++      }
++      if (depth == 2 && (equal(tok, "alias") || equal(tok, "__alias__"))) {
++        Token *name = skip(tok->next, "(");
++        if (name->kind != TK_STR || name->ty->base->kind != TY_CHAR)
++          error_tok(name, "alias requires a narrow string literal");
++        if (attr)
++          attr->alias_name = strndup(name->str, name->ty->array_len - 1);
++        tok = skip(name->next, ")");
++        continue;
++      }
++      if (equal(tok, "("))
++        depth++;
++      else if (equal(tok, ")"))
++        depth--;
++      tok = tok->next;
++    }
++  }
++  return tok;
++}
+ static Type *typename(Token **rest, Token *tok);
+ static Type *enum_specifier(Token **rest, Token *tok);
+ static Type *typeof_specifier(Token **rest, Token *tok);
+@@ -401,7 +438,11 @@
+   int counter = 0;
+   bool is_atomic = false;
+ 
+-  while (is_typename(tok)) {
++  while (is_typename(tok) || equal(tok, "__attribute__")) {
++    if (equal(tok, "__attribute__")) {
++      tok = read_decl_attributes(tok, attr);
++      continue;
++    }
+     // Handle storage class specifiers.
+     if (equal(tok, "typedef") || equal(tok, "static") || equal(tok, "extern") ||
+         equal(tok, "inline") || equal(tok, "_Thread_local") || equal(tok, "__thread")) {
+@@ -459,6 +500,16 @@
+ 
+     // Handle user-defined types.
+     Type *ty2 = find_typedef(tok);
++    // musl exposes va_list through this compiler builtin.  The REM ABI uses
++    // a pointer to the next argument slot as its variadic representation.
++    if (equal(tok, "__builtin_va_list")) {
++      if (counter)
++        break;
++      ty = pointer_to(ty_char);
++      tok = tok->next;
++      counter += OTHER;
++      continue;
++    }
+     if (equal(tok, "struct") || equal(tok, "union") || equal(tok, "enum") ||
+         equal(tok, "typeof") || ty2) {
+       if (counter)
+@@ -540,19 +591,23 @@
+       break;
+     case LONG:
+     case LONG + INT:
+-    case LONG + LONG:
+-    case LONG + LONG + INT:
+     case SIGNED + LONG:
+     case SIGNED + LONG + INT:
++      ty = ty_long;
++      break;
++    case LONG + LONG:
++    case LONG + LONG + INT:
+     case SIGNED + LONG + LONG:
+     case SIGNED + LONG + LONG + INT:
+-      ty = ty_long;
++      ty = ty_llong;
+       break;
+     case UNSIGNED + LONG:
+     case UNSIGNED + LONG + INT:
++      ty = ty_ulong;
++      break;
+     case UNSIGNED + LONG + LONG:
+     case UNSIGNED + LONG + LONG + INT:
+-      ty = ty_ulong;
++      ty = ty_ullong;
+       break;
+     case FLOAT:
+       ty = ty_float;
+@@ -584,7 +639,9 @@
+ static Type *func_params(Token **rest, Token *tok, Type *ty) {
+   if (equal(tok, "void") && equal(tok->next, ")")) {
+     *rest = tok->next->next;
+-    return func_type(ty);
++    Type *fty = func_type(ty);
++    fty->has_prototype = true;
++    return fty;
+   }
+ 
+   Type head = {};
+@@ -603,7 +660,29 @@
+     }
+ 
+     Type *ty2 = declspec(&tok, tok, NULL);
+-    ty2 = declarator(&tok, tok, ty2);
++    /* Accept the common function-type parameter spelling used by Samurai:
++         void callback(void(struct node *));
++       The regular declarator path handles named function pointers, while
++       this form starts an abstract function declarator immediately after
++       the base type. */
++    if (equal(tok, "(") && is_typename(tok->next)) {
++      Type *fty = func_type(ty2);
++      tok = tok->next;
++      Type head2 = {};
++      Type *cur2 = &head2;
++      while (!equal(tok, ")")) {
++        if (cur2 != &head2)
++          tok = skip(tok, ",");
++        Type *pt = declspec(&tok, tok, NULL);
++        pt = declarator(&tok, tok, pt);
++        cur2 = cur2->next = copy_type(pt);
++      }
++      fty->params = head2.next;
++      ty2 = fty;
++      tok = tok->next;
++    } else {
++      ty2 = declarator(&tok, tok, ty2);
++    }
+ 
+     Token *name = ty2->name;
+ 
+@@ -622,12 +701,14 @@
+     cur = cur->next = copy_type(ty2);
+   }
+ 
+-  if (cur == &head)
+-    is_variadic = true;
+-
+   ty = func_type(ty);
+   ty->params = head.next;
+   ty->is_variadic = is_variadic;
++  // `f()` is an old-style declaration with an unspecified parameter list,
++  // not a variadic function.  Treating it as variadic incorrectly emitted a
++  // register-save area in every such function and corrupted its caller's
++  // stack frame on REM.
++  ty->has_prototype = (cur != &head) || is_variadic;
+   *rest = tok->next;
+   return ty;
+ }
+@@ -648,7 +729,10 @@
+ 
+   if (ty->kind == TY_VLA || !is_const_expr(expr))
+     return vla_of(ty, expr);
+-  return array_of(ty, eval(expr));
++  int64_t length = eval(expr);
++  if (length < 0)
++    error_tok(expr->tok, "negative array bound");
++  return array_of(ty, length);
+ }
+ 
+ // type-suffix = "(" func-params
+@@ -699,6 +783,13 @@
+   }
+ 
+   ty = type_suffix(rest, tok, ty);
++  VarAttr decl_attr = {};
++  *rest = read_decl_attributes(*rest, &decl_attr);
++  if (decl_attr.is_weak || decl_attr.alias_name) {
++    ty = copy_type(ty);
++    ty->decl_is_weak = decl_attr.is_weak;
++    ty->decl_alias_name = decl_attr.alias_name;
++  }
+   ty->name = name;
+   ty->name_pos = name_pos;
+   return ty;
+@@ -1003,7 +1094,7 @@
+ 
+   for (Member *mem = ty->members; mem; mem = mem->next) {
+     // Anonymous struct member
+-    if (mem->ty->kind == TY_STRUCT && !mem->name) {
++    if ((mem->ty->kind == TY_STRUCT || mem->ty->kind == TY_UNION) && !mem->name) {
+       if (get_struct_member(mem->ty, tok)) {
+         *rest = start;
+         return mem;
+@@ -1012,7 +1103,8 @@
+     }
+ 
+     // Regular struct member
+-    if (mem->name->len == tok->len && !strncmp(mem->name->loc, tok->loc, tok->len)) {
++    if (mem->name && mem->name->len == tok->len &&
++        !strncmp(mem->name->loc, tok->loc, tok->len)) {
+       *rest = tok->next;
+       return mem;
+     }
+@@ -1164,6 +1256,9 @@
+       tok = skip(tok, ",");
+     first = false;
+ 
++    while (mem && mem->is_bitfield && !mem->name)
++      mem = mem->next;
++
+     if (equal(tok, ".")) {
+       mem = struct_designator(&tok, tok, init->ty);
+       designation(&tok, tok, init->children[mem->idx]);
+@@ -1182,9 +1277,11 @@
+ 
+ // struct-initializer2 = initializer ("," initializer)*
+ static void struct_initializer2(Token **rest, Token *tok, Initializer *init, Member *mem) {
+-  bool first = true;
++  bool first = mem == init->ty->members;
+ 
+   for (; mem && !is_end(tok); mem = mem->next) {
++    if (mem->is_bitfield && !mem->name)
++      continue;
+     Token *start = tok;
+ 
+     if (!first)
+@@ -1228,6 +1325,15 @@
+ //             | struct-initializer | union-initializer
+ //             | assign
+ static void initializer2(Token **rest, Token *tok, Initializer *init) {
++  if (init->ty->kind == TY_ARRAY && equal(tok, "{") &&
++      tok->next->kind == TK_STR &&
++      init->ty->base->kind == tok->next->ty->base->kind) {
++    string_initializer(&tok, tok->next, init);
++    consume(&tok, tok, ",");
++    *rest = skip(tok, "}");
++    return;
++  }
++
+   if (init->ty->kind == TY_ARRAY && tok->kind == TK_STR) {
+     string_initializer(rest, tok, init);
+     return;
+@@ -1427,12 +1533,13 @@
+       if (mem->is_bitfield) {
+         Node *expr = init->children[mem->idx]->expr;
+         if (!expr)
+-          break;
++          continue;
+ 
+         char *loc = buf + offset + mem->offset;
+         uint64_t oldval = read_buf(loc, mem->ty->size);
+         uint64_t newval = eval(expr);
+-        uint64_t mask = (1L << mem->bit_width) - 1;
++        uint64_t mask = mem->bit_width >= 64 ? ~(uint64_t)0
++                                             : ((uint64_t)1 << mem->bit_width) - 1;
+         uint64_t combined = oldval | ((newval & mask) << mem->bit_offset);
+         write_buf(loc, combined, mem->ty->size);
+       } else {
+@@ -1458,7 +1565,7 @@
+     return cur;
+   }
+ 
+-  if (ty->kind == TY_DOUBLE) {
++  if (ty->kind == TY_DOUBLE || ty->kind == TY_LDOUBLE) {
+     *(double *)(buf + offset) = eval_double(init->expr);
+     return cur;
+   }
+@@ -1503,7 +1610,7 @@
+       "typedef", "enum", "static", "extern", "_Alignas", "signed", "unsigned",
+       "const", "volatile", "auto", "register", "restrict", "__restrict",
+       "__restrict__", "_Noreturn", "float", "double", "typeof", "inline",
+-      "_Thread_local", "__thread", "_Atomic",
++      "_Thread_local", "__thread", "_Atomic", "__builtin_va_list",
+     };
+ 
+     for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++)
+@@ -1640,6 +1747,7 @@
+ 
+     char *brk = brk_label;
+     char *cont = cont_label;
++    node->begin_label = new_unique_name();
+     brk_label = node->brk_label = new_unique_name();
+     cont_label = node->cont_label = new_unique_name();
+ 
+@@ -1674,6 +1782,7 @@
+ 
+     char *brk = brk_label;
+     char *cont = cont_label;
++    node->begin_label = new_unique_name();
+     brk_label = node->brk_label = new_unique_name();
+     cont_label = node->cont_label = new_unique_name();
+ 
+@@ -1689,6 +1798,7 @@
+ 
+     char *brk = brk_label;
+     char *cont = cont_label;
++    node->begin_label = new_unique_name();
+     brk_label = node->brk_label = new_unique_name();
+     cont_label = node->cont_label = new_unique_name();
+ 
+@@ -1768,6 +1878,10 @@
+   enter_scope();
+ 
+   while (!equal(tok, "}")) {
++    if (equal(tok, "_Static_assert") || equal(tok, "static_assert")) {
++      tok = static_assertion(tok);
++      continue;
++    }
+     if (is_typename(tok) && !equal(tok->next, ":")) {
+       VarAttr attr = {};
+       Type *basety = declspec(&tok, tok, &attr);
+@@ -1779,6 +1893,10 @@
+ 
+       if (is_function(tok)) {
+         tok = function(tok, basety, &attr);
++        if (consume(&tok, tok, ","))
++          tok = global_variable(tok, basety, &attr);
++        else
++          consume(&tok, tok, ";");
+         continue;
+       }
+ 
+@@ -1900,7 +2018,10 @@
+       switch (node->ty->size) {
+       case 1: return node->ty->is_unsigned ? (uint8_t)val : (int8_t)val;
+       case 2: return node->ty->is_unsigned ? (uint16_t)val : (int16_t)val;
+-      case 4: return node->ty->is_unsigned ? (uint32_t)val : (int32_t)val;
++      case 4:
++        if (node->ty->is_unsigned)
++          return (uint32_t)val;
++        return (int32_t)val;
+       }
+     }
+     return val;
+@@ -2095,6 +2216,7 @@
+                 tok);
+ 
+     Node *loop = new_node(ND_DO, tok);
++    loop->begin_label = new_unique_name();
+     loop->brk_label = new_unique_name();
+     loop->cont_label = new_unique_name();
+ 
+@@ -2541,12 +2663,33 @@
+ }
+ 
+ // struct-members = (declspec declarator (","  declarator)* ";")*
++static Token *static_assertion(Token *tok) {
++  Token *start = tok;
++  tok = skip(tok->next, "(");
++  int64_t value = const_expr(&tok, tok);
++  if (consume(&tok, tok, ",")) {
++    if (tok->kind != TK_STR)
++      error_tok(tok, "static assertion message must be a string literal");
++    if (!value)
++      error_tok(start, "static assertion failed: %s", tok->str);
++    tok = tok->next;
++  }
++  if (!value)
++    error_tok(start, "static assertion failed");
++  tok = skip(tok, ")");
++  return skip(tok, ";");
++}
++
+ static void struct_members(Token **rest, Token *tok, Type *ty) {
+   Member head = {};
+   Member *cur = &head;
+   int idx = 0;
+ 
+   while (!equal(tok, "}")) {
++    if (equal(tok, "_Static_assert") || equal(tok, "static_assert")) {
++      tok = static_assertion(tok);
++      continue;
++    }
+     VarAttr attr = {};
+     Type *basety = declspec(&tok, tok, &attr);
+     bool first = true;
+@@ -2746,7 +2889,7 @@
+     }
+ 
+     // Regular struct member
+-    if (mem->name->len == tok->len &&
++    if (mem->name && mem->name->len == tok->len &&
+         !strncmp(mem->name->loc, tok->loc, tok->len))
+       return mem;
+   }
+@@ -2805,6 +2948,7 @@
+ //              | "++"
+ //              | "--"
+ static Node *postfix(Token **rest, Token *tok) {
++  Node *node;
+   if (equal(tok, "(") && is_typename(tok->next)) {
+     // Compound literal
+     Token *start = tok;
+@@ -2813,17 +2957,16 @@
+ 
+     if (scope->next == NULL) {
+       Obj *var = new_anon_gvar(ty);
+-      gvar_initializer(rest, tok, var);
+-      return new_var_node(var, start);
++      gvar_initializer(&tok, tok, var);
++      node = new_var_node(var, start);
++    } else {
++      Obj *var = new_lvar("", ty);
++      Node *lhs = lvar_initializer(&tok, tok, var);
++      Node *rhs = new_var_node(var, tok);
++      node = new_binary(ND_COMMA, lhs, rhs, start);
+     }
+-
+-    Obj *var = new_lvar("", ty);
+-    Node *lhs = lvar_initializer(rest, tok, var);
+-    Node *rhs = new_var_node(var, tok);
+-    return new_binary(ND_COMMA, lhs, rhs, start);
+-  }
+-
+-  Node *node = primary(&tok, tok);
++  } else
++    node = primary(&tok, tok);
+ 
+   for (;;) {
+     if (equal(tok, "(")) {
+@@ -2892,7 +3035,7 @@
+     Node *arg = assign(&tok, tok);
+     add_type(arg);
+ 
+-    if (!param_ty && !ty->is_variadic)
++    if (!param_ty && !ty->is_variadic && ty->has_prototype)
+       error_tok(tok, "too many arguments");
+ 
+     if (param_ty) {
+@@ -2905,6 +3048,13 @@
+       arg = new_cast(arg, ty_double);
+     }
+ 
++#ifdef CHIBICC_REM
++    if (arg->ty->kind == TY_STRUCT || arg->ty->kind == TY_UNION) {
++      Obj *copy = new_lvar("", arg->ty);
++      arg = new_binary(ND_ASSIGN, new_var_node(copy, arg->tok), arg, arg->tok);
++      add_type(arg);
++    }
++#endif
+     cur = cur->next = arg;
+   }
+ 
+@@ -2983,6 +3133,11 @@
+ static Node *primary(Token **rest, Token *tok) {
+   Token *start = tok;
+ 
++  if (equal(tok, "__builtin_alloca")) {
++    *rest = tok->next;
++    return new_var_node(builtin_alloca, tok);
++  }
++
+   if (equal(tok, "(") && equal(tok->next, "{")) {
+     // This is a GNU statement expresssion.
+     Node *node = new_node(ND_STMT_EXPR, tok);
+@@ -3079,6 +3234,45 @@
+     return node;
+   }
+ 
++  if (equal(tok, "__builtin_va_start")) {
++    Node *node = new_node(ND_VA_START, tok);
++    tok = skip(tok->next, "(");
++    node->lhs = assign(&tok, tok);
++    tok = skip(tok, ",");
++    node->rhs = assign(&tok, tok);
++    *rest = skip(tok, ")");
++    return node;
++  }
++
++  if (equal(tok, "__builtin_va_arg")) {
++    Node *node = new_node(ND_VA_ARG, tok);
++    tok = skip(tok->next, "(");
++    node->lhs = assign(&tok, tok);
++    tok = skip(tok, ",");
++    node->va_arg_ty = typename(&tok, tok);
++    *rest = skip(tok, ")");
++    node->ty = node->va_arg_ty;
++    return node;
++  }
++
++  if (equal(tok, "__builtin_va_end")) {
++    Node *node = new_node(ND_VA_END, tok);
++    tok = skip(tok->next, "(");
++    node->lhs = assign(&tok, tok);
++    *rest = skip(tok, ")");
++    return node;
++  }
++
++  if (equal(tok, "__builtin_va_copy")) {
++    Node *node = new_node(ND_VA_COPY, tok);
++    tok = skip(tok->next, "(");
++    node->lhs = assign(&tok, tok);
++    tok = skip(tok, ",");
++    node->rhs = assign(&tok, tok);
++    *rest = skip(tok, ")");
++    return node;
++  }
++
+   if (tok->kind == TK_IDENT) {
+     // Variable or enum constant
+     VarScope *sc = find_var(tok);
+@@ -3114,7 +3308,7 @@
+     Node *node;
+     if (is_flonum(tok->ty)) {
+       node = new_node(ND_NUM, tok);
+-      node->fval = tok->fval;
++      memcpy(&node->fval, &tok->fval, sizeof(node->fval));
+     } else {
+       node = new_num(tok->val, tok);
+     }
+@@ -3221,8 +3415,18 @@
+   }
+ 
+   fn->is_root = !(fn->is_static && fn->is_inline);
++  fn->is_weak |= attr->is_weak || ty->decl_is_weak;
++  if (attr->alias_name || ty->decl_alias_name) {
++    if (equal(tok, "{"))
++      error_tok(tok, "an alias cannot have a function body");
++    fn->alias_name = attr->alias_name ? attr->alias_name : ty->decl_alias_name;
++  }
++  if (fn->is_static && (fn->is_weak || fn->alias_name))
++    error_tok(ty->name, "weak and alias declarations require external linkage");
++  if (equal(tok, "{"))
++    fn->tok = ty->name;  // for the .loc of the function entry (-g)
+ 
+-  if (consume(&tok, tok, ";"))
++  if (equal(tok, ";") || equal(tok, ","))
+     return tok;
+ 
+   current_fn = fn;
+@@ -3233,13 +3437,13 @@
+   // A buffer for a struct/union return value is passed
+   // as the hidden first parameter.
+   Type *rty = ty->return_ty;
+-  if ((rty->kind == TY_STRUCT || rty->kind == TY_UNION) && rty->size > 16)
++  if (rty->kind == TY_STRUCT || rty->kind == TY_UNION)
+     new_lvar("", pointer_to(rty));
+ 
+   fn->params = locals;
+ 
+   if (ty->is_variadic)
+-    fn->va_area = new_lvar("__va_area__", array_of(ty_char, 136));
++    fn->va_area = new_lvar("__va_area__", pointer_to(ty_char));
+   fn->alloca_bottom = new_lvar("__alloca_size__", pointer_to(ty_char));
+ 
+   tok = skip(tok, "{");
+@@ -3258,6 +3462,8 @@
+   fn->locals = locals;
+   leave_scope();
+   resolve_goto_labels();
++  if (equal(tok, ","))
++    error_tok(tok, "a function definition cannot be part of a declaration list");
+   return tok;
+ }
+ 
+@@ -3269,6 +3475,13 @@
+       tok = skip(tok, ",");
+     first = false;
+ 
++    if (is_function(tok)) {
++      tok = function(tok, basety, attr);
++      if (!equal(tok, ";") && !equal(tok, ","))
++        error_tok(tok, "a function definition cannot follow another declarator");
++      continue;
++    }
++
+     Type *ty = declarator(&tok, tok, basety);
+     if (!ty->name)
+       error_tok(ty->name_pos, "variable name omitted");
+@@ -3277,6 +3490,15 @@
+     var->is_definition = !attr->is_extern;
+     var->is_static = attr->is_static;
+     var->is_tls = attr->is_tls;
++    var->is_weak = attr->is_weak || ty->decl_is_weak;
++    var->alias_name = attr->alias_name ? attr->alias_name : ty->decl_alias_name;
++    if (var->alias_name) {
++      if (equal(tok, "="))
++        error_tok(tok, "an alias cannot have an initializer");
++      var->is_definition = false;
++    }
++    if (var->is_static && (var->is_weak || var->alias_name))
++      error_tok(ty->name, "weak and alias declarations require external linkage");
+     if (attr->align)
+       var->align = attr->align;
+ 
+@@ -3330,6 +3552,7 @@
+   Type *ty = func_type(pointer_to(ty_void));
+   ty->params = copy_type(ty_int);
+   builtin_alloca = new_gvar("alloca", ty);
++  builtin_alloca->is_function = true;
+   builtin_alloca->is_definition = false;
+ }
+ 
+@@ -3339,6 +3562,10 @@
+   globals = NULL;
+ 
+   while (tok->kind != TK_EOF) {
++    if (equal(tok, "_Static_assert") || equal(tok, "static_assert")) {
++      tok = static_assertion(tok);
++      continue;
++    }
+     VarAttr attr = {};
+     Type *basety = declspec(&tok, tok, &attr);
+ 
+@@ -3351,6 +3578,10 @@
+     // Function
+     if (is_function(tok)) {
+       tok = function(tok, basety, &attr);
++      if (consume(&tok, tok, ","))
++        tok = global_variable(tok, basety, &attr);
++      else
++        consume(&tok, tok, ";");
+       continue;
+     }
+ 
+--- a/preprocess.c	2020-12-07 03:00:06.000000000 +0000
++++ b/preprocess.c	2026-10-07 10:58:48.959747173 +0100
+@@ -69,6 +69,8 @@
+ static CondIncl *cond_incl;
+ static HashMap pragma_once;
+ static int include_next_idx;
++static bool pp_trace;
++static long pp_trace_events;
+ 
+ static Token *preprocess2(Token *tok);
+ static Macro *find_macro(Token *tok);
+@@ -277,7 +279,11 @@
+ }
+ 
+ // Read and evaluate a constant expression.
+-static long eval_const_expr(Token **rest, Token *tok) {
++/* Preprocessor conditional expressions must retain the full width of integer
++ * constants even when the compiler host uses ILP32.  Returning `long` here
++ * truncates UINT64_MAX to 0xffffffff on REM32 and makes UINTPTR_MAX appear
++ * equal to UINT64_MAX, selecting the wrong PRId64 format in musl headers. */
++static int64_t eval_const_expr(Token **rest, Token *tok) {
+   Token *start = tok;
+   Token *expr = read_const_expr(rest, tok->next);
+   expr = preprocess2(expr);
+@@ -301,7 +307,7 @@
+   convert_pp_tokens(expr);
+ 
+   Token *rest2;
+-  long val = const_expr(&rest2, expr);
++  int64_t val = const_expr(&rest2, expr);
+   if (rest2->kind != TK_EOF)
+     error_tok(rest2, "extra token");
+   return val;
+@@ -628,6 +634,9 @@
+ // If tok is a macro, expand it and return true.
+ // Otherwise, do nothing and return false.
+ static bool expand_macro(Token **rest, Token *tok) {
++  if (pp_trace && (++pp_trace_events % 1000) == 0)
++    fprintf(stderr, "TRACE macro events=%ld %s:%d token=%.*s\n", pp_trace_events, tok->file ? tok->file->name : "?",
++            tok->line_no, tok->len, tok->loc);
+   if (hideset_contains(tok->hideset, tok->loc, tok->len))
+     return false;
+ 
+@@ -683,31 +692,44 @@
+ }
+ 
+ char *search_include_paths(char *filename) {
++  include_next_idx = 0;
+   if (filename[0] == '/')
+     return filename;
+ 
++  typedef struct {
++    char *path;
++    int next_idx;
++  } IncludePath;
+   static HashMap cache;
+-  char *cached = hashmap_get(&cache, filename);
+-  if (cached)
+-    return cached;
++  IncludePath *cached = hashmap_get(&cache, filename);
++  if (cached) {
++    include_next_idx = cached->next_idx;
++    return cached->path;
++  }
+ 
+   // Search a file from the include paths.
+   for (int i = 0; i < include_paths.len; i++) {
+     char *path = format("%s/%s", include_paths.data[i], filename);
+     if (!file_exists(path))
+       continue;
+-    hashmap_put(&cache, filename, path);
++    IncludePath *entry = calloc(1, sizeof(IncludePath));
++    entry->path = path;
++    entry->next_idx = i + 1;
++    hashmap_put(&cache, filename, entry);
+     include_next_idx = i + 1;
+     return path;
+   }
+   return NULL;
+ }
+ 
+-static char *search_include_next(char *filename) {
++static char *search_include_next(char *filename, int next_idx) {
++  include_next_idx = next_idx;
+   for (; include_next_idx < include_paths.len; include_next_idx++) {
+     char *path = format("%s/%s", include_paths.data[include_next_idx], filename);
+-    if (file_exists(path))
++    if (file_exists(path)) {
++      include_next_idx++;
+       return path;
++    }
+   }
+   return NULL;
+ }
+@@ -792,7 +814,12 @@
+   return NULL;
+ }
+ 
+-static Token *include_file(Token *tok, char *path, Token *filename_tok) {
++static Token *include_file(Token *tok, char *path, Token *filename_tok,
++                           int next_idx) {
++  static bool trace = false;
++  static bool trace_init = false;
++  if (!trace_init) { trace = getenv("CHIBICC_TRACE_PP") != NULL; trace_init = true; }
++  if (trace) fprintf(stderr, "TRACE include begin %s\n", path);
+   // Check for "#pragma once"
+   if (hashmap_get(&pragma_once, path))
+     return tok;
+@@ -808,18 +835,23 @@
+   Token *tok2 = tokenize_file(path);
+   if (!tok2)
+     error_tok(filename_tok, "%s: cannot open file: %s", path, strerror(errno));
++  tok2->file->include_next_idx = next_idx;
+ 
++  if (trace) fprintf(stderr, "TRACE include tokenized %s\n", path);
+   guard_name = detect_include_guard(tok2);
+   if (guard_name)
+     hashmap_put(&include_guards, path, guard_name);
+ 
+-  return append(tok2, tok);
++  Token *ret = append(tok2, tok);
++  if (trace) fprintf(stderr, "TRACE include appended %s\n", path);
++  return ret;
+ }
+ 
+ // Read #line arguments
+ static void read_line_marker(Token **rest, Token *tok) {
+   Token *start = tok;
+-  tok = preprocess(copy_line(rest, tok));
++  tok = preprocess2(copy_line(rest, tok));
++  convert_pp_tokens(tok);
+ 
+   if (tok->kind != TK_NUM || tok->ty->kind != TY_INT)
+     error_tok(tok, "invalid line marker");
+@@ -839,8 +871,15 @@
+ static Token *preprocess2(Token *tok) {
+   Token head = {};
+   Token *cur = &head;
++  static bool trace = false;
++  static bool trace_init = false;
++  long count = 0;
++  if (!trace_init) { trace = getenv("CHIBICC_TRACE_PP") != NULL; trace_init = true; pp_trace = trace; }
+ 
+   while (tok->kind != TK_EOF) {
++    if (trace && (++count % 1000) == 0)
++      fprintf(stderr, "TRACE pp tokens=%ld file=%s line=%d\n", count,
++              tok->file ? tok->file->name : "?", tok->line_no);
+     // If it is a macro, expand it.
+     if (expand_macro(&tok, tok))
+       continue;
+@@ -864,21 +903,24 @@
+       if (filename[0] != '/' && is_dquote) {
+         char *path = format("%s/%s", dirname(strdup(start->file->name)), filename);
+         if (file_exists(path)) {
+-          tok = include_file(tok, path, start->next->next);
++          tok = include_file(tok, path, start->next->next,
++                             start->file->include_next_idx);
+           continue;
+         }
+       }
+ 
+       char *path = search_include_paths(filename);
+-      tok = include_file(tok, path ? path : filename, start->next->next);
++      tok = include_file(tok, path ? path : filename, start->next->next,
++                         include_next_idx);
+       continue;
+     }
+ 
+     if (equal(tok, "include_next")) {
+       bool ignore;
+       char *filename = read_include_filename(&tok, tok->next, &ignore);
+-      char *path = search_include_next(filename);
+-      tok = include_file(tok, path ? path : filename, start->next->next);
++      char *path = search_include_next(filename, start->file->include_next_idx);
++      tok = include_file(tok, path ? path : filename, start->next->next,
++                         include_next_idx);
+       continue;
+     }
+ 
+@@ -905,7 +947,7 @@
+     }
+ 
+     if (equal(tok, "ifdef")) {
+-      bool defined = find_macro(tok->next);
++      bool defined = find_macro(tok->next) != NULL;
+       push_cond_incl(tok, defined);
+       tok = skip_line(tok->next->next);
+       if (!defined)
+@@ -914,7 +956,7 @@
+     }
+ 
+     if (equal(tok, "ifndef")) {
+-      bool defined = find_macro(tok->next);
++      bool defined = find_macro(tok->next) != NULL;
+       push_cond_incl(tok, !defined);
+       tok = skip_line(tok->next->next);
+       if (defined)
+@@ -1059,31 +1101,32 @@
+ 
+ void init_macros(void) {
+   // Define predefined macros
+-  define_macro("_LP64", "1");
++  // REM is an ILP32 target: long, pointers and size_t are 32 bits even
++  // though long long remains 64 bits.  Keep these target macros aligned with
++  // the type model in type.c; inheriting the host chibicc LP64 defaults makes
++  // libc headers select the wrong conditional declarations.
+   define_macro("__C99_MACRO_WITH_VA_ARGS", "1");
+   define_macro("__ELF__", "1");
+-  define_macro("__LP64__", "1");
+   define_macro("__SIZEOF_DOUBLE__", "8");
+   define_macro("__SIZEOF_FLOAT__", "4");
+   define_macro("__SIZEOF_INT__", "4");
+   define_macro("__SIZEOF_LONG_DOUBLE__", "8");
+   define_macro("__SIZEOF_LONG_LONG__", "8");
+-  define_macro("__SIZEOF_LONG__", "8");
+-  define_macro("__SIZEOF_POINTER__", "8");
+-  define_macro("__SIZEOF_PTRDIFF_T__", "8");
++  define_macro("__SIZEOF_LONG__", "4");
++  define_macro("__SIZEOF_POINTER__", "4");
++  define_macro("__SIZEOF_PTRDIFF_T__", "4");
+   define_macro("__SIZEOF_SHORT__", "2");
+-  define_macro("__SIZEOF_SIZE_T__", "8");
+-  define_macro("__SIZE_TYPE__", "unsigned long");
++  define_macro("__SIZEOF_SIZE_T__", "4");
++  define_macro("__SIZE_TYPE__", "unsigned int");
+   define_macro("__STDC_HOSTED__", "1");
+   define_macro("__STDC_NO_COMPLEX__", "1");
++  define_macro("__STDC_NO_ATOMICS__", "1");
+   define_macro("__STDC_UTF_16__", "1");
+   define_macro("__STDC_UTF_32__", "1");
+   define_macro("__STDC_VERSION__", "201112L");
+   define_macro("__STDC__", "1");
+   define_macro("__USER_LABEL_PREFIX__", "");
+   define_macro("__alignof__", "_Alignof");
+-  define_macro("__amd64", "1");
+-  define_macro("__amd64__", "1");
+   define_macro("__chibicc__", "1");
+   define_macro("__const__", "const");
+   define_macro("__gnu_linux__", "1");
+@@ -1092,11 +1135,11 @@
+   define_macro("__linux__", "1");
+   define_macro("__signed__", "signed");
+   define_macro("__typeof__", "typeof");
++  define_macro("__typeof", "typeof");
+   define_macro("__unix", "1");
+   define_macro("__unix__", "1");
+   define_macro("__volatile__", "volatile");
+-  define_macro("__x86_64", "1");
+-  define_macro("__x86_64__", "1");
++  define_macro("__myemulator2__", "1");
+   define_macro("linux", "1");
+   define_macro("unix", "1");
+ 
+@@ -1108,8 +1151,15 @@
+ 
+   time_t now = time(NULL);
+   struct tm *tm = localtime(&now);
+-  define_macro("__DATE__", format_date(tm));
+-  define_macro("__TIME__", format_time(tm));
++  /* Some minimal REM libc environments do not provide a usable timezone
++     conversion yet.  Predefined macros must not make the compiler crash. */
++  if (tm) {
++    define_macro("__DATE__", format_date(tm));
++    define_macro("__TIME__", format_time(tm));
++  } else {
++    define_macro("__DATE__", "\"Jan  1 1970\"");
++    define_macro("__TIME__", "\"00:00:00\"");
++  }
+ }
+ 
+ typedef enum {
+--- a/rem_float.c	1970-01-01 01:00:00.000000000 +0100
++++ b/rem_float.c	2026-10-06 22:02:10.119468258 +0100
+@@ -0,0 +1,108 @@
++#include "chibicc.h"
++#ifdef REM_BOOTSTRAP_FLOAT
++#include "../ryu/ryu/ryu_parse.h"
++#endif
++
++/* Calling through integer declarations preserves the raw ABI words even
++ * when the initial native compiler cannot lower floating casts yet. */
++#ifdef __myemulator2__
++extern unsigned __truncdfsf2(uint64_t);
++#endif
++
++void rem_float_bits(const double *value, uint32_t *bits) {
++#ifdef __myemulator2__
++  uint64_t raw;
++  memcpy(&raw, value, sizeof(raw));
++  *bits = __truncdfsf2(raw);
++#else
++  float converted = *value;
++  memcpy(bits, &converted, sizeof(converted));
++#endif
++}
++
++#ifdef REM_BOOTSTRAP_FLOAT
++static int hex_digit(int c) {
++  if (c >= '0' && c <= '9') return c - '0';
++  if (c >= 'a' && c <= 'f') return c - 'a' + 10;
++  if (c >= 'A' && c <= 'F') return c - 'A' + 10;
++  return -1;
++}
++
++static uint64_t parse_hex(const char *text, int length) {
++  uint64_t mantissa = 0;
++  int digits = 0, discarded = 0, fraction = 0;
++  bool point = false, sticky = false;
++  int i = 2;
++  for (; i < length && text[i] != 'p' && text[i] != 'P'; i++) {
++    if (text[i] == '.' && !point) { point = true; continue; }
++    int digit = hex_digit(text[i]);
++    if (digit < 0) error("invalid hexadecimal floating literal");
++    if (point) fraction++;
++    if (!digits && !digit) continue;
++    if (digits < 16) {
++      mantissa = (mantissa << 4) | digit;
++      digits++;
++    } else {
++      discarded++;
++      sticky |= digit != 0;
++    }
++  }
++  if (i == length) error("hexadecimal floating literal requires an exponent");
++  i++;
++  bool negative = false;
++  if (i < length && (text[i] == '+' || text[i] == '-'))
++    negative = text[i++] == '-';
++  if (i == length) error("missing hexadecimal floating exponent");
++  int exponent = 0;
++  for (; i < length; i++) {
++    if (text[i] < '0' || text[i] > '9') error("invalid floating exponent");
++    if (exponent < 100000) exponent = exponent * 10 + text[i] - '0';
++  }
++  if (!mantissa) return 0;
++  if (negative) exponent = -exponent;
++  exponent += 4 * (discarded - fraction);
++  int bits = 0;
++  for (uint64_t n = mantissa; n; n >>= 1) bits++;
++  int unbiased = exponent + bits - 1;
++  if (unbiased > 1023) return 0x7ff0000000000000ULL;
++  int shift = bits - 53;
++  if (unbiased < -1022) shift += -1022 - unbiased;
++  uint64_t rounded;
++  if (shift > 64) rounded = 0;
++  else if (shift == 64)
++    rounded = (mantissa >> 63) && ((mantissa << 1) || sticky);
++  else if (shift > 0) {
++    uint64_t half = 1ULL << (shift - 1);
++    uint64_t remainder = mantissa & ((1ULL << shift) - 1);
++    rounded = mantissa >> shift;
++    if (remainder > half || (remainder == half && (sticky || (rounded & 1))))
++      rounded++;
++  } else
++    rounded = mantissa << -shift;
++  if (unbiased < -1022) return rounded;
++  if (rounded == (1ULL << 53)) { rounded >>= 1; unbiased++; }
++  if (unbiased > 1023) return 0x7ff0000000000000ULL;
++  return ((uint64_t)(unbiased + 1023) << 52) | (rounded & ((1ULL << 52) - 1));
++}
++#endif
++
++void rem_parse_float(const char *text, int length, double *value) {
++#ifdef REM_INTEGER_BOOTSTRAP
++  error("integer bootstrap cannot compile floating literals; build the next native compiler stage");
++#elif defined(REM_BOOTSTRAP_FLOAT)
++  if (length > 2 && text[0] == '0' && (text[1] == 'x' || text[1] == 'X')) {
++    uint64_t bits = parse_hex(text, length);
++    memcpy(value, &bits, sizeof(bits));
++    return;
++  }
++  enum Status status = s2d_n(text, length, value);
++  if (status != SUCCESS)
++    error("bootstrap decimal conversion failed (Ryu status %d); full libc bootstrap is required", status);
++#else
++  char *copy = strndup(text, length);
++  char *end;
++  *value = strtod(copy, &end);
++  if (end != copy + length) error("invalid floating-point literal");
++  free(copy);
++#endif
++}
+--- a/test/rem-bitnot.c	1970-01-01 01:00:00.000000000 +0100
++++ b/test/rem-bitnot.c	2026-10-06 03:10:45.157021370 +0100
+@@ -0,0 +1 @@
++int main(void) { return (~0u == 0xffffffffu) ? 0 : 1; }
+--- a/test/rem-call-home-area.c	1970-01-01 01:00:00.000000000 +0100
++++ b/test/rem-call-home-area.c	2026-10-06 03:10:45.158021365 +0100
+@@ -0,0 +1,14 @@
++/* A four-argument call must not let the callee's register home area
++ * overwrite the caller's locals. */
++static int sum4(int a, int b, int c, int d) {
++  return a + b + c + d;
++}
++
++int main(void) {
++  int a = 1;
++  int b = 2;
++  int c = 3;
++  int d = 4;
++  int result = sum4(a, b, c, d);
++  return result != 10 || a != 1 || b != 2 || c != 3 || d != 4;
++}
+--- a/test/rem-double-alignment.c	1970-01-01 01:00:00.000000000 +0100
++++ b/test/rem-double-alignment.c	2026-10-06 03:10:45.157021370 +0100
+@@ -0,0 +1,9 @@
++/* REM ABI regression: double is 8 bytes but only 4-byte aligned. */
++struct probe {
++  char tag;
++  double value;
++};
++
++int main(void) {
++  return sizeof(struct probe) != 12 || _Alignof(struct probe) != 4;
++}
+--- a/test/rem-global-initializer.c	1970-01-01 01:00:00.000000000 +0100
++++ b/test/rem-global-initializer.c	2026-10-06 03:10:45.156021374 +0100
+@@ -0,0 +1,8 @@
++/* Regression for incoming stack-argument offsets in write_gvar_data.
++ * The fifth parameter is stack-passed; a global initializer exercises the
++ * same five-argument recursive call path during hosted compilation. */
++int value = 1;
++
++int main(void) {
++  return value != 1;
++}
+--- a/test/rem-gnu-attribute.c	1970-01-01 01:00:00.000000000 +0100
++++ b/test/rem-gnu-attribute.c	2026-10-06 03:10:45.157021370 +0100
+@@ -0,0 +1,7 @@
++static int ignored(int value __attribute__((unused))) {
++  return 42;
++}
++
++int main(void) {
++  return ignored(7) == 42 ? 0 : 1;
++}
+--- a/test/rem-hosted-null-member.c	1970-01-01 01:00:00.000000000 +0100
++++ b/test/rem-hosted-null-member.c	2026-10-06 03:10:45.158021365 +0100
+@@ -0,0 +1,10 @@
++/* Regression: the REM32 native preprocessor must preserve include guards and
++ * NULL expansion while compiling a pointer-member store in the hosted
++ * chibicc header environment.  This was the smallest Level 7 reproducer. */
++#include "../chibicc.h"
++
++void rem_hosted_null_member(StringArray *arr) {
++  arr->data[0] = NULL;
++}
++
++int main(void) { return 0; }
+--- a/test/rem-ilp32-predefined.c	1970-01-01 01:00:00.000000000 +0100
++++ b/test/rem-ilp32-predefined.c	2026-10-06 03:10:45.156021374 +0100
+@@ -0,0 +1,11 @@
++/* REM predefined macros must describe the target data model, not the host. */
++#ifdef __LP64__
++#error REM must not define __LP64__
++#endif
++#ifndef __myemulator2__
++#error missing REM target marker
++#endif
++#if __SIZEOF_LONG__ != 4 || __SIZEOF_POINTER__ != 4 || __SIZEOF_SIZE_T__ != 4
++#error REM uses 32-bit long, pointers and size_t
++#endif
++int main(void) { return 0; }
+--- a/test/rem-indirect-call.c	1970-01-01 01:00:00.000000000 +0100
++++ b/test/rem-indirect-call.c	2026-10-06 03:10:45.157021370 +0100
+@@ -0,0 +1,5 @@
++static int add_one(int x) { return x + 1; }
++int main(void) {
++  int (*fn)(int) = add_one;
++  return fn(41) == 42 ? 0 : 1;
++}
+--- a/test/rem-nested-loop-switch.c	1970-01-01 01:00:00.000000000 +0100
++++ b/test/rem-nested-loop-switch.c	2026-10-06 03:10:45.156021374 +0100
+@@ -0,0 +1,26 @@
++/* Regression for REM loop labels: a switch nested in an option-style
++ * loop must break only its switch, while the surrounding loops retain
++ * their own continue/back-edge targets. */
++int main(int argc, char **argv) {
++  int seen = 0;
++
++  for (;;) {
++    if (argc > 0)
++      ++argv, --argc;
++    if (argc == 0 || (*argv)[0] != '-')
++      break;
++
++    for (char *opt = &(*argv)[1], done = 0; !done && *opt; ++opt) {
++      switch (*opt) {
++      case 'n':
++        ++seen;
++        break;
++      default:
++        done = 1;
++        break;
++      }
++    }
++  }
++
++  return seen == 1 ? 0 : 1;
++}
+--- a/test/rem-oldstyle-main.c	1970-01-01 01:00:00.000000000 +0100
++++ b/test/rem-oldstyle-main.c	2026-10-06 03:10:45.157021370 +0100
+@@ -0,0 +1,6 @@
++/* An empty parameter list is an old-style unspecified prototype, not `...`.
++   In particular, defining main() must not allocate a variadic register-save
++   area or write outside its stack frame. */
++int main() {
++  return 0;
++}
+--- a/test/rem-pp-int64-compare.c	1970-01-01 01:00:00.000000000 +0100
++++ b/test/rem-pp-int64-compare.c	2026-10-06 03:10:45.157021370 +0100
+@@ -0,0 +1,7 @@
++#if __cplusplus >= 201103L
++#error undefined __cplusplus incorrectly compares greater than 201103L
++#endif
++#if 0 >= 201103L
++#error zero incorrectly compares greater than 201103L
++#endif
++int main(void) { return 0; }
+--- a/test/rem-pp-uintptr-width.c	1970-01-01 01:00:00.000000000 +0100
++++ b/test/rem-pp-uintptr-width.c	2026-10-06 03:10:45.157021370 +0100
+@@ -0,0 +1,8 @@
++/* REM32 regression: #if expressions must not truncate UINT64_MAX to long. */
++#include <stdint.h>
++
++#if UINTPTR_MAX == UINT64_MAX
++#error ILP32 preprocessor selected the LP64 inttypes branch
++#endif
++
++int main(void) { return 0; }
+--- a/test/rem-six-argument-call.c	1970-01-01 01:00:00.000000000 +0100
++++ b/test/rem-six-argument-call.c	2026-10-06 03:10:45.156021374 +0100
+@@ -0,0 +1,22 @@
++/* Runtime regression for the first stack-passed integer arguments.
++ * Expected exit status: 0. Return 1 isolates the four-argument control;
++ * return 2 means the six-argument result was wrong.
++ */
++static int sum4(int a, int b, int c, int d)
++{
++	return a + b + c + d;
++}
++
++static int sum6(int a, int b, int c, int d, int e, int f)
++{
++	return a + b + c + d + e + f;
++}
++
++int main(void)
++{
++	if (sum4(1, 2, 3, 4) != 10)
++		return 1;
++	if (sum6(1, 2, 3, 4, 5, 6) != 21)
++		return 2;
++	return 0;
++}
+--- a/test/rem-u64-store.c	1970-01-01 01:00:00.000000000 +0100
++++ b/test/rem-u64-store.c	2026-10-06 03:10:45.155021379 +0100
+@@ -0,0 +1,9 @@
++#include <stdint.h>
++
++/* Regression: assigning a plain uint64_t local must keep the destination
++ * address separate from the high value word (r2) while storing r1:r2. */
++int main(void) {
++  uint64_t x = 0;
++  x = 0xbdd89aa982704029ull;
++  return x == 0xbdd89aa982704029ull ? 0 : 1;
++}
+--- a/test/rem-variadic-home-area.c	1970-01-01 01:00:00.000000000 +0100
++++ b/test/rem-variadic-home-area.c	2026-10-06 03:10:45.156021374 +0100
+@@ -0,0 +1,8 @@
++#include <stdio.h>
++
++/* A variadic call with only register arguments still needs the REM outgoing
++   home area.  The callee uses it for its incoming-register save area. */
++int main(void) {
++  printf("%d %d\n", 1, 2);
++  return 0;
++}
+--- a/test/rem-variadic-register-home.c	1970-01-01 01:00:00.000000000 +0100
++++ b/test/rem-variadic-register-home.c	2026-10-06 03:10:45.157021370 +0100
+@@ -0,0 +1,20 @@
++#include <stdarg.h>
++
++/* A variadic callee homes r1-r4 in the caller's outgoing area even when the
++   call has no stack-passed arguments.  This is the smallest regression for
++   calls such as fatal("open %s:", path) and printf("%d", value). */
++static int
++take_one(const char *tag, ...)
++{
++	va_list ap;
++	va_start(ap, tag);
++	int value = va_arg(ap, int);
++	va_end(ap);
++	return value;
++}
++
++int
++main(void)
++{
++	return take_one("value", 42) == 42 ? 0 : 1;
++}
+--- a/tokenize.c	2020-12-07 03:00:06.000000000 +0000
++++ b/tokenize.c	2026-10-07 01:43:50.047611487 +0100
+@@ -77,7 +77,13 @@
+ 
+ // Consumes the current token if it matches `op`.
+ bool equal(Token *tok, char *op) {
+-  return memcmp(tok->loc, op, tok->len) == 0 && op[tok->len] == '\0';
++  if (tok->len < 0)
++    return false;
++  for (int i = 0; i < tok->len; i++) {
++    if (!op[i] || tok->loc[i] != op[i])
++      return false;
++  }
++  return op[tok->len] == '\0';
+ }
+ 
+ // Ensure that the current token is `op`.
+@@ -174,7 +180,7 @@
+       hashmap_put(&map, kw[i], (void *)1);
+   }
+ 
+-  return hashmap_get2(&map, tok->loc, tok->len);
++  return hashmap_get2(&map, tok->loc, tok->len) != NULL;
+ }
+ 
+ static int read_escaped_char(char **new_pos, char *p) {
+@@ -354,10 +360,14 @@
+     base = 8;
+   }
+ 
+-  int64_t val = strtoul(p, &p, base);
++  /* REM is ILP32: strtoul() truncates at 32 bits, even for LL/ULL
++   * literals.  That silently turned 64-bit constants into values such as
++   * -1 in stage-2 output and caused libgcc 64-bit paths to fault. */
++  int64_t val = (int64_t)strtoull(p, &p, base);
+ 
+   // Read U, L or LL suffixes.
+   bool l = false;
++  bool ll = false;
+   bool u = false;
+ 
+   if (startswith(p, "LLU") || startswith(p, "LLu") ||
+@@ -365,13 +375,13 @@
+       startswith(p, "ULL") || startswith(p, "Ull") ||
+       startswith(p, "uLL") || startswith(p, "ull")) {
+     p += 3;
+-    l = u = true;
++    l = ll = u = true;
+   } else if (!strncasecmp(p, "lu", 2) || !strncasecmp(p, "ul", 2)) {
+     p += 2;
+     l = u = true;
+   } else if (startswith(p, "LL") || startswith(p, "ll")) {
+     p += 2;
+-    l = true;
++    l = ll = true;
+   } else if (*p == 'L' || *p == 'l') {
+     p++;
+     l = true;
+@@ -386,25 +396,38 @@
+   // Infer a type.
+   Type *ty;
+   if (base == 10) {
+-    if (l && u)
+-      ty = ty_ulong;
++    if (ll && u)
++      ty = ty_ullong;
++    else if (ll)
++      ty = ty_llong;
++    else if (l && u)
++      ty = (val >> 32) && ty_ulong->size < 8 ? ty_ullong : ty_ulong;
+     else if (l)
+-      ty = ty_long;
++      ty = (val >> 31) && ty_long->size < 8 ? ty_llong : ty_long;
+     else if (u)
+-      ty = (val >> 32) ? ty_ulong : ty_uint;
++      ty = (val >> 32) && ty_ulong->size < 8 ? ty_ullong :
++           ((val >> 32) ? ty_ulong : ty_uint);
+     else
+-      ty = (val >> 31) ? ty_long : ty_int;
++      ty = (val >> 31) && ty_long->size < 8 ? ty_llong :
++           ((val >> 31) ? ty_long : ty_int);
+   } else {
+-    if (l && u)
+-      ty = ty_ulong;
++    if (ll && u)
++      ty = ty_ullong;
++    else if (ll)
++      ty = (val >> 63) ? ty_ullong : ty_llong;
++    else if (l && u)
++      ty = (val >> 32) && ty_ulong->size < 8 ? ty_ullong : ty_ulong;
+     else if (l)
+-      ty = (val >> 63) ? ty_ulong : ty_long;
++      ty = ty_long->size == 8 ? ((val >> 63) ? ty_ulong : ty_long) :
++           (val >> 32) ? ((val >> 63) ? ty_ullong : ty_llong) :
++           (val >> 31) ? ty_ulong : ty_long;
+     else if (u)
+-      ty = (val >> 32) ? ty_ulong : ty_uint;
++      ty = (val >> 32) && ty_ulong->size < 8 ? ty_ullong :
++           ((val >> 32) ? ty_ulong : ty_uint);
+     else if (val >> 63)
+-      ty = ty_ulong;
++      ty = ty_ulong->size == 8 ? ty_ulong : ty_ullong;
+     else if (val >> 32)
+-      ty = ty_long;
++      ty = ty_long->size == 8 ? ty_long : ty_llong;
+     else if (val >> 31)
+       ty = ty_uint;
+     else
+@@ -431,7 +454,14 @@
+ 
+   // If it's not an integer, it must be a floating point constant.
+   char *end;
+-  long double val = strtold(tok->loc, &end);
++  int length = tok->len;
++  end = tok->loc + length;
++  if (length && strchr("fFlL", end[-1]) &&
++      !(length > 2 && tok->loc[0] == '0' &&
++        (tok->loc[1] == 'x' || tok->loc[1] == 'X') &&
++        !memchr(tok->loc, 'p', length) && !memchr(tok->loc, 'P', length)))
++    end--;
++  rem_parse_float(tok->loc, end - tok->loc, &tok->fval);
+ 
+   Type *ty;
+   if (*end == 'f' || *end == 'F') {
+@@ -448,7 +478,6 @@
+     error_tok(tok, "invalid numeric constant");
+ 
+   tok->kind = TK_NUM;
+-  tok->fval = val;
+   tok->ty = ty;
+ }
+ 
+@@ -776,9 +805,12 @@
+ }
+ 
+ Token *tokenize_file(char *path) {
++  bool trace = getenv("CHIBICC_TRACE_PP") != NULL;
++  if (trace) fprintf(stderr, "TRACE tokenize_file begin %s\n", path);
+   char *p = read_file(path);
+   if (!p)
+     return NULL;
++  if (trace) fprintf(stderr, "TRACE tokenize_file read %s\n", path);
+ 
+   // UTF-8 texts may start with a 3-byte "BOM" marker sequence.
+   // If exists, just skip them because they are useless bytes.
+@@ -801,5 +833,7 @@
+   input_files[file_no + 1] = NULL;
+   file_no++;
+ 
+-  return tokenize(file);
++  Token *ret = tokenize(file);
++  if (trace) fprintf(stderr, "TRACE tokenize_file done %s\n", path);
++  return ret;
+ }
+--- a/type.c	2020-12-07 03:00:06.000000000 +0000
++++ b/type.c	2026-10-06 13:43:32.815484391 +0100
+@@ -6,16 +6,22 @@
+ Type *ty_char = &(Type){TY_CHAR, 1, 1};
+ Type *ty_short = &(Type){TY_SHORT, 2, 2};
+ Type *ty_int = &(Type){TY_INT, 4, 4};
+-Type *ty_long = &(Type){TY_LONG, 8, 8};
++Type *ty_long = &(Type){TY_LONG, 4, 4};
++Type *ty_llong = &(Type){TY_LLONG, 8, 4};
+ 
+ Type *ty_uchar = &(Type){TY_CHAR, 1, 1, true};
+ Type *ty_ushort = &(Type){TY_SHORT, 2, 2, true};
+ Type *ty_uint = &(Type){TY_INT, 4, 4, true};
+-Type *ty_ulong = &(Type){TY_LONG, 8, 8, true};
++Type *ty_ulong = &(Type){TY_LONG, 4, 4, true};
++Type *ty_ullong = &(Type){TY_LLONG, 8, 4, true};
+ 
+ Type *ty_float = &(Type){TY_FLOAT, 4, 4};
+-Type *ty_double = &(Type){TY_DOUBLE, 8, 8};
+-Type *ty_ldouble = &(Type){TY_LDOUBLE, 16, 16};
++/* REM32 follows the target C ABI here: an 8-byte double has 4-byte
++ * alignment.  Keeping this at 8 makes self-hosted chibicc compute different
++ * layouts from GCC (for example Token becomes 72 instead of 68 bytes),
++ * corrupting copies of compiler-internal structs. */
++Type *ty_double = &(Type){TY_DOUBLE, 8, 4};
++Type *ty_ldouble = &(Type){TY_LDOUBLE, 8, 4};
+ 
+ static Type *new_type(TypeKind kind, int size, int align) {
+   Type *ty = calloc(1, sizeof(Type));
+@@ -28,7 +34,7 @@
+ bool is_integer(Type *ty) {
+   TypeKind k = ty->kind;
+   return k == TY_BOOL || k == TY_CHAR || k == TY_SHORT ||
+-         k == TY_INT  || k == TY_LONG || k == TY_ENUM;
++         k == TY_INT  || k == TY_LONG || k == TY_LLONG || k == TY_ENUM;
+ }
+ 
+ bool is_flonum(Type *ty) {
+@@ -58,6 +64,7 @@
+   case TY_SHORT:
+   case TY_INT:
+   case TY_LONG:
++  case TY_LLONG:
+     return t1->is_unsigned == t2->is_unsigned;
+   case TY_FLOAT:
+   case TY_DOUBLE:
+@@ -70,6 +77,8 @@
+       return false;
+     if (t1->is_variadic != t2->is_variadic)
+       return false;
++    if (t1->has_prototype != t2->has_prototype)
++      return false;
+ 
+     Type *p1 = t1->params;
+     Type *p2 = t2->params;
+@@ -95,7 +104,7 @@
+ }
+ 
+ Type *pointer_to(Type *base) {
+-  Type *ty = new_type(TY_PTR, 8, 8);
++  Type *ty = new_type(TY_PTR, 4, 4);
+   ty->base = base;
+   ty->is_unsigned = true;
+   return ty;
+@@ -117,7 +126,7 @@
+ }
+ 
+ Type *vla_of(Type *base, Node *len) {
+-  Type *ty = new_type(TY_VLA, 8, 8);
++  Type *ty = new_type(TY_VLA, 4, 4);
+   ty->base = base;
+   ty->vla_len = len;
+   return ty;
+@@ -303,5 +312,14 @@
+       error_tok(node->cas_addr->tok, "pointer expected");
+     node->ty = node->lhs->ty->base;
+     return;
++  case ND_VA_START:
++  case ND_VA_END:
++  case ND_VA_COPY:
++    node->ty = ty_void;
++    return;
++  case ND_VA_ARG:
++    if (!node->ty)
++      node->ty = node->va_arg_ty;
++    return;
+   }
+ }

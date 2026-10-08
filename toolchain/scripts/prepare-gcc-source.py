@@ -55,6 +55,36 @@ def main() -> None:
         "moxie-*-elf | moxie-*-moxiebox* | moxie-*-uclinux* | moxie-*-rtems*)\n",
         1)
     libgcc_host.write_text(host_text)
+
+    # Register both the bare ELF toolchain and the Linux-musl target.  The
+    # bare case is required for the first-stage compiler used to build musl;
+    # keeping it in the preparation step prevents isolated rebuilds from
+    # depending on a manually modified generated source tree.
+    config_gcc = root / "gcc/config.gcc"
+    config_text = config_gcc.read_text()
+    bare_case = """myemulator2-*-elf)
+\tgas=yes
+\tgnu_ld=yes
+\ttm_file=\"elfos.h newlib-stdint.h ${tm_file}\"
+\ttmake_file=\"${tmake_file} myemulator2/t-myemulator2 t-softfp-sfdf t-softfp\"
+\t;;
+"""
+    linux_case = """myemulator2-*-linux-musl*)
+\tgas=yes
+\tgnu_ld=yes
+\ttm_file=\"elfos.h gnu-user.h linux.h glibc-stdint.h ${tm_file} myemulator2/myemulator2-linux.h\"
+\ttmake_file=\"${tmake_file} myemulator2/t-myemulator2-linux t-softfp-sfdf t-softfp t-linux\"
+\t;;
+"""
+    if "myemulator2-*-elf)" not in config_text or "myemulator2-*-linux-musl*)" not in config_text:
+        anchor = "moxie-*-elf)\n"
+        if anchor not in config_text:
+            raise SystemExit("could not locate insertion point for MyEmulator2 targets in config.gcc")
+        if "myemulator2-*-elf)" not in config_text:
+            config_text = config_text.replace(anchor, bare_case + anchor, 1)
+        if "myemulator2-*-linux-musl*)" not in config_text:
+            config_text = config_text.replace(anchor, linux_case + anchor, 1)
+        config_gcc.write_text(config_text)
     for name in ("constraints.md", "predicates.md"):
         source = fragment / name
         (target / name).write_text(source.read_text() if source.exists() else "\n")
@@ -65,6 +95,21 @@ def main() -> None:
                         '#include "builtins.h"\n#include "config/linux-protos.h"', 1)
     text = text.replace('#include "expr.h"',
                         '#include "expr.h"\n#include "optabs.h"', 1)
+    # The REM host ABI has no Linux personality(2) syscall.  GCC's driver
+    # probes this host-only reproducibility hook from auto-host.h, but the
+    # declaration can still be visible when the Canadian host is REM Linux.
+    # Suppress it before the optional include and call are compiled.
+    gcc_driver = root / "gcc/gcc.cc"
+    driver_text = gcc_driver.read_text()
+    driver_old = '#include "system.h"\n#ifdef HOST_HAS_PERSONALITY_ADDR_NO_RANDOMIZE'
+    driver_new = ('#include "system.h"\n#include <fcntl.h>\n'
+                  '#undef HOST_HAS_PERSONALITY_ADDR_NO_RANDOMIZE\n'
+                  '#ifdef HOST_HAS_PERSONALITY_ADDR_NO_RANDOMIZE')
+    if driver_old in driver_text:
+        driver_text = driver_text.replace(driver_old, driver_new, 1)
+    elif "#undef HOST_HAS_PERSONALITY_ADDR_NO_RANDOMIZE" not in driver_text:
+        raise SystemExit("could not locate GCC personality probe")
+    gcc_driver.write_text(driver_text)
     # MyEmulator2 load/store instructions carry a signed 13-bit byte
     # displacement.  The reference Moxie backend accepts a wider offset;
     # retaining that predicate emits encodings whose high bit is interpreted
@@ -132,8 +177,8 @@ myemulator2_function_arg_advance (cumulative_args_t cum_v,
         "  cfun->machine->size_for_adjusting_sp =\n    crtl->args.pretend_args_size\n",
         "  cfun->machine->size_for_adjusting_sp =\n    crtl->args.pretend_args_size\n", 1)
     text = text.replace(
-        "       ? (HOST_WIDE_INT) crtl->outgoing_args_size : 0);\n}",
-        "       ? (HOST_WIDE_INT) crtl->outgoing_args_size : 0);\n\n  /* Reserve a fixed entry header above the register-argument home area. */\n  cfun->machine->size_for_adjusting_sp += 48;\n}", 1)
+        "    + (ACCUMULATE_OUTGOING_ARGS\n       ? (HOST_WIDE_INT) crtl->outgoing_args_size : 0);\n}",
+        "    + (HOST_WIDE_INT) crtl->outgoing_args_size;\n\n  /* Reserve a fixed entry header and callee argument-home area. */\n  cfun->machine->size_for_adjusting_sp += 80;\n}", 1)
     text = text.replace(
         "  myemulator2_compute_frame ();\n\n  if (flag_stack_usage_info)",
         "  myemulator2_compute_frame ();\n\n  /* Preserve the incoming frame register in a caller-saved temporary,\n     then use the incoming SP as the frame base. */\n  emit_move_insn (gen_rtx_REG (SImode, MYEMU2_R15),\n                  gen_rtx_REG (SImode, MYEMU2_FP));\n  emit_move_insn (hard_frame_pointer_rtx, stack_pointer_rtx);\n\n  if (flag_stack_usage_info)", 1)
@@ -228,12 +273,11 @@ myemulator2_function_arg_advance (cumulative_args_t cum_v,
         "hard_frame_pointer_rtx, hard_frame_pointer_rtx,\n                         GEN_INT (0)", 1)
 
     # Save the link/frame words at the bottom of the newly allocated frame.
-    # The caller's outgoing argument area begins at the incoming SP, while
-    # locals are addressed from that incoming SP, so offsets 0 and 4 from
-    # the final SP are the only stable non-overlapping header locations.
+    # Keep the fixed header above the callee argument-home area reserved at
+    # the incoming stack pointer.
     text = text.replace(
         "  HOST_WIDE_INT header = crtl->outgoing_args_size;",
-        "  HOST_WIDE_INT header = 0;", 1)
+        "  HOST_WIDE_INT header = crtl->outgoing_args_size + 32;", 1)
     text = text.replace(
         "52))",
         "4)))", 1)
@@ -370,7 +414,358 @@ myemulator2_expand_cbranchdf4 (rtx *operands)
     if marker not in text:
         raise SystemExit("could not locate target hook marker")
     text = text.replace(marker, helper + marker, 1)
+    # Preserve the incoming frame pointer in R12 while allocating large
+    # frames; reusing R12 for the frame-size temporary makes the epilogue
+    # restore that size as R15.  Emit repeated immediate subtracts instead.
+    old = ("      else\n"
+           "\t{\n"
+           "\t  rtx reg = gen_rtx_REG (SImode, MYEMU2_R12);\n"
+           "\t  insn = emit_move_insn (reg, GEN_INT (i));\n"
+           "\t  RTX_FRAME_RELATED_P (insn) = 1;\n"
+           "\t  insn = emit_insn (gen_subsi3 (stack_pointer_rtx,\n"
+           "\t\t\t\t\tstack_pointer_rtx,\n"
+           "\t\t\t\t\treg));\n"
+           "\t  RTX_FRAME_RELATED_P (insn) = 1;\n"
+           "\t}")
+    new = ("      else\n"
+           "\t{\n"
+           "\t  while (i > 252)\n"
+           "\t    {\n"
+           "\t      insn = emit_insn (gen_subsi3 (stack_pointer_rtx,\n"
+           "\t\t\t\t\t    stack_pointer_rtx,\n"
+           "\t\t\t\t\t    GEN_INT (252)));\n"
+           "\t      RTX_FRAME_RELATED_P (insn) = 1;\n"
+           "\t      i -= 252;\n"
+           "\t    }\n"
+           "\t  if (i != 0)\n"
+           "\t    {\n"
+           "\t      insn = emit_insn (gen_subsi3 (stack_pointer_rtx,\n"
+           "\t\t\t\t\t    stack_pointer_rtx,\n"
+           "\t\t\t\t\t    GEN_INT (i)));\n"
+           "\t      RTX_FRAME_RELATED_P (insn) = 1;\n"
+           "\t    }\n"
+           "\t}")
+    if old not in text:
+        raise SystemExit("could not locate large-frame prologue")
+    text = text.replace(old, new, 1)
+    # The hard frame pointer denotes the incoming stack pointer.  It must be
+    # established before either callee-save pushes or local-frame allocation;
+    # positive offsets then address the caller's outgoing argument area and
+    # remain stable when the function uses alloca()/a VLA.
+    fp_line = "  emit_move_insn (hard_frame_pointer_rtx, stack_pointer_rtx);\n"
+    if text.count(fp_line) != 1:
+        raise SystemExit("unexpected frame-pointer setup count")
+    text = text.replace(fp_line, "", 1)
+    frame_marker = "  /* Stack arguments occupy the bottom of the frame."
+    if frame_marker not in text:
+        raise SystemExit("could not locate frame argument marker")
+    prologue_marker = ("  myemulator2_compute_frame ();\n"
+                       "\n  /* Preserve the incoming frame register")
+    if prologue_marker not in text:
+        raise SystemExit("could not locate prologue frame setup")
+    text = text.replace(
+        prologue_marker,
+        "  myemulator2_compute_frame ();\n\n"
+        + "  /* Preserve the incoming frame register", 1)
+    preserve_marker = (
+        "  /* Preserve the incoming frame register in a caller-saved temporary,\n"
+        "     then use the incoming SP as the frame base. */\n"
+        "  emit_move_insn (gen_rtx_REG (SImode, MYEMU2_R12),\n"
+        "                  gen_rtx_REG (SImode, MYEMU2_FP));\n")
+    if preserve_marker not in text:
+        raise SystemExit("could not locate incoming frame preservation")
+    text = text.replace(preserve_marker,
+                        preserve_marker + "\n" + fp_line, 1)
+
+    # BUG FIX: myemulator2_expand_epilogue() previously restored LR and the
+    # caller's frame pointer relative to the *current* stack pointer, and
+    # released the frame by adding a compile-time constant to that same
+    # current stack pointer. This is only correct when the stack pointer at
+    # epilogue entry equals its value immediately after the prologue ran.
+    # Any function that calls alloca() or uses a variable-length array (for
+    # example busybox's vgetopt32(), used by nearly every applet except
+    # "echo") further lowers the stack pointer at runtime; GCC's generic
+    # middle-end then resets the stack pointer to its function-entry value
+    # (via a register saved for that purpose) immediately before this
+    # epilogue runs. The saved LR/FP header is therefore neither at the
+    # post-prologue stack pointer position nor at the alloca-adjusted
+    # position -- it is only reliably reachable relative to the frame
+    # pointer, which is set once in the prologue and never changed
+    # afterwards. Restoring SP from FP directly (rather than adding a fixed
+    # offset to SP) likewise correctly undoes any dynamic stack allocation.
+    # Without this fix, any exec of a non-"echo"-like applet reads garbage
+    # (such as argc) as its own return address and jumps to it, producing a
+    # misaligned-PC fault (myemulator2 exception cause 2) that this port's
+    # traps.c must SIGBUS the process for -- previously misdiagnosed as
+    # kernel/QEMU memory corruption ("Bug #5").
+    old_epilogue = (
+        "void\n"
+        "myemulator2_expand_epilogue (void)\n"
+        "{\n"
+        "  int regno;\n"
+        "  rtx reg;\n"
+        "\n"
+        "  /* Restore LR from above the outgoing argument area. */\n"
+        "  emit_move_insn (gen_rtx_REG (SImode, MYEMU2_LR),\n"
+        "                  gen_rtx_MEM (SImode,\n"
+        "                               plus_constant (Pmode, stack_pointer_rtx,\n"
+        "                                              0)));\n"
+        "\n"
+        "  if (cfun->machine->callee_saved_reg_size != 0)\n"
+        "    {\n"
+        "      reg = gen_rtx_REG (Pmode, MYEMU2_R12);\n"
+        "      if (cfun->machine->callee_saved_reg_size <= 255)\n"
+        "\t{\n"
+        "\t  emit_move_insn (reg, hard_frame_pointer_rtx);\n"
+        "\t  emit_insn (gen_subsi3\n"
+        "\t\t     (reg, reg,\n"
+        "\t\t      GEN_INT (cfun->machine->callee_saved_reg_size)));\n"
+        "\t}\n"
+        "      else\n"
+        "\t{\n"
+        "\t  emit_move_insn (reg,\n"
+        "\t\t\t  GEN_INT (-cfun->machine->callee_saved_reg_size));\n"
+        "\t  emit_insn (gen_addsi3 (reg, reg, hard_frame_pointer_rtx));\n"
+        "\t}\n"
+        "      for (regno = FIRST_PSEUDO_REGISTER; regno-- > 0; )\n"
+        "\tif (!call_used_or_fixed_reg_p (regno)\n"
+        "\t    && df_regs_ever_live_p (regno))\n"
+        "\t  {\n"
+        "\t    rtx preg = gen_rtx_REG (Pmode, regno);\n"
+        "\t    emit_insn (gen_movsi_pop (reg, preg));\n"
+        "\t  }\n"
+        "    }\n"
+        "\n"
+        "  /* Restore the caller's frame pointer, then release this function's\n"
+        "     complete frame.  The saved frame pointer is not the caller's SP: the\n"
+        "     latter is the incoming SP plus both the local/outgoing area and any\n"
+        "     callee-save pushes. */\n"
+        "  emit_move_insn (hard_frame_pointer_rtx,\n"
+        "                  gen_rtx_MEM (SImode, plus_constant (Pmode, stack_pointer_rtx,\n"
+        "                                             4)));\n"
+        "  {\n"
+        "    HOST_WIDE_INT frame_release =\n"
+        "      cfun->machine->size_for_adjusting_sp\n"
+        "      + cfun->machine->callee_saved_reg_size;\n"
+        "    if (frame_release <= 2047)\n"
+        "      emit_insn (gen_addsi3 (stack_pointer_rtx, stack_pointer_rtx,\n"
+        "                             GEN_INT (frame_release)));\n"
+        "    else\n"
+        "      {\n"
+        "        rtx scratch = gen_rtx_REG (SImode, MYEMU2_R12);\n"
+        "        emit_move_insn (scratch, GEN_INT (frame_release));\n"
+        "        emit_insn (gen_addsi3 (stack_pointer_rtx, stack_pointer_rtx, scratch));\n"
+        "      }\n"
+        "  }\n"
+        "  emit_jump_insn (gen_returner ());\n"
+        "}"
+    )
+    new_epilogue = (
+        "void\n"
+        "myemulator2_expand_epilogue (void)\n"
+        "{\n"
+        "  int regno;\n"
+        "  rtx reg;\n"
+        "  HOST_WIDE_INT header_offset =\n"
+        "    cfun->machine->size_for_adjusting_sp\n"
+        "    + cfun->machine->callee_saved_reg_size\n"
+        "    - (crtl->outgoing_args_size + 32);\n"
+        "\n"
+        "  /* The header was written at the final SP, below the incoming\n"
+        "     frame pointer and any callee-save pushes.  Compute that address\n"
+        "     without using R12 until the saved LR and caller FP are loaded. */\n"
+        "  reg = gen_rtx_REG (Pmode, MYEMU2_R12);\n"
+        "  emit_move_insn (reg, hard_frame_pointer_rtx);\n"
+        "  while (header_offset > 255)\n"
+        "    {\n"
+        "      emit_insn (gen_subsi3 (reg, reg, GEN_INT (255)));\n"
+        "      header_offset -= 255;\n"
+        "    }\n"
+        "  if (header_offset != 0)\n"
+        "    emit_insn (gen_subsi3 (reg, reg, GEN_INT (header_offset)));\n"
+        "  emit_move_insn (gen_rtx_REG (SImode, MYEMU2_LR),\n"
+        "                  gen_rtx_MEM (SImode, reg));\n"
+        "  {\n"
+        "    rtx caller_fp = gen_rtx_REG (Pmode, MYEMU2_R11);\n"
+        "    emit_move_insn (caller_fp,\n"
+        "                    gen_rtx_MEM (SImode,\n"
+        "                                 plus_constant (Pmode, reg, 4)));\n"
+        "\n"
+        "    /* Callee-saved registers were pushed immediately below the\n"
+        "       incoming FP, so restore them from FP - saved-size. */\n"
+        "    if (cfun->machine->callee_saved_reg_size != 0)\n"
+        "      {\n"
+        "        reg = gen_rtx_REG (Pmode, MYEMU2_R12);\n"
+        "        emit_move_insn (reg, hard_frame_pointer_rtx);\n"
+        "        HOST_WIDE_INT saved = cfun->machine->callee_saved_reg_size;\n"
+        "        while (saved > 255)\n"
+        "          {\n"
+        "            emit_insn (gen_subsi3 (reg, reg, GEN_INT (255)));\n"
+            "            saved -= 255;\n"
+        "          }\n"
+        "        if (saved != 0)\n"
+        "          emit_insn (gen_subsi3 (reg, reg, GEN_INT (saved)));\n"
+        "        for (regno = FIRST_PSEUDO_REGISTER; regno-- > 0; )\n"
+        "\tif (!call_used_or_fixed_reg_p (regno)\n"
+        "\t    && df_regs_ever_live_p (regno))\n"
+        "\t  {\n"
+        "\t    rtx preg = gen_rtx_REG (Pmode, regno);\n"
+        "\t    emit_insn (gen_movsi_pop (reg, preg));\n"
+        "\t  }\n"
+        "      }\n"
+        "\n"
+        "    /* Restore SP to the incoming value.  This also discards the\n"
+        "       complete fixed frame and any dynamic alloca/VLA area. */\n"
+        "    emit_move_insn (stack_pointer_rtx, hard_frame_pointer_rtx);\n"
+        "    emit_move_insn (hard_frame_pointer_rtx, caller_fp);\n"
+        "  }\n"
+        "  emit_jump_insn (gen_returner ());\n"
+        "}"
+    )
+    if old_epilogue not in text:
+        raise SystemExit("could not locate myemulator2_expand_epilogue to apply the alloca/VLA stack-restore fix")
+    text = text.replace(old_epilogue, new_epilogue, 1)
+
+    # BUG FIX ("Bug #6"): alloca()/VLA followed by a call could corrupt
+    # either the caller's saved LR/frame-pointer slot or a subsequent
+    # callee's own return value.  Root cause: this port's calling
+    # convention has every callee spill its own incoming register
+    # arguments to "home slots" at [own FP + STACK_POINTER_OFFSET,
+    # own FP + STACK_POINTER_OFFSET + REG_PARM_STACK_SPACE) as ordinary
+    # prologue codegen (musl's own strcpy/memcpy do this unconditionally).
+    # This is always safe for an ordinary call site because the real SP
+    # is constant for the whole function body and the fixed frame already
+    # reserves REG_PARM_STACK_SPACE bytes above it for exactly this
+    # purpose.  alloca()/a VLA moves the real SP itself, so a call made
+    # afterwards uses that lower SP as its own incoming FP, with nothing
+    # above it reserved.  The fix has two required parts, both needed
+    # together (an earlier single-part fix regressed previously-working
+    # cases -- see the derivation in myemulator2.h/.cc):
+    #   1. STACK_DYNAMIC_OFFSET (myemulator2_stack_dynamic_offset() below)
+    #      returns STACK_POINTER_OFFSET + REG_PARM_STACK_SPACE, so
+    #      alloca()'s returned pointer clears the *entire* register-
+    #      argument home area a subsequent callee might spill into
+    #      (returning only STACK_POINTER_OFFSET is NOT sufficient -- it
+    #      places the pointer at the very first byte of that area).
+    #   2. STACK_DYNAMIC_PAD (myemulator2.h, and the matching generic GCC
+    #      support in gcc/defaults.h + gcc/builtins.cc patched below) pads
+    #      the actual alloca() reservation by the same amount, since
+    #      GCC's own get_dynamic_stack_size() (explow.cc) never grows the
+    #      requested size to account for a nonzero STACK_DYNAMIC_OFFSET on
+    #      its own -- without this, part 1 alone only moves where the
+    #      returned pointer sits *within* the same, unchanged region,
+    #      which regressed cases where the caller's own data then ran
+    #      into the fixed frame above it.
+    # myemulator2.h/myemulator2-protos.h already carry the finished
+    # STACK_DYNAMIC_OFFSET/STACK_DYNAMIC_PAD macros and prototype (copied
+    # verbatim above), so only the myemulator2.cc function body and the
+    # two generic GCC files need patching here.
+    dynamic_offset_marker = "void\nmyemulator2_expand_prologue (void)"
+    dynamic_offset_fn = (
+        "HOST_WIDE_INT\n"
+        "myemulator2_stack_dynamic_offset (void)\n"
+        "{\n"
+        "  myemulator2_compute_frame ();\n"
+        "  /* Dynamic allocations must sit above the whole outgoing argument block\n"
+        "     (register home area plus any stack-passed arguments), otherwise a\n"
+        "     call with more than four argument words overwrites alloca/VLA data.  */\n"
+        "  HOST_WIDE_INT outgoing = (HOST_WIDE_INT) crtl->outgoing_args_size;\n"
+        "  if (outgoing < REG_PARM_STACK_SPACE (NULL_TREE))\n"
+        "    outgoing = REG_PARM_STACK_SPACE (NULL_TREE);\n"
+        "  return STACK_POINTER_OFFSET + outgoing;\n"
+        "}\n"
+        "\n"
+        + dynamic_offset_marker
+    )
+    if dynamic_offset_marker in text and "myemulator2_stack_dynamic_offset (void)\n{" not in text:
+        text = text.replace(dynamic_offset_marker, dynamic_offset_fn, 1)
+
+    text = text.replace('  return STACK_POINTER_OFFSET + REG_PARM_STACK_SPACE (NULL_TREE);\n', '  /* Dynamic allocations must sit above the whole outgoing argument block\n     (register home area plus any stack-passed arguments), otherwise a\n     call with more than four argument words overwrites alloca/VLA data.  */\n  HOST_WIDE_INT outgoing = (HOST_WIDE_INT) crtl->outgoing_args_size;\n  if (outgoing < REG_PARM_STACK_SPACE (NULL_TREE))\n    outgoing = REG_PARM_STACK_SPACE (NULL_TREE);\n  return STACK_POINTER_OFFSET + outgoing;\n')
+    # The SP must stay word-aligned after every instruction: an interrupt
+    # taken between two SP steps (e.g. 255 + 1) finds a misaligned SSP and the
+    # CPU raises a double fault.  Step large frames by 252 instead.
+    sp_step_old = ("\t  while (i > 255)\n\t    {\n"
+                   "\t      insn = emit_insn (gen_subsi3 (stack_pointer_rtx,\n"
+                   "\t\t\t\t\t    stack_pointer_rtx,\n"
+                   "\t\t\t\t\t    GEN_INT (255)));\n"
+                   "\t      RTX_FRAME_RELATED_P (insn) = 1;\n"
+                   "\t      i -= 255;\n")
+    text = text.replace(sp_step_old, sp_step_old.replace("255", "252"))
+    mid_old = ("      while ((i >= 255) && (i <= 510))\n\t{\n"
+               "\t  insn = emit_insn (gen_subsi3 (stack_pointer_rtx,\n"
+               "\t\t\t\t\tstack_pointer_rtx,\n"
+               "\t\t\t\t\tGEN_INT (255)));\n"
+               "\t  RTX_FRAME_RELATED_P (insn) = 1;\n"
+               "\t  i -= 255;\n")
+    mid_new = (mid_old.replace("(i >= 255)", "(i > 255)")
+               .replace("GEN_INT (255)", "GEN_INT (252)")
+               .replace("i -= 255", "i -= 252"))
+    if mid_old in text:
+        text = text.replace(mid_old, mid_new, 1)
+    elif mid_new not in text:
+        raise SystemExit("could not locate mid-size frame allocation loop")
     cc.write_text(text)
+
+    # Part 2 of the Bug #6 fix: teach generic GCC about STACK_DYNAMIC_PAD.
+    # gcc/defaults.h gets a target-opt-in default of 0 (a no-op for every
+    # other GCC target); gcc/builtins.cc's expand_builtin_alloca() grows
+    # the requested alloca() size by STACK_DYNAMIC_PAD bytes before
+    # rounding/alignment, when nonzero.
+    defaults_h = root / "gcc/defaults.h"
+    defaults_text = defaults_h.read_text()
+    if "STACK_DYNAMIC_PAD" not in defaults_text:
+        marker = "#ifndef STACK_POINTER_OFFSET\n#define STACK_POINTER_OFFSET    0\n#endif\n"
+        if marker not in defaults_text:
+            raise SystemExit("could not locate STACK_POINTER_OFFSET default in gcc/defaults.h")
+        addition = (
+            "\n/* Extra bytes a target wants padded onto every alloca()/VLA request\n"
+            "   *before* rounding/alignment, in addition to what the requester asked\n"
+            "   for.  This exists for targets whose STACK_DYNAMIC_OFFSET returns a\n"
+            "   nonzero value to reserve a callee-scratch cushion above the pointer\n"
+            "   alloca() returns: get_dynamic_stack_size() only pads for alignment,\n"
+            "   never for STACK_DYNAMIC_OFFSET's own margin, so simply returning a\n"
+            "   nonzero STACK_DYNAMIC_OFFSET does not actually reserve any additional\n"
+            "   stack space -- it only changes where within the *unchanged* allocation\n"
+            "   the returned pointer sits, which can put the tail of a full-sized\n"
+            "   request outside the allocated region.  Defaults to 0, which preserves\n"
+            "   the exact previous behavior on every other target.  */\n"
+            "#ifndef STACK_DYNAMIC_PAD\n"
+            "#define STACK_DYNAMIC_PAD    0\n"
+            "#endif\n"
+        )
+        defaults_text = defaults_text.replace(marker, marker + addition, 1)
+        defaults_h.write_text(defaults_text)
+
+    builtins_cc = root / "gcc/builtins.cc"
+    builtins_text = builtins_cc.read_text()
+    if "STACK_DYNAMIC_PAD" not in builtins_text:
+        marker = (
+            "  /* Compute the argument.  */\n"
+            "  op0 = expand_normal (CALL_EXPR_ARG (exp, 0));\n"
+        )
+        if marker not in builtins_text:
+            raise SystemExit("could not locate expand_builtin_alloca's argument computation in gcc/builtins.cc")
+        addition = (
+            "\n"
+            "  /* Some targets return a nonzero STACK_DYNAMIC_OFFSET so that alloca()'s\n"
+            "     returned pointer sits above a mandatory callee-scratch cushion rather\n"
+            "     than at the very bottom of the region anti_adjust_stack() reserves.\n"
+            "     get_dynamic_stack_size() never pads SIZE to account for that margin\n"
+            "     (it only pads for alignment), so without also growing the actual\n"
+            "     reservation here, the requester's own data can extend past the end\n"
+            "     of the (unchanged) allocation and into whatever sits directly above\n"
+            "     it.  STACK_DYNAMIC_PAD lets such a target grow the real reservation\n"
+            "     to match; it is 0 (a no-op) everywhere else.  */\n"
+            "  if (STACK_DYNAMIC_PAD > 0)\n"
+            "    {\n"
+            "      op0 = convert_to_mode (Pmode, op0, 1);\n"
+            "      op0 = plus_constant (Pmode, op0, STACK_DYNAMIC_PAD);\n"
+            "      op0 = force_operand (op0, NULL_RTX);\n"
+            "    }\n"
+        )
+        builtins_text = builtins_text.replace(marker, marker + addition, 1)
+        builtins_cc.write_text(builtins_text)
+
 
     config_gcc = root / "gcc/config.gcc"
     text = config_gcc.read_text()
