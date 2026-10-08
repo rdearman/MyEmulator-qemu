@@ -131,7 +131,7 @@ try:
             while b"\n" in pending:
                 line, pending = pending.split(b"\n", 1)
                 line = line.rstrip(b"\r")
-                if re.search(rb"MYEMU_BAD_USER_FAULT|Kernel panic|Out of memory|Killed process|oom-kill", line):
+                if re.search(rb"MYEMU_BAD_USER_FAULT|Kernel panic|Out of memory|Killed process|oom-kill|[Ss]egmentation fault|[Ii]llegal instruction|[Bb]us error|stack smashing detected|[Ff]loating point exception|[Aa]ssertion .* failed", line):
                     print("FAIL " + line.decode(errors="replace"), flush=True)
                     result = 1
                     break

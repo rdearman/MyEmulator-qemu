@@ -15,6 +15,10 @@ a fresh stopped-image copy in `/tmp/rem-fold-real-fold-qualification.20261008`.
 There is no corrected release archive or new transfer SHA-256 yet. Do not call
 this candidate qualified or transfer it until all full REM markers pass and
 the exact final archive passes extraction/install/rollback tests.
+The host-only package gate regression also passes all 15 missing-marker cases
+and rejects user faults, kernel panic, OOM and common runtime crash diagnostics;
+its synthetic positive fixture is explicitly not REM qualification evidence.
+Transcript: `docs/REM_FOLD_V2_EVIDENCE_20261008/real-fold-host-package-test.log`.
 
 ## Prior v2 archive — rejected for the actual Fold
 

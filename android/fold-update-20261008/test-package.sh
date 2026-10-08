@@ -45,7 +45,9 @@ done
 echo "PASS all ${#markers[@]} individual missing release markers rejected"
 for fault in MYEMU_BAD_USER_FAULT "Kernel panic - synthetic fixture" \
     "Out of memory - synthetic fixture" "Killed process - synthetic fixture" \
-    "oom-kill - synthetic fixture" "REM_QA_DONE|1"; do
+    "oom-kill - synthetic fixture" "Segmentation fault" \
+    "Illegal instruction" "Bus error" "stack smashing detected" \
+    "Floating point exception" "Assertion probe failed" "REM_QA_DONE|1"; do
     { cat "$work/complete.log"; printf '%s\n' "$fault"; } > "$work/fault.log"
     if QUALIFICATION_LOG="$work/fault.log" OUT="$work/rejected" \
         bash "$here/make-package.sh" > "$work/rejected.log" 2>&1; then
@@ -55,7 +57,7 @@ for fault in MYEMU_BAD_USER_FAULT "Kernel panic - synthetic fixture" \
     grep -Fqx "qualification log contains a fault or failed guest result" "$work/rejected.log"
     test ! -e "$work/rejected"
 done
-echo "PASS user fault, kernel panic, OOM and failed guest exit rejected"
+echo "PASS user fault, kernel panic, OOM, runtime crashes and failed guest exit rejected"
 synthetic="$work/synthetic-only/rem-update-20261008-v2"
 candidate="$work/candidate/rem-update-20261008-v2"
 QUALIFICATION_LOG="$work/complete.log" OUT="$synthetic" \

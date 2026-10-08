@@ -54,7 +54,7 @@ if [ -n "${QUALIFICATION_LOG:-}" ]; then
         grep -Fqx "$marker" "$work/qualification.log" ||
             { echo "qualification marker missing: $marker" >&2; exit 1; }
     done
-    if grep -Eq 'MYEMU_BAD_USER_FAULT|Kernel panic|Out of memory|Killed process|oom-kill|REM_QA_DONE\|[1-9]' "$work/qualification.log"; then
+    if grep -Eiq 'MYEMU_BAD_USER_FAULT|Kernel panic|Out of memory|Killed process|oom-kill|segmentation fault|illegal instruction|bus error|stack smashing detected|floating point exception|assertion .* failed|REM_QA_DONE\|[1-9]' "$work/qualification.log"; then
         echo "qualification log contains a fault or failed guest result" >&2
         exit 1
     fi
