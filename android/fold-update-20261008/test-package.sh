@@ -68,6 +68,31 @@ bash "$here/archive-package.sh" "$synthetic" "$work/SYNTHETIC-NOT-FOR-TRANSFER-s
     > "$work/archive-second.log" 2>&1
 cmp "$work/SYNTHETIC-NOT-FOR-TRANSFER.tar.gz" "$work/SYNTHETIC-NOT-FOR-TRANSFER-second.tar.gz"
 echo "PASS normalized archive reproducibility across changed mtimes, extracted hashes and archive SHA-256 (HOST-ONLY)"
+if bash "$here/archive-package.sh" "$synthetic" "$work/SYNTHETIC-NOT-FOR-TRANSFER.tar.gz" \
+    > "$work/archive-overwrite.log" 2>&1; then
+    echo "FAIL existing release archive overwritten" >&2
+    exit 1
+fi
+grep -Fq "refusing existing release output:" "$work/archive-overwrite.log"
+(cd "$work" && sha256sum -c SYNTHETIC-NOT-FOR-TRANSFER.tar.gz.sha256 > "$work/archive-preserved.log")
+echo "PASS existing archive and transfer checksum preserved"
+incomplete="$work/incomplete-manifest/rem-update-20261008-v2"
+mkdir -p "${incomplete%/*}"
+cp -a "$synthetic" "$incomplete"
+grep -Fvx COMPILER_REQUIRED_PORTING_TESTS_OK "$incomplete/MANIFEST.txt" > "$work/incomplete-manifest.txt"
+cp "$work/incomplete-manifest.txt" "$incomplete/MANIFEST.txt"
+(cd "$incomplete" &&
+    { grep -Fv "  MANIFEST.txt" payload.sha256; sha256sum MANIFEST.txt; } > new.sha256 &&
+    mv new.sha256 payload.sha256)
+if bash "$here/archive-package.sh" "$incomplete" "$work/rejected.tar.gz" \
+    > "$work/incomplete-manifest.log" 2>&1; then
+    echo "FAIL incomplete qualification manifest accepted" >&2
+    exit 1
+fi
+grep -Fqx "qualification manifest lacks expected execution marker: COMPILER_REQUIRED_PORTING_TESTS_OK" \
+    "$work/incomplete-manifest.log"
+test ! -e "$work/rejected.tar.gz"
+echo "PASS resealed PASS manifest without compiler completion rejected"
 for file in chibicc-update-seed vmlinux; do
     mismatch="$work/mismatched-$file/rem-update-20261008-v2"
     mkdir -p "${mismatch%/*}"
@@ -85,6 +110,16 @@ for file in chibicc-update-seed vmlinux; do
     test ! -e "$work/rejected.tar.gz"
 done
 echo "PASS mismatched seed and kernel rejected despite resealed file checksums"
+ln -s /dev/null "$synthetic/unexpected-link"
+if bash "$here/archive-package.sh" "$synthetic" "$work/rejected.tar.gz" \
+    > "$work/symlink.log" 2>&1; then
+    echo "FAIL unexpected package symlink accepted" >&2
+    exit 1
+fi
+grep -Fqx "package contains unexpected nonregular files" "$work/symlink.log"
+test ! -e "$work/rejected.tar.gz"
+rm "$synthetic/unexpected-link"
+echo "PASS unexpected package symlink rejected"
 printf 'uncovered fixture\n' > "$synthetic/uncovered.txt"
 if bash "$here/archive-package.sh" "$synthetic" "$work/rejected.tar.gz" \
     > "$work/uncovered.log" 2>&1; then
