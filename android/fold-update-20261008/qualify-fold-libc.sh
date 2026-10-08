@@ -135,7 +135,7 @@ try:
                     print("FAIL " + line.decode(errors="replace"), flush=True)
                     result = 1
                     break
-                if line.startswith((b"COMPILER_REQUIRED_", b"SAMURAI_", b"REM_UPDATE_VERIFY_", b"PASS aggregate-small-return", b"FOLD_LIBC_")):
+                if line.startswith((b"COMPILER_REQUIRED_", b"SAMURAI_", b"REM_UPDATE_VERIFY_", b"REM_PROGRESS|", b"REM_LOG_TAIL|", b"PASS aggregate-small-return", b"FOLD_LIBC_")):
                     print(line.decode(errors="replace"), flush=True)
                 match = re.fullmatch(rb"REM_QA_DONE\|([0-9]+)", line)
                 if match:

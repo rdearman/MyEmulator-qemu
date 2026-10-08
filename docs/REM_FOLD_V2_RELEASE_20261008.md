@@ -15,6 +15,18 @@ a fresh stopped-image copy in `/tmp/rem-fold-real-fold-qualification.20261008`.
 There is no corrected release archive or new transfer SHA-256 yet. Do not call
 this candidate qualified or transfer it until all full REM markers pass and
 the exact final archive passes extraction/install/rollback tests.
+The active run predates the progress-reporting edits and cannot emit them.
+Future runs use the existing serial console for compiler stage records, a
+60-second heartbeat and a short guest-log tail; Samurai reports its current
+translation unit in the same way. No monitor, virtio-serial, SSH service or
+forwarded host port is configured for the active run, and a live read-only
+`debugfs` view did not expose the guest log. This is inconclusive about the
+native compiler's activity, not a failure result.
+The progress-reporting candidate payload passes checksums and the host-only
+package gate plus exact-Fold installer regression. Logs:
+`docs/REM_FOLD_V2_EVIDENCE_20261008/progress-candidate3-host-package-gate.log`
+and `progress-candidate3-host-installer-test.log`. Because the active native
+run used an earlier candidate, these host passes do not qualify candidate3.
 The host-only package gate regression also passes all 15 missing-marker cases
 and rejects user faults, kernel panic, OOM and common runtime crash diagnostics;
 its synthetic positive fixture is explicitly not REM qualification evidence.

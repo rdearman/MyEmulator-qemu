@@ -167,7 +167,8 @@ prepare_compiler_sources() {
 
 supported_previous_file() {
     case "${3:-}:$2" in
-        /home/dev/rem-native-userland/bootstrap/musl/native/libc.a:0bc5770f3d1b84a97a1030f5c2911b164a375d89c2db9e4a89a4f51c4f2b3186)
+        /home/dev/rem-native-userland/bootstrap/musl/native/libc.a:0bc5770f3d1b84a97a1030f5c2911b164a375d89c2db9e4a89a4f51c4f2b3186|\
+        /home/dev/rem-update-20261008/verify.sh:5e93a389256a2c05f11dc26930518215f727511efc26010e7205cbc59ead1cf5)
             return 0 ;;
     esac
     case "$1:$2" in

@@ -106,9 +106,11 @@ test "$before_guards" = "$(sha256sum "$work/rootfs.ext4" "$work/vmlinux")"
 echo "PASS corrupt/missing/wrong-hash payload, missing kernel, wrong size and obsolete image rejected without image/kernel changes"
 debugfs -R "dump /usr/lib/libc.a $work/original-libc.a" "$work/rootfs.ext4" >/dev/null 2>&1
 debugfs -R "dump $kit/bootstrap/rebuild-required-native.sh $work/original-rebuild.sh" "$work/rootfs.ext4" >/dev/null 2>&1
+debugfs -R "dump /home/dev/rem-update-20261008/verify.sh $work/original-verify.sh" "$work/rootfs.ext4" >/dev/null 2>&1
 test -f "$work/original-libc.a"
 test -f "$work/original-rebuild.sh"
-conflicts="missing-library modified-library modified-helper"
+test -f "$work/original-verify.sh"
+conflicts="missing-library modified-library modified-helper modified-verify"
 if [ -n "$fold_libc" ]; then
     conflicts="$conflicts modified-private-library misplaced-fold-library"
 fi
@@ -119,7 +121,7 @@ for conflict in $conflicts; do
             original="$work/original-libc.a"
             debugfs -w -R "rm $guest" "$work/rootfs.ext4" >/dev/null 2>&1
             ;;
-        modified-library|modified-helper|modified-private-library|misplaced-fold-library)
+        modified-library|modified-helper|modified-private-library|misplaced-fold-library|modified-verify)
             if [ "$conflict" = modified-library ]; then
                 guest=/usr/lib/libc.a
                 original="$work/original-libc.a"
@@ -129,6 +131,9 @@ for conflict in $conflicts; do
             elif [ "$conflict" = modified-private-library ]; then
                 guest=$private_libc
                 original="$work/original-private-libc.a"
+            elif [ "$conflict" = modified-verify ]; then
+                guest=/home/dev/rem-update-20261008/verify.sh
+                original="$work/original-verify.sh"
             else
                 guest=/usr/lib/libc.a
                 original="$work/original-libc.a"
