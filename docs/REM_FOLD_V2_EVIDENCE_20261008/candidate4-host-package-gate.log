@@ -1,0 +1,12 @@
+PASS all 15 individual missing release markers rejected
+PASS user fault, kernel panic, OOM, runtime crashes and failed guest exit rejected
+PASS host-only synthetic marker acceptance and checksums (NOT REM execution)
+PASS normalized archive reproducibility across changed mtimes, extracted hashes and archive SHA-256 (HOST-ONLY)
+PASS existing archive and transfer checksum preserved
+PASS resealed PASS manifest without compiler completion rejected
+PASS guest payload mapping hashes independently verified
+PASS mismatched seed and kernel rejected despite resealed file checksums
+PASS unexpected package symlink rejected
+PASS complete checksum inventory enforced
+PASS pending candidate cannot produce a release archive
+PASS pending candidate labeled and nonempty package output preserved

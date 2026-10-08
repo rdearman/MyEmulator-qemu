@@ -1,0 +1,11 @@
+Old real-Fold qualification run — incomplete and stopped at user direction
+Runner work directory: /tmp/rem-fold-real-fold-qualification.20261008
+Started: 2026-10-08T12:00:23.099150+01:00
+QEMU PID recorded in runner namespace: 2954
+Original runner session: 15780; targeted Ctrl-C returned exit code 130.
+No qemu-exit.txt or qualification-exit.txt was produced. No required compiler, Samurai, REM_UPDATE_VERIFY_OK or REM_QA_DONE marker was observed.
+After stopping, no matching QEMU process was visible and lsof reported no process holding rootfs.ext4.
+Read-only post-stop e2fsck log is adjacent. It skipped journal recovery and reported free block/inode counters as zero versus counted nonzero values. It made no repair; old rootfs.ext4 remains preserved only in the runner work directory.
+Serial SHA-256: b2fb682b0fcf7b95eff0d9deb63d3df9fce8409b00a0462c00115f655c33194f
+The committed serial copy strips carriage returns and trailing line padding only; exact raw serial remains at the runner path above with the recorded SHA.
+Do not reuse or repair this old image for the candidate3 run. Its serial/log/image files in /tmp are retained as evidence.

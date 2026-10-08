@@ -1,0 +1,6 @@
+Candidate3 full qualification attempt — first failure captured
+QEMU exit: 0
+Qualification exit: 2
+Both exact Fold input and corrected output library SHA-256 markers matched. All quick system checks passed. The guest BusyBox sh then rejected arithmetic expansion in verify.sh heartbeat line 43 (CONFIG_ASH_MATH_SUPPORT disabled); compiler child was never started and no compiler log was created. No compiler/Samurai/REM_UPDATE_VERIFY_OK/REM_QA_DONE|0 success markers.
+Only failure: shell portability in new progress reporting. Source fix replaces arithmetic counters with timestamps; full payload regression and full qualification must be rerun.
+The committed serial copy strips carriage returns and trailing line padding only; exact raw serial remains at `/tmp/rem-fold-real-fold-qualification-progress.20261008/qualification.serial`.

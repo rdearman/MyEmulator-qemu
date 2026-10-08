@@ -1,6 +1,6 @@
 # REM32 Fold ABI/update handover -- 2026-10-08
 
-**CURRENT STATUS: EXACT FOLD BASELINE IDENTIFIED; FULL QUALIFICATION RUNNING**
+**CURRENT STATUS: CANDIDATE4 HOST CHECKS PASS; FRESH FULL QUALIFICATION NEXT**
 
 **NATIVE COMPILER / SAMURAI / FULL UPDATE: PRIOR SIMULATED BASELINE PASS**
 
@@ -17,7 +17,14 @@ recipe and verifies the added syscall object exactly; see
 hash only at the private bootstrap path and replaces the full archive. Exact
 baseline host install/verify/reinstall/rollback tests pass. Full REM
 qualification is running from a fresh copy at
-`/tmp/rem-fold-real-fold-qualification.20261008`; do not start another run.
+`/tmp/rem-fold-real-fold-qualification.20261008` was the old opaque run. It was
+stopped at user direction after no serial progress or exit record for over an
+hour. Its serial, QEMU command, preboot/read-only post-stop fsck results and
+stop record are preserved under
+`docs/REM_FOLD_V2_EVIDENCE_20261008/real-fold-opaque-run.*`; its image remains
+untouched in `/tmp` and must not be reused. The read-only post-stop check found
+unreplayed-journal counter inconsistencies. A new qualification must use the
+clean retained stopped-image source and inject `/tmp/libc.a.fold` again.
 No corrected release archive is transferable until every required guest
 marker passes. The release document distinguishes the rejected archive from
 this candidate and any eventual corrected release.
@@ -72,14 +79,16 @@ after the active process started and do not change its image, process, or
 available evidence. Keep that run untouched and do not infer a hang solely
 from its quiet serial stream.
 
-The progress-reporting candidate is at
-`/tmp/rem-fold-progress-candidate3-20261008/rem-update-20261008-v2` and its
-payload checksums pass. Its host package gate and exact-Fold install/verify/
-reinstall/rollback regression both pass; durable logs are
-`docs/REM_FOLD_V2_EVIDENCE_20261008/progress-candidate3-host-package-gate.log`
-and `progress-candidate3-host-installer-test.log`. It is still a candidate:
-the active native run began with the earlier payload, and candidate3 requires
-its own full REM qualification before any final archive can be built.
+Candidate3's first instrumented full run failed before compiler startup because
+this guest BusyBox shell has arithmetic expansion disabled. The exact error,
+`support for $((arith)) is disabled`, and exit statuses are captured in
+`docs/REM_FOLD_V2_EVIDENCE_20261008/candidate3-first-failure.*`. The verifier
+now uses timestamps instead of arithmetic counters. Candidate4 payload
+checksums, package gate and exact-Fold install/verify/reinstall/rollback
+regression pass; logs are `candidate4-host-package-gate.log` and
+`candidate4-host-installer-test.log` in the same evidence directory. Candidate4
+is not natively qualified yet. Its new work directory must be unique, and the
+qualification must use the exact `/tmp/libc.a.fold` hash.
 
 ## Previous continuation: unknown actual Fold libc, investigation stopped
 

@@ -1,6 +1,6 @@
 # REM32 Fold update 20261008 v2
 
-**CORRECTED REAL-FOLD BASELINE QUALIFICATION: RUNNING; NOT TRANSFERABLE YET**
+**CORRECTED REAL-FOLD BASELINE: CANDIDATE4 READY FOR FULL QUALIFICATION; NOT TRANSFERABLE**
 
 The prior archive below is rejected for this Fold and must not be installed.
 The exact Fold input `/tmp/libc.a.fold` is present and verifies as
@@ -10,23 +10,24 @@ the exact added syscall object; the corrected installer accepts this hash only
 at the private bootstrap path and replaces the entire archive. See
 `docs/REM_FOLD_REAL_LIBC_BASELINE_20261008.md`.
 
-The exact-baseline installer tests pass. Full REM qualification is running on
-a fresh stopped-image copy in `/tmp/rem-fold-real-fold-qualification.20261008`.
-There is no corrected release archive or new transfer SHA-256 yet. Do not call
-this candidate qualified or transfer it until all full REM markers pass and
-the exact final archive passes extraction/install/rollback tests.
-The active run predates the progress-reporting edits and cannot emit them.
-Future runs use the existing serial console for compiler stage records, a
-60-second heartbeat and a short guest-log tail; Samurai reports its current
-translation unit in the same way. No monitor, virtio-serial, SSH service or
-forwarded host port is configured for the active run, and a live read-only
-`debugfs` view did not expose the guest log. This is inconclusive about the
-native compiler's activity, not a failure result.
-The progress-reporting candidate payload passes checksums and the host-only
-package gate plus exact-Fold installer regression. Logs:
-`docs/REM_FOLD_V2_EVIDENCE_20261008/progress-candidate3-host-package-gate.log`
-and `progress-candidate3-host-installer-test.log`. Because the active native
-run used an earlier candidate, these host passes do not qualify candidate3.
+The first real-Fold run was stopped at the user's direction after more than an
+hour without serial progress; it had no completion or exit result. Its serial,
+command, image and read-only filesystem-check results are preserved, and that
+image is not reused. Candidate3's first instrumented full run exposed a
+BusyBox shell incompatibility in heartbeat arithmetic before compiler startup.
+That exact failure is captured; candidate4 reports timestamps without shell
+arithmetic. Candidate4 payload checksums, package gate and exact-Fold installer
+regression pass. Durable logs are
+`docs/REM_FOLD_V2_EVIDENCE_20261008/candidate4-host-package-gate.log` and
+`candidate4-host-installer-test.log`.
+
+Candidate4's full REM qualification is pending on a fresh copy of the retained
+stopped-image source with the exact `/tmp/libc.a.fold` injected. Progress is
+sent over the existing serial console: compiler `REM_STAGE`, `REM_PROGRESS`
+heartbeat and `REM_LOG_TAIL`, followed by equivalent Samurai heartbeats and
+current translation units. There is no corrected release archive or transfer
+SHA-256 yet. Do not transfer the candidate unless all required guest markers
+pass and the exact final archive passes extraction/install/rollback tests.
 The host-only package gate regression also passes all 15 missing-marker cases
 and rejects user faults, kernel panic, OOM and common runtime crash diagnostics;
 its synthetic positive fixture is explicitly not REM qualification evidence.
