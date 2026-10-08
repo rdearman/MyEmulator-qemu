@@ -383,3 +383,13 @@ prove: an existing archive/hash cannot be overwritten; a resealed PASS manifest
 missing compiler completion is rejected; unexpected symlinks are rejected.
 Complete updated host package regression PASS/0 (11 PASS lines). Synthetic
 fixtures are still NOT REM qualification and were removed on success.
+
+Latest preserved checkpoint: local
+`9af9f0ecaf5e7382112e5c6e87ee944773230322`, task-only remote
+`15a249136c465f4a7236131c0efe48bc9c109634`, push PASS.
+Archive manifest validation now also independently checks every guest payload
+mapping's declared new SHA-256 against its actual file. Latest complete host-only
+package regression PASS/0, 12 PASS lines, including a deliberately inconsistent
+mapping with resealed package checksums. No guest or qualified build changed.
+Independent release/rollback/documentation validation is complete; consume the
+event-only observer's result rather than repeatedly querying QEMU.

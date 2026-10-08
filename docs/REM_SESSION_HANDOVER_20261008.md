@@ -579,3 +579,13 @@ REM-qualified v2 archive/hash has been generated.
 Current single next action: consume the existing qualification's completion/
 failure event and authoritative serial markers. Until then do not restart QEMU,
 repeat the seed build, or transfer a candidate/synthetic archive.
+
+Latest preserved checkpoint before this update:
+local `9af9f0ecaf5e7382112e5c6e87ee944773230322`;
+task-only remote `15a249136c465f4a7236131c0efe48bc9c109634`, push PASS.
+All guest payload mapping hashes are now independently checked before archiving.
+The complete latest host package regression PASS/0, 12 PASS lines, includes
+rejection of an inconsistent mapping even after its checksums were resealed.
+This remains host-only evidence; the running guest and qualified seed were not
+rebuilt or changed. Independent release validation and takeover documentation
+are complete; the remaining critical-path action is the existing event/result.

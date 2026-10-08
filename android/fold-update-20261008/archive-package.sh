@@ -31,6 +31,12 @@ if [ -s "$work/nonregular" ]; then
     echo "package contains unexpected nonregular files" >&2
     exit 1
 fi
+while IFS='|' read -r guest payload baseline expected patchable mode; do
+    [ -n "$guest" ] || continue
+    actual=$(sha256sum "$package/payload/$payload" | cut -d' ' -f1)
+    [ "$actual" = "$expected" ] ||
+        { echo "files.list SHA-256 mismatch for $guest" >&2; exit 1; }
+done < "$package/files.list"
 grep -Fqx "Full REM execution qualification: PASS" "$package/MANIFEST.txt" ||
     { echo "package is not fully REM-qualified; no release archive created" >&2; exit 1; }
 for marker in "PASS aggregate-small-return (seed)" \
