@@ -32,6 +32,8 @@ if [ -n "${BASE_PATCH:-}" ]; then cp "$BASE_PATCH" "$work/base.patch"
 else git -C "$repo" show e962d91f238476cc92669e5e514b12075dca0136:toolchain/native-userland/patches/chibicc-rem-native.patch > "$work/base.patch"; fi
 [ "$(s "$work/base.patch")" = "$base_patch_sha" ] || { echo "baseline patch mismatch" >&2; exit 1; }
 qualification_markers=(
+    "FOLD_LIBC_INPUT_SHA256=0bc5770f3d1b84a97a1030f5c2911b164a375d89c2db9e4a89a4f51c4f2b3186"
+    "FOLD_LIBC_UPDATED_SHA256=269b1d6b5a15a3e2b3c4f8fe48dc0f9f8b5922e2c90937586ec7167d22a1c7c2"
     "PASS aggregate-small-return (seed)"
     "PASS aggregate-small-return (stage1)"
     "PASS aggregate-small-return (stage2)"
@@ -52,7 +54,7 @@ if [ -n "${QUALIFICATION_LOG:-}" ]; then
         grep -Fqx "$marker" "$work/qualification.log" ||
             { echo "qualification marker missing: $marker" >&2; exit 1; }
     done
-    if grep -Eq 'MYEMU_BAD_USER_FAULT|Kernel panic|REM_QA_DONE\|[1-9]' "$work/qualification.log"; then
+    if grep -Eq 'MYEMU_BAD_USER_FAULT|Kernel panic|Out of memory|Killed process|oom-kill|REM_QA_DONE\|[1-9]' "$work/qualification.log"; then
         echo "qualification log contains a fault or failed guest result" >&2
         exit 1
     fi
@@ -124,6 +126,8 @@ sed 's#^#/#; s#^//#/#' "$BUSYBOX_LINKS" > "$out/applets.list"
     echo "Original compiler patch SHA-256: $base_patch_sha"
     echo "REM-native bootstrap seed SHA-256: $(s "$out/payload/chibicc-update-seed")"
     echo "Kernel SHA-256: $(s "$out/payload/vmlinux")"
+    echo "Supported actual Fold private libc baseline SHA-256: 0bc5770f3d1b84a97a1030f5c2911b164a375d89c2db9e4a89a4f51c4f2b3186"
+    echo "This baseline is accepted only at $K/bootstrap/musl/native/libc.a and is replaced in full."
     if [ -n "${QUALIFICATION_LOG:-}" ]; then
         echo "Full REM execution qualification: PASS"
         echo "Qualification serial SHA-256: $(s "$QUALIFICATION_LOG")"

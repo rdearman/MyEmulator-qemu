@@ -4,6 +4,7 @@
 set -euo pipefail
 image=$1
 package=$2
+fold_libc=${FOLD_LIBC:-}
 here=$(cd "${0%/*}" && pwd)
 repo=$(cd "$here/../.." && pwd)
 work=$(mktemp -d /tmp/rem-fold-update-test.XXXXXX)
@@ -46,6 +47,21 @@ put "$work/base/codegen.c" codegen.c
 put "$work/local-parse.c" parse.c
 printf '/* Fold-local source and data must survive the update. */\n' > "$work/local-user-source.c"
 put "$work/local-user-source.c" .rem-fold-update-user-data-regression.c
+private_libc=$kit/bootstrap/musl/native/libc.a
+if [ -n "$fold_libc" ]; then
+    [ "$(sha256sum "$fold_libc" | cut -d' ' -f1)" = 0bc5770f3d1b84a97a1030f5c2911b164a375d89c2db9e4a89a4f51c4f2b3186 ] ||
+        { echo "actual Fold libc fixture hash mismatch" >&2; exit 1; }
+    debugfs -w -R "rm $private_libc" "$work/rootfs.ext4" >/dev/null 2>&1
+    debugfs -w -R "write $fold_libc $private_libc" "$work/rootfs.ext4" >/dev/null 2>&1
+    debugfs -w -R "sif $private_libc mode 0100644" "$work/rootfs.ext4" >/dev/null 2>&1
+    debugfs -w -R "sif $private_libc uid 1000" "$work/rootfs.ext4" >/dev/null 2>&1
+    debugfs -w -R "sif $private_libc gid 100" "$work/rootfs.ext4" >/dev/null 2>&1
+fi
+debugfs -R "dump $private_libc $work/original-private-libc.a" "$work/rootfs.ext4" >/dev/null 2>&1
+if [ -n "$fold_libc" ]; then
+    cmp "$fold_libc" "$work/original-private-libc.a"
+    echo "PASS actual Fold libc fixture bytes verified"
+fi
 runtime_backups=0
 for runtime in bootstrap/native/chibicc-selfbuilt bootstrap/tools/native/samu; do
     key=${runtime##*/}
@@ -92,22 +108,35 @@ debugfs -R "dump /usr/lib/libc.a $work/original-libc.a" "$work/rootfs.ext4" >/de
 debugfs -R "dump $kit/bootstrap/rebuild-required-native.sh $work/original-rebuild.sh" "$work/rootfs.ext4" >/dev/null 2>&1
 test -f "$work/original-libc.a"
 test -f "$work/original-rebuild.sh"
-for conflict in missing-library modified-library modified-helper; do
+conflicts="missing-library modified-library modified-helper"
+if [ -n "$fold_libc" ]; then
+    conflicts="$conflicts modified-private-library misplaced-fold-library"
+fi
+for conflict in $conflicts; do
     case "$conflict" in
         missing-library)
             guest=/usr/lib/libc.a
             original="$work/original-libc.a"
             debugfs -w -R "rm $guest" "$work/rootfs.ext4" >/dev/null 2>&1
             ;;
-        modified-library|modified-helper)
+        modified-library|modified-helper|modified-private-library|misplaced-fold-library)
             if [ "$conflict" = modified-library ]; then
                 guest=/usr/lib/libc.a
                 original="$work/original-libc.a"
-            else
+            elif [ "$conflict" = modified-helper ]; then
                 guest=$kit/bootstrap/rebuild-required-native.sh
                 original="$work/original-rebuild.sh"
+            elif [ "$conflict" = modified-private-library ]; then
+                guest=$private_libc
+                original="$work/original-private-libc.a"
+            else
+                guest=/usr/lib/libc.a
+                original="$work/original-libc.a"
             fi
             printf 'Fold-local changes must not be overwritten\n' > "$work/local-conflict"
+            if [ "$conflict" = misplaced-fold-library ]; then
+                cp "$fold_libc" "$work/local-conflict"
+            fi
             debugfs -w -R "rm $guest" "$work/rootfs.ext4" >/dev/null 2>&1
             debugfs -w -R "write $work/local-conflict $guest" "$work/rootfs.ext4" >/dev/null 2>&1
             ;;
@@ -118,6 +147,10 @@ for conflict in missing-library modified-library modified-helper; do
     debugfs -w -R "rm $guest" "$work/rootfs.ext4" >/dev/null 2>&1
     debugfs -w -R "write $original $guest" "$work/rootfs.ext4" >/dev/null 2>&1
     debugfs -w -R "sif $guest mode 0100644" "$work/rootfs.ext4" >/dev/null 2>&1
+    if [ "$guest" = "$private_libc" ] && [ -n "$fold_libc" ]; then
+        debugfs -w -R "sif $guest uid 1000" "$work/rootfs.ext4" >/dev/null 2>&1
+        debugfs -w -R "sif $guest gid 100" "$work/rootfs.ext4" >/dev/null 2>&1
+    fi
 done
 echo "PASS missing/modified required library and local helper conflicts abort before any image/kernel mutation"
 if sh "$package/install.sh" verify "$work/rootfs.ext4" > "$work/before-verify.log" 2>&1; then
@@ -136,6 +169,12 @@ grep -q '^VERIFY_OK$' "$work/verify.log"
 dump .rem-fold-update-user-data-regression.c "$work/user-source-installed.c"
 cmp "$work/local-user-source.c" "$work/user-source-installed.c"
 echo "PASS local parser fix merged, preserved, verified and idempotent"
+debugfs -R "dump $private_libc $work/installed-private-libc.a" "$work/rootfs.ext4" >/dev/null 2>&1
+cmp "$package/payload/libc.a" "$work/installed-private-libc.a"
+if [ -n "$fold_libc" ]; then
+    cmp "$fold_libc" "$work/update-20261008-v2-backup/files/_home_dev_rem-native-userland_bootstrap_musl_native_libc.a"
+    echo "PASS actual Fold libc replaced in full and backed up byte-for-byte"
+fi
 printf '#!/bin/sh\nexit 73\n' > "$work/rebuilt-runtime"
 for runtime in bootstrap/native/chibicc-selfbuilt bootstrap/tools/native/samu; do
     key=${runtime##*/}
@@ -162,6 +201,22 @@ dump codegen.c "$work/restored-codegen.c"
 cmp "$work/local-parse.c" "$work/restored-parse.c"
 cmp "$work/base/codegen.c" "$work/restored-codegen.c"
 echo "PASS rollback restores exact pre-update compiler sources"
+if [ -f "$work/original-private-libc.a" ]; then
+    debugfs -R "dump $private_libc $work/restored-private-libc.a" "$work/rootfs.ext4" >/dev/null 2>&1
+    cmp "$work/original-private-libc.a" "$work/restored-private-libc.a"
+fi
+if [ -n "$fold_libc" ]; then
+    debugfs -R "stat $private_libc" "$work/rootfs.ext4" 2>/dev/null > "$work/restored-private-libc.stat"
+    grep -Eq 'Mode: *0644' "$work/restored-private-libc.stat"
+    grep -Eq 'User: *1000.*Group: *100' "$work/restored-private-libc.stat"
+    sh "$package/install.sh" install "$work/rootfs.ext4" > "$work/after-rollback-install.log" 2>&1
+    sh "$package/install.sh" verify "$work/rootfs.ext4" > "$work/after-rollback-verify.log" 2>&1
+    grep -q '^VERIFY_OK$' "$work/after-rollback-verify.log"
+    sh "$package/install.sh" rollback "$work/rootfs.ext4" > "$work/after-rollback-rollback.log" 2>&1
+    debugfs -R "dump $private_libc $work/twice-restored-private-libc.a" "$work/rootfs.ext4" >/dev/null 2>&1
+    cmp "$fold_libc" "$work/twice-restored-private-libc.a"
+    echo "PASS exact Fold libc bytes/ownership/mode restored; reinstall after rollback verified"
+fi
 for runtime in bootstrap/native/chibicc-selfbuilt bootstrap/tools/native/samu; do
     key=${runtime##*/}
     if [ -f "$work/original-$key" ]; then
