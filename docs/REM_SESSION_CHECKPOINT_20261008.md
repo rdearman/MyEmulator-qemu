@@ -19,6 +19,8 @@ rollback tests on a disposable copy pass. Full REM qualification is running
 from `/tmp/rem-fold-real-fold-qualification.20261008`; no corrected release
 archive is transferable until it passes all required markers. Section 17
 records the old simulated release, which remains rejected for this baseline.
+The exact process/session, last marker, and next-observation time are in the
+current snapshot at the top of `docs/REM_SESSION_HANDOVER_20261008.md`.
 
 ## Earlier actual-Fold baseline search: BLOCKED BEFORE ARCHIVE ARRIVED
 
