@@ -41,7 +41,7 @@ Sidecars: the archive path plus `.sha256` and `.manifest.txt`. The archive
 contains its own checksummed `MANIFEST.txt`, installer and guest verifier.
 Only this one small archive is needed; do not transfer another rootfs/source tree.
 
-## Actual Fold rejection: identification result
+## Historical baseline search before the exact archive arrived
 
 The reported full `0bc5770f...` SHA-256 was not found in the available canonical
 libraries, bootstrap outputs, original committed runtime, REM scratch/backups,
@@ -67,7 +67,9 @@ qualified payload. The recovered native musl bootstrap recipe copies the
 system archive and updates members from 33 listed C files plus `native_syscall.o`; that recipe
 does not identify the unknown archive or prove its provenance/compatibility.
 
-**Required next input:** the actual Fold archive bytes, not another hash.
+At the time of this search, the remaining input was the actual Fold archive
+bytes, not another hash. The archive arrived later and is analyzed in
+`docs/REM_FOLD_REAL_LIBC_BASELINE_20261008.md`.
 Its size, member inventory, object contents and provenance remain unknown.
 No hash was whitelisted, no validation was relaxed, and no new package or
 native qualification was started. After identification, an exact-baseline

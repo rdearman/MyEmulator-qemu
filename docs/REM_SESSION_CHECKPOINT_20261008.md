@@ -273,7 +273,7 @@ as /usr/lib/libc.a so qualification cannot silently link an older kit runtime.
 The running foldv2 used byte-identical guest sources/runtime; the final host
 installer changes are separately covered by test-install.sh.
 
-## 10. Immediate handover requested (2026-10-08 09:04 BST)
+## 10. Historical handover snapshot (2026-10-08 09:04 BST, prior simulated baseline)
 
 **CURRENT STATUS: QUALIFICATION STILL RUNNING**
 
@@ -477,7 +477,7 @@ clean; no staged unrelated entries; nested compiler `f3a3094...` confirmed on
 GitHub. Remaining unrelated work: exactly 272 status entries (47 modified,
 one type change, 224 untracked), unchanged and not staged.
 
-## 17. Actual full v2 qualification and final-archive tests PASS
+## 17. Prior simulated-baseline full v2 qualification and final-archive tests PASS
 
 Original `foldv2` harness exited 0, guest `REM_QA_DONE|0`; original QEMU/timeout
 PIDs 1790915/1790913 were confirmed gone at 10:33:59 BST. Event observer 646
