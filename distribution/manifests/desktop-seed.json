@@ -1,0 +1,12 @@
+{
+  "name": "rem-desktop-reference-seed",
+  "version": "2026-09-28.uat-full",
+  "architecture": "myemulator32",
+  "dependencies": [],
+  "source_image": "REM-FLIGHT-HUMAN-UAT-FULL/rootfs.ext4",
+  "sha256": "9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e",
+  "size_bytes": 1073741824,
+  "filesystem": "ext4",
+  "file_manifest": "generated from the pinned ext4 image during assembly",
+  "status": "migration seed; read-only input; not yet source-built base"
+}

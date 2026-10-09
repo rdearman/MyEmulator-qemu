@@ -1,0 +1,31 @@
+{
+  "architecture": "myemulator32",
+  "dependencies": [],
+  "files": [
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/bunzip2",
+      "provenance": "bzip2 1.0.8 REM ELF32 static import; payload SHA-256 pins exact binary",
+      "sha256": "a1e6cee8e29c114080207b9dbfe4ca463ea7d7568e69c30a5f28877cc6ed66be",
+      "size": 337036,
+      "source": "payload/usr/bin/bunzip2",
+      "type": "file"
+    },
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/bzip2",
+      "provenance": "bzip2 1.0.8 REM ELF32 static import; payload SHA-256 pins exact binary",
+      "sha256": "a1e6cee8e29c114080207b9dbfe4ca463ea7d7568e69c30a5f28877cc6ed66be",
+      "size": 337036,
+      "source": "payload/usr/bin/bzip2",
+      "type": "file"
+    }
+  ],
+  "name": "rem-bzip2",
+  "provenance": "bzip2 1.0.8 REM ELF32 static import; payload SHA-256 pins exact binary",
+  "version": "1.0.8-rem1"
+}

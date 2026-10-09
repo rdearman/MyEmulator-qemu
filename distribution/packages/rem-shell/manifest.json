@@ -1,0 +1,31 @@
+{
+  "architecture": "myemulator32",
+  "dependencies": [],
+  "files": [
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/bash",
+      "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+      "sha256": "535d4942284253d7c50a1416fb0b2cd3d00859fbf7324ed113875b23031bd73b",
+      "size": 5678832,
+      "source": "payload/usr/bin/bash",
+      "type": "file"
+    },
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/yash",
+      "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+      "sha256": "ca2d37be818cb54ac67888f3fec0afb02f0c8d367ccc5cc38d12c89eb07a2a8e",
+      "size": 2539648,
+      "source": "payload/usr/bin/yash",
+      "type": "file"
+    }
+  ],
+  "name": "rem-shell",
+  "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+  "version": "bash-5.2.37+yash-2.55-rem1"
+}

@@ -1,0 +1,20 @@
+{
+  "architecture": "myemulator32",
+  "dependencies": [],
+  "files": [
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/sed",
+      "provenance": "GNU sed 4.9 REM ELF32 static import; payload SHA-256s pin exact binary",
+      "sha256": "473bd1e5f07619c2d96ffeb4ee96cf5c5a06a7c9e3ebceb640aac09b91a04c58",
+      "size": 487740,
+      "source": "payload/usr/bin/sed",
+      "type": "file"
+    }
+  ],
+  "name": "rem-sed",
+  "provenance": "GNU sed 4.9 REM ELF32 static import; payload SHA-256s pin exact binary",
+  "version": "4.9-rem1"
+}

@@ -1,0 +1,60 @@
+#!/bin/sh
+set -u
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+export PATH
+root=${REM_ROOT:-}
+
+usage() {
+    echo 'usage: rc {start|stop|restart} RUNLEVEL | shutdown' >&2
+    exit 2
+}
+
+[ "$#" -ge 1 ] || usage
+action=$1
+if [ "$action" = shutdown ]; then
+    [ "$#" -eq 1 ] || usage
+    state=$root/run/rem-shutdown-runlevel
+    level=0
+    if [ -r "$state" ]; then
+        IFS= read -r requested < "$state" || :
+        case "${requested:-}" in 0|6) level=$requested ;; esac
+        rm -f "$state"
+    fi
+    action=stop
+else
+    [ "$#" -eq 2 ] || usage
+    level=$2
+    case "$action" in start|stop|restart) ;; *) usage ;; esac
+fi
+case "$level" in 0|1|2|3|4|5|6|S) ;; *) usage ;; esac
+
+run_links() {
+    link_action=$1
+    link_kind=$2
+    directory=$root/etc/rc${level}.d
+    [ -d "$directory" ] || return 0
+    failed=0
+    for link in "$directory"/"$link_kind"[0-9][0-9]*; do
+        [ -L "$link" ] || continue
+        service=${link##*/}
+        service=${service#???}
+        script=$root/etc/init.d/$service
+        if [ ! -x "$script" ]; then
+            echo "runlevel $level: missing executable $script" >&2
+            failed=1
+            continue
+        fi
+        echo "runlevel $level: $link_action $service"
+        if ! "$script" "$link_action"; then
+            echo "runlevel $level: $service $link_action failed" >&2
+            failed=1
+        fi
+    done
+    return "$failed"
+}
+
+case "$action" in
+    start) run_links start S ;;
+    stop) run_links stop K ;;
+    restart) run_links stop K || exit $?; run_links start S ;;
+esac

@@ -1,0 +1,20 @@
+{
+  "architecture": "myemulator32",
+  "dependencies": [],
+  "files": [
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/samu",
+      "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+      "sha256": "98aec69f3b5810d299045010bd5a5569bae1e3102032ddf77f2c89cf1064e15f",
+      "size": 466824,
+      "source": "payload/usr/bin/samu",
+      "type": "file"
+    }
+  ],
+  "name": "rem-samurai",
+  "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+  "version": "seed-rem1"
+}

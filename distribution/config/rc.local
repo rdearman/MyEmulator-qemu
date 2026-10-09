@@ -1,0 +1,3 @@
+#!/bin/sh
+# Optional administrator startup commands.
+exit 0

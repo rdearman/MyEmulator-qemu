@@ -1,0 +1,20 @@
+{
+  "architecture": "myemulator32",
+  "dependencies": [],
+  "files": [
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/tar",
+      "provenance": "GNU tar 1.35 REM ELF32 static import; payload SHA-256 pins exact binary",
+      "sha256": "454bfc24640a258e84f97642937b83a0fc276aa406227343422a304b883473a5",
+      "size": 1320848,
+      "source": "payload/usr/bin/tar",
+      "type": "file"
+    }
+  ],
+  "name": "rem-tar",
+  "provenance": "GNU tar 1.35 REM ELF32 static import; payload SHA-256 pins exact binary",
+  "version": "1.35-rem1"
+}

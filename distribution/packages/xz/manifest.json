@@ -1,0 +1,20 @@
+{
+  "architecture": "myemulator32",
+  "dependencies": [],
+  "files": [
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/xz",
+      "provenance": "XZ Utils 5.6.3 REM ELF32 static import; payload SHA-256 pins exact binary",
+      "sha256": "30f3dd1d861c6899e8f7be6a900a545c21a9118b63e023801055301275404cf8",
+      "size": 576036,
+      "source": "payload/usr/bin/xz",
+      "type": "file"
+    }
+  ],
+  "name": "rem-xz",
+  "provenance": "XZ Utils 5.6.3 REM ELF32 static import; payload SHA-256 pins exact binary",
+  "version": "5.6.3-rem1"
+}

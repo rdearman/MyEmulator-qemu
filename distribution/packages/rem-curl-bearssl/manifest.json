@@ -1,0 +1,20 @@
+{
+  "architecture": "myemulator32",
+  "dependencies": [],
+  "files": [
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/curl",
+      "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+      "sha256": "a408ddcf25f4c08a7e50044f6dbcc8ada7c57885fe87f2ff4ac0569049c8dcae",
+      "size": 6125080,
+      "source": "payload/usr/bin/curl",
+      "type": "file"
+    }
+  ],
+  "name": "rem-curl-bearssl",
+  "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+  "version": "8.12.1-seed"
+}

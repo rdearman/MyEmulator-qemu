@@ -1,0 +1,20 @@
+{
+  "architecture": "myemulator32",
+  "dependencies": [],
+  "files": [
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/grep",
+      "provenance": "GNU grep 3.11 REM ELF32 static import; payload SHA-256s pin exact binary",
+      "sha256": "93c68731980cfdaf1eb061d6bcd783d89ef788d6181f381dfc58e347f88bab8d",
+      "size": 648084,
+      "source": "payload/usr/bin/grep",
+      "type": "file"
+    }
+  ],
+  "name": "rem-grep",
+  "provenance": "GNU grep 3.11 REM ELF32 static import; payload SHA-256s pin exact binary",
+  "version": "3.11-rem1"
+}

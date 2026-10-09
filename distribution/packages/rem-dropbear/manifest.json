@@ -1,0 +1,11 @@
+{
+  "architecture": "myemulator32",
+  "dependencies": [
+    "rem-shell"
+  ],
+  "files": [],
+  "name": "rem-dropbear",
+  "provenance": "Pinned source SHA-256 e78936dffc395f2e0db099321d6be659190966b99712b55c530dd0a1822e0a5e in toolchain/native-userland/sources.env; REM binary package not present in desktop seed.",
+  "status": "pending",
+  "version": "2024.86-rem1"
+}

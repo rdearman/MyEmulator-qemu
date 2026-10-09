@@ -1,0 +1,31 @@
+{
+  "architecture": "myemulator32",
+  "dependencies": [],
+  "files": [
+    {
+      "elf_machine": null,
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/vim",
+      "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+      "sha256": "dc3a93b3645f4b33073b7855a5ea09a3738afe3d2987f52472e88112c9495a15",
+      "size": 55,
+      "source": "payload/usr/bin/vim",
+      "type": "file"
+    },
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/vim.real",
+      "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+      "sha256": "4cd43926d08faa52ef67ad997c087514752c73335e6bc6d876490b0b52e8bb61",
+      "size": 3163460,
+      "source": "payload/usr/bin/vim.real",
+      "type": "file"
+    }
+  ],
+  "name": "rem-vim",
+  "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+  "version": "9.1.1724-rem-seed"
+}

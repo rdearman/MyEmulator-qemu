@@ -1,0 +1,20 @@
+{
+  "architecture": "myemulator32",
+  "dependencies": [],
+  "files": [
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/chibicc",
+      "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+      "sha256": "54e1e52678f5a71cb4107d4af6afb7fa194ca5ca80e05a7440d1e5c0e549d396",
+      "size": 706868,
+      "source": "payload/usr/bin/chibicc",
+      "type": "file"
+    }
+  ],
+  "name": "rem-chibicc",
+  "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+  "version": "seed-rem1"
+}

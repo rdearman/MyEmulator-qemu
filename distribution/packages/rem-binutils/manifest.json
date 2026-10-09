@@ -1,0 +1,119 @@
+{
+  "architecture": "myemulator32",
+  "dependencies": [],
+  "files": [
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/ar",
+      "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+      "sha256": "31585d2cfa5dcdf702e4655b2ac386b7580641aaa378d2b39bde106bb4543ba7",
+      "size": 1748948,
+      "source": "payload/usr/bin/ar",
+      "type": "file"
+    },
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/as",
+      "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+      "sha256": "1a437fd5bfe7564e61ac14ceacc40f06bc932bca2099b74a39e773010bf300ba",
+      "size": 2155404,
+      "source": "payload/usr/bin/as",
+      "type": "file"
+    },
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/ld",
+      "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+      "sha256": "edd83609045df123c8a261cf615f70de1bd3e249082a9fe39f392ef0f6ee3b65",
+      "size": 2493912,
+      "source": "payload/usr/bin/ld",
+      "type": "file"
+    },
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/make",
+      "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+      "sha256": "f474110061701a845f11bee32fe09a167b8334fb088940ad33f64452a4630527",
+      "size": 1138772,
+      "source": "payload/usr/bin/make",
+      "type": "file"
+    },
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/nm",
+      "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+      "sha256": "44053be004d63c1a7baac6022212156f29b9c967ff9814eccaf0057de86ee8cc",
+      "size": 1490060,
+      "source": "payload/usr/bin/nm",
+      "type": "file"
+    },
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/objcopy",
+      "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+      "sha256": "99e2f48012f84f36470cd97aa9b267563b942750687b9b162a55238e3d80637c",
+      "size": 1653856,
+      "source": "payload/usr/bin/objcopy",
+      "type": "file"
+    },
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/objdump",
+      "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+      "sha256": "b7547055d61a954aeaaeae41240f8ef1aee0ac0456cfa43b1cbe03958091fbdc",
+      "size": 2224324,
+      "source": "payload/usr/bin/objdump",
+      "type": "file"
+    },
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/ranlib",
+      "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+      "sha256": "b2f8ac9eba8000c34c1f609d1955bc8e3495532b3bf0739ad714554e36d00bd3",
+      "size": 1748960,
+      "source": "payload/usr/bin/ranlib",
+      "type": "file"
+    },
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/readelf",
+      "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+      "sha256": "778d9e788068b2d8b78e85bfa2cf99c1c51f78873c20939a2a8bd91eb01b2eaa",
+      "size": 1616096,
+      "source": "payload/usr/bin/readelf",
+      "type": "file"
+    },
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/strip",
+      "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+      "sha256": "e062c4a6b333dd6d9ccec7433648535840cf5885715723de995e8d5165c55f99",
+      "size": 1615408,
+      "source": "payload/usr/bin/strip",
+      "type": "file"
+    }
+  ],
+  "name": "rem-binutils",
+  "provenance": "Desktop seed import; source image SHA-256 9e3f2c25f28205fab79722b9c546399f28cb30e065fc583d1612d6521126f20e; exact payload SHA-256s in manifest",
+  "version": "seed-rem1"
+}

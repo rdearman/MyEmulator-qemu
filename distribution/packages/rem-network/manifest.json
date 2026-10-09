@@ -1,0 +1,16 @@
+{
+  "architecture": "myemulator32",
+  "build": "distribution/scripts/build-network-package.sh",
+  "dependencies": [
+    "rem-musl",
+    "rem-system"
+  ],
+  "files": [],
+  "name": "rem-network",
+  "provenance": "Static QEMU user-network setup helper built against the pinned desktop seed musl sysroot; per-build hashes are recorded in the assembled image manifest.",
+  "source_files": [
+    "distribution/init/rem-net.c"
+  ],
+  "status": "source-build",
+  "version": "0.2-source1"
+}

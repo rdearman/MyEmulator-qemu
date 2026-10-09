@@ -1,0 +1,11 @@
+{
+  "architecture": "myemulator32",
+  "dependencies": [
+    "rem-shell"
+  ],
+  "files": [],
+  "name": "rem-gawk",
+  "provenance": "Pinned source SHA-256 694db764812a6236423d4ff40ceb7b6c4c441301b72ad502bb5c27e00cd56f78 in toolchain/native-userland/sources.env; REM binary package not present in desktop seed.",
+  "status": "pending",
+  "version": "5.3.1-rem1"
+}

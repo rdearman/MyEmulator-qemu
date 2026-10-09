@@ -1,0 +1,20 @@
+{
+  "architecture": "myemulator32",
+  "dependencies": [],
+  "files": [
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/gzip",
+      "provenance": "GNU gzip 1.13 REM ELF32 static import; payload SHA-256 pins exact binary",
+      "sha256": "dfbde334c0c338622e2d5dfff656a97aa203d3b5de98ff2c91f63e20107f3bf8",
+      "size": 430528,
+      "source": "payload/usr/bin/gzip",
+      "type": "file"
+    }
+  ],
+  "name": "rem-gzip",
+  "provenance": "GNU gzip 1.13 REM ELF32 static import; payload SHA-256 pins exact binary",
+  "version": "1.13-rem1"
+}

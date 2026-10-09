@@ -1,0 +1,11 @@
+{
+  "architecture": "myemulator32",
+  "dependencies": [
+    "rem-musl"
+  ],
+  "files": [],
+  "name": "rem-ncurses",
+  "provenance": "Pinned native-userland plan exists, but no qualified ncurses install tree is in the desktop seed or workspace native install output.",
+  "status": "pending",
+  "version": "6.5-rem1"
+}

@@ -1,0 +1,31 @@
+{
+  "architecture": "myemulator32",
+  "dependencies": [],
+  "files": [
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/cmp",
+      "provenance": "GNU diffutils 3.10 REM ELF32 static import; payload SHA-256 pins exact binaries",
+      "sha256": "8a96cd81d43d633b60432954b954d66ffaef8419aae4f5690b5c63fdf94c3257",
+      "size": 444288,
+      "source": "payload/usr/bin/cmp",
+      "type": "file"
+    },
+    {
+      "elf_machine": "<unknown>: 0xf2e2",
+      "mode": "0755",
+      "origin": "imported artifact; exact bytes are the adjacent payload and SHA-256 recorded here",
+      "path": "/usr/bin/diff",
+      "provenance": "GNU diffutils 3.10 REM ELF32 static import; payload SHA-256 pins exact binaries",
+      "sha256": "b85e8ce0c4523b499e81d4316d8cea8462594ddda0c85ffe035e908e6d57b60b",
+      "size": 807776,
+      "source": "payload/usr/bin/diff",
+      "type": "file"
+    }
+  ],
+  "name": "rem-diffutils",
+  "provenance": "GNU diffutils 3.10 REM ELF32 static import; payload SHA-256 pins exact binaries",
+  "version": "3.10-rem1"
+}

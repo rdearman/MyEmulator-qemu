@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+case "${1:-start}" in
+  start) exec /usr/sbin/rem-net start ;;
+  stop) exec /usr/sbin/rem-net stop ;;
+  restart) /usr/sbin/rem-net stop; exec /usr/sbin/rem-net start ;;
+  *) echo 'usage: S40network {start|stop|restart}' >&2; exit 2 ;;
+esac

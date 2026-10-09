@@ -1,0 +1,23 @@
+{
+  "architecture": "myemulator32",
+  "build": "distribution/scripts/build-system-package.sh",
+  "dependencies": [
+    "rem-musl",
+    "rem-shell",
+    "rem-coreutils"
+  ],
+  "files": [],
+  "name": "rem-system",
+  "provenance": "Built by target GCC against the pinned desktop seed musl sysroot; per-build hashes are recorded in the assembled image manifest.",
+  "source_files": [
+    "distribution/init/rem-init.c",
+    "distribution/init/rem-getty.c",
+    "distribution/init/rem-login.c",
+    "distribution/init/rem-mount.c",
+    "distribution/init/rem-hostname.c",
+    "distribution/init/rem-shutdown.c",
+    "distribution/init/rem-clear.c"
+  ],
+  "status": "source-build",
+  "version": "0.2-source1"
+}

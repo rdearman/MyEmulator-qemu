@@ -1,0 +1,5 @@
+# Consumed as distribution documentation; rem-init starts rcS and one ttyMY0 getty.
+::sysinit:/etc/init.d/rcS
+ttyMY0::respawn:/sbin/getty /dev/ttyMY0
+::ctrlaltdel:/sbin/reboot
+::shutdown:/etc/init.d/rc shutdown

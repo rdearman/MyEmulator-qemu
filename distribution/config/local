@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+root=${REM_ROOT:-}
+state=$root/run/rem-local.started
+hook=$root/etc/rc.local
+case "${1:-}" in
+  start)
+    if [ -x "$hook" ]; then "$hook"; fi
+    : > "$state"
+    echo 'local startup hook completed'
+    ;;
+  stop) rm -f "$state" ;;
+  restart) "$0" stop; exec "$0" start ;;
+  status) [ -f "$state" ] && echo 'local startup hook completed' || exit 1 ;;
+  *) echo 'usage: local {start|stop|restart|status}' >&2; exit 2 ;;
+esac
