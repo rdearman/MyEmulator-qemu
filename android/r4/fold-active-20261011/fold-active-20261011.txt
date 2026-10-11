@@ -1,0 +1,73 @@
+Captured from physical Fold: Sun Oct 11 11:49:32 KST 2026
+
+=== REMCTL STATUS ===
+REM VM: STOPPED
+QEMU PID: none
+REM QEMU processes: 0
+Console: DETACHED
+Rootfs writers: 0
+Stale state: none
+
+=== ACTIVE FILE HASHES ===
+f55ee24fc9b7346cdbd6890c773e39fb13a51643631a85eedd3ed44a7d8c6835  /data/data/com.termux/files/home/rem/.remctl/remctl
+176895b15aeae180c764be20ee5c73788a55c89bd3236a5c674d477ba2a7b643  /data/data/com.termux/files/usr/bin/rem
+9d221fc2092a315b7b92b040098e4a0820629c11e7959e9c4c86ccf02c5f141b  /data/data/com.termux/files/home/rem/vmlinux
+63f7eb51cabf4be5e9c330d64312b082bf90e1c984f5d38661591a5b740e5f96  /data/data/com.termux/files/home/rem/diag/qemu-system-myemulator32.r15-diag
+
+=== ACTIVE EXPECTED HASHES ===
+6:REM_BASE_QEMU="$REM_HOME/qemu-system-myemulator32"
+7:REM_QEMU="$REM_HOME/diag/qemu-system-myemulator32.r15-diag"
+12:REM_EXPECTED_BASE_QEMU=88bf42458d88d1fbe5169cc49a3d3d250bb07695185164ac3ad4c861a7422de8
+13:REM_EXPECTED_QEMU=63f7eb51cabf4be5e9c330d64312b082bf90e1c984f5d38661591a5b740e5f96
+62:	real_base="$(readlink -f -- "$REM_BASE_QEMU" 2>/dev/null || printf '%s' "$REM_BASE_QEMU")"
+63:	real_new="$(readlink -f -- "$REM_QEMU" 2>/dev/null || printf '%s' "$REM_QEMU")"
+64:	if [[ "$exe" == "$real_base" ]]; then [[ "$(hash_file "$REM_BASE_QEMU" 2>/dev/null || true)" == "$REM_EXPECTED_BASE_QEMU" ]] || return 1
+65:	elif [[ "$exe" == "$real_new" ]]; then [[ "$(hash_file "$REM_QEMU" 2>/dev/null || true)" == "$REM_EXPECTED_QEMU" ]] || return 1
+83:	[[ -x "$REM_BASE_QEMU" && -x "$REM_QEMU" ]] || die 'base and R4 final QEMU must both exist'
+85:	local actual; actual="$(hash_file "$REM_BASE_QEMU")" || die 'cannot hash original QEMU'
+86:	[[ "$actual" == "$REM_EXPECTED_BASE_QEMU" ]] || die "original QEMU hash mismatch ($actual); refusing to launch"
+87:	actual="$(hash_file "$REM_QEMU")" || die 'cannot hash final QEMU'
+88:	[[ "$actual" == "$REM_EXPECTED_QEMU" ]] || die "final QEMU hash mismatch ($actual); refusing to launch"
+113:	qhash="$(hash_file "$REM_QEMU" 2>/dev/null || printf missing)"; [[ "$qhash" == "$REM_EXPECTED_QEMU" ]] || printf 'R4 QEMU hash: MISMATCH (%s); new launch disabled\n' "$qhash"
+132:	log_event "start requested rootfs=$REM_ROOTFS qemu_sha256=$REM_EXPECTED_QEMU"
+134:	"$REM_QEMU" "${args[@]}" >>"$REM_LOG" 2>&1 || { log_event 'QEMU daemonize failed'; die "QEMU failed; see $REM_LOG"; }
+
+=== ACTIVE QEMU ARGUMENT CONSTRUCTION ===
+1-#!/data/data/com.termux/files/usr/bin/bash
+2-set -euo pipefail
+3-
+4-REM_HOME="${REM_HOME:-$HOME/rem}"
+5-REM_IMPL="$REM_HOME/.remctl"
+6:REM_BASE_QEMU="$REM_HOME/qemu-system-myemulator32"
+7:REM_QEMU="$REM_HOME/diag/qemu-system-myemulator32.r15-diag"
+8-REM_KERNEL="$REM_HOME/vmlinux"
+9-REM_ROOTFS="$REM_HOME/rootfs.ext4"
+10-REM_SOCKET="$REM_HOME/.rem-r4-persistent/console.sock"
+11-REM_STATE="$(dirname -- "$REM_SOCKET")"
+12-REM_EXPECTED_BASE_QEMU=88bf42458d88d1fbe5169cc49a3d3d250bb07695185164ac3ad4c861a7422de8
+13-REM_EXPECTED_QEMU=63f7eb51cabf4be5e9c330d64312b082bf90e1c984f5d38661591a5b740e5f96
+14-REM_PROC_ROOT="${REM_PROC_ROOT:-/proc}"
+15-REM_CLIENT="${REM_CLIENT:-$REM_IMPL/rem-console-client}"
+16-REM_PIDFILE="$REM_STATE/qemu.pid"
+17-REM_START_LOCK="$REM_STATE/start.lock"
+18-REM_CONSOLE_LOCK="$REM_STATE/console.lock"
+19-REM_LOG="$REM_STATE/manager.log"
+--
+128-	clients="$(console_pids || true)"; [[ -z "$clients" ]] || die "console client(s) remain (PID(s): $(joined "$clients")); run remctl recover"
+129-	if ! mkdir -m 700 -- "$REM_START_LOCK" 2>/dev/null; then read_owner "$REM_START_LOCK/owner"; owner="$REPLY"; [[ ! "$owner" =~ ^[0-9]+$ ]] || ! pid_is_manager "$owner" || die "REM startup in progress (PID $owner)"; stamp="$(stat -c '%Y' "$REM_START_LOCK" 2>/dev/null || printf 0)"; [[ "$stamp" =~ ^[0-9]+$ ]] && (( $(date '+%s') - stamp >= 3 )) || die 'startup lock is too recent; retry'; rm -rf -- "$REM_START_LOCK"; mkdir -m 700 -- "$REM_START_LOCK" || die 'another session acquired startup lock'; fi
+130-	trap 'rm -rf -- "$REM_START_LOCK"' EXIT; printf '%s\n' "$$" >"$REM_START_LOCK/owner"; writers="$(image_pids || true)"; [[ -z "$writers" ]] || die "QEMU opened rootfs during startup: $(joined "$writers")"
+131-	rm -f -- "$REM_PIDFILE" "$REM_SOCKET"; local termux_prefix="${PREFIX:-/data/data/com.termux/files/usr}"; export LD_LIBRARY_PATH="$REM_HOME/lib:$termux_prefix/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+132-	log_event "start requested rootfs=$REM_ROOTFS qemu_sha256=$REM_EXPECTED_QEMU"
+133:	local -a args=(-daemonize -pidfile "$REM_PIDFILE" -M 'myemulator32,append=console=ttyMY0 115200 root=/dev/myemu0 rw init=/sbin/init myemu.tty_rows=42 myemu.tty_cols=132 ip=off virtio_mmio.device=0x200@0xf0200000:5' -m 512M -kernel "$REM_KERNEL" -drive "file=$REM_ROOTFS,format=raw,if=none,id=myemulator2-disk,file.locking=off" -netdev 'user,id=net0,hostfwd=tcp:127.0.0.1:2304-:2304' -display none -chardev "socket,id=remconsole,path=$REM_SOCKET,server=on,wait=off" -serial chardev:remconsole -monitor none -no-reboot)
+134-	"$REM_QEMU" "${args[@]}" >>"$REM_LOG" 2>&1 || { log_event 'QEMU daemonize failed'; die "QEMU failed; see $REM_LOG"; }
+135-	local i; active=''; for ((i=0; i<40; i++)); do active="$(find_managed_pid 2>/dev/null || true)"; [[ -n "$active" ]] && break; sleep .25; done
+136-	[[ -n "$active" ]] || die 'QEMU did not become one managed rootfs writer; run remctl status'; write_pidfile "$active"; log_event "started pid=$active"; rm -rf -- "$REM_START_LOCK"; trap - EXIT; printf 'REM started (PID %s).\n' "$active"
+137-}
+138-rem_attach() {
+139-	local mode="$1" clients owner rc active; ensure_state; active="$(find_managed_pid 2>/dev/null || true)"; [[ -n "$active" ]] || die 'REM is not running; use rem'; clients="$(console_pids || true)"; [[ -z "$clients" ]] || { printf 'REM console already attached (client PID(s): %s).\n' "$(joined "$clients")"; return 10; }
+140-	if ! mkdir -m 700 -- "$REM_CONSOLE_LOCK" 2>/dev/null; then read_owner "$REM_CONSOLE_LOCK/owner"; owner="$REPLY"; [[ ! "$owner" =~ ^[0-9]+$ ]] || ! pid_is_manager "$owner" || { printf 'REM console already claimed by Termux session PID %s.\n' "$owner"; return 10; }; remove_stale_owned_lock "$REM_CONSOLE_LOCK" || die 'console lock busy; run remctl status'; mkdir -m 700 -- "$REM_CONSOLE_LOCK" || die 'another session claimed the console'; fi
+141-	printf '%s\n' "$$" >"$REM_CONSOLE_LOCK/owner"; printf 'Attaching to REM PID %s.\n' "$active"; set +e; "$REM_CLIENT" "$REM_SOCKET"; rc=$?; set -e; rm -rf -- "$REM_CONSOLE_LOCK"; log_event "console ended rc=$rc pid=$active mode=$mode"; return "$rc"
+142-}
+143-usage() { cat <<'EOF'
+144-Usage: remctl {status|console|stop|shell|recover}
+145-  status   Show VM, console, rootfs writers and stale state

@@ -41,6 +41,8 @@ The tracked package plans, REM compiler tests, Linux/QEMU overlays, Android
 ARM64 build scripts and distribution tree were already present at the
 checkpoint. Android build scripts include slirp/user networking. No unique
 kernel or QEMU fix was found only in the older copied source trees examined.
+The authoritative physical Fold launcher capture was added after the initial
+inventory and is reconciled in the section below.
 
 ## Classification of remaining untracked material
 
@@ -78,12 +80,12 @@ Promoted and tracked in this reconciliation as listed above. Existing tracked
 - `.rem-native-assembly-build/` logs and other dated `.rem-*` roots can contain
   source snapshots alongside build state; no whole directory is suitable for
   wholesale Git addition.
-- `android/bearssl-*`, `android/native-userland-*`, and `android/r4/` contain
-  older corrective package payloads/installers. Their package scripts were
-  compared with the canonical native-userland runner and central plans. They
-  are superseded candidates, not current source. R4 launchers specifically
-  contain `128M` and `-icount`, unlike the Fold owner's reported live
-  `512M`/no-`-icount` settings.
+- `android/bearssl-*` and `android/native-userland-*` contain older corrective
+  package payloads/installers. Their package scripts were compared with the
+  canonical native-userland runner and central plans; they are superseded
+  candidates. Earlier `android/r4/` launcher copies use `128M` and
+  `-icount`; the separate `fold-active-20261011` capture is authoritative
+  and is reconciled below.
 - `toolchain/native-userland/kit/bootstrap/rem-object-resume.sh`, the
   alternate musl build script, and `build-userspace-samu.sh` are unintegrated
   older mechanisms. The first two are superseded custom resume attempts; the
@@ -182,16 +184,43 @@ Promoted and tracked in this reconciliation as listed above. Existing tracked
 
 - `toolchain/userspace/rem-sysv/` and BusyBox configs conflict with the
   canonical BusyBox-free distribution.
-- `android/r4/` launcher copies use stale 128 MiB/`-icount` arguments and do
-  not represent the Fold owner's live launcher. No local source copy of the
-  exact active 512 MiB/no-`-icount` `remctl` was found; no replacement was
-  inferred from incomplete deployment data.
+- Earlier `android/r4/` launcher copies use stale 128 MiB/`-icount`
+  arguments. The later authoritative physical capture at
+  `android/r4/fold-active-20261011/` supersedes the earlier audit finding;
+  the canonical implementation is `android/fold-remctl/`.
 - Old handoff docs under `docs/CODEX-*`, old candidate/UAT instructions and
   duplicated flight manuals were retained untracked where they were historical
   rather than current source-of-truth documentation. Relevant recovery and
   qualification findings are captured in tracked docs, including this audit.
 - The standalone `Makefile.prereqs` and root object/test scratch files are
   experiment residue, not release definitions.
+
+## Physical Fold launcher reconciliation (2026-10-11)
+
+The authoritative physical capture is retained byte-for-byte at
+`android/r4/fold-active-20261011/remctl` and `rem`. The adjacent
+`fold-active-20261011.txt` is deployment provenance (capture time, status,
+and artifact hashes), not executable source. Its active QEMU path is
+`$HOME/rem/diag/qemu-system-myemulator32.r15-diag`; the captured launcher
+also checks the base QEMU at `$HOME/rem/qemu-system-myemulator32`.
+
+`android/fold-remctl/remctl` and `rem` are the canonical source reconciled
+from that capture. Compared with the tracked generic launchers, the Fold
+launcher adds managed-process identity, single-writer/rootfs checks, console
+socket management, safe stale-state recovery, and base/active QEMU hash gates.
+It preserves `512M`, the current block device, user/slirp host forwarding on
+127.0.0.1:2304, socket console handling, and no `-icount`. The exact active
+launcher behavior was retained; the only behavior-level source adjustment is
+that `REM_STATE` uses Bash parameter expansion rather than an external
+`dirname`.
+
+The captured QEMU hashes remain evidence only. Canonical `remctl` obtains its
+expected hashes from `$HOME/rem/.remctl/qemu-sha256`, parses the two named
+records strictly, and fails closed when the file is missing or malformed.
+`android/fold-remctl/write-qemu-sha256.sh` generates that file from the exact
+release base and active QEMU binaries using atomic replacement. Thus release
+artifact hashes are set by deployment/package generation, while launch and
+recovery continue to enforce integrity.
 
 ## Current source verification
 

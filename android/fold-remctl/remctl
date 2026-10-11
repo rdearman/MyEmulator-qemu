@@ -1,0 +1,189 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+REM_HOME="${REM_HOME:-$HOME/rem}"
+REM_IMPL="$REM_HOME/.remctl"
+REM_BASE_QEMU="$REM_HOME/qemu-system-myemulator32"
+REM_QEMU="$REM_HOME/diag/qemu-system-myemulator32.r15-diag"
+REM_KERNEL="$REM_HOME/vmlinux"
+REM_ROOTFS="$REM_HOME/rootfs.ext4"
+REM_SOCKET="$REM_HOME/.rem-r4-persistent/console.sock"
+REM_STATE="${REM_SOCKET%/*}"
+REM_QEMU_HASHES="${REM_QEMU_HASHES:-$REM_IMPL/qemu-sha256}"
+REM_EXPECTED_BASE_QEMU=""
+REM_EXPECTED_QEMU=""
+REM_PROC_ROOT="${REM_PROC_ROOT:-/proc}"
+REM_CLIENT="${REM_CLIENT:-$REM_IMPL/rem-console-client}"
+REM_PIDFILE="$REM_STATE/qemu.pid"
+REM_START_LOCK="$REM_STATE/start.lock"
+REM_CONSOLE_LOCK="$REM_STATE/console.lock"
+REM_LOG="$REM_STATE/manager.log"
+
+die() { printf 'REM: %s\n' "$*" >&2; exit 1; }
+hash_file() { sha256sum -- "$1" | awk '{print $1}'; }
+load_qemu_hashes() {
+	local key digest extra seen_base=0 seen_active=0
+	[[ -r "$REM_QEMU_HASHES" ]] || return 1
+	REM_EXPECTED_BASE_QEMU=""
+	REM_EXPECTED_QEMU=""
+	while IFS=' ' read -r key digest extra || [[ -n "${key:-}${digest:-}${extra:-}" ]]; do
+		[[ -n "${key:-}" ]] || continue
+		[[ -z "${extra:-}" && "${digest:-}" =~ ^[0-9a-fA-F]{64}$ ]] || return 1
+		case "$key" in
+			base)
+				(( seen_base == 0 )) || return 1
+				REM_EXPECTED_BASE_QEMU="$digest"
+				seen_base=1
+				;;
+			active)
+				(( seen_active == 0 )) || return 1
+				REM_EXPECTED_QEMU="$digest"
+				seen_active=1
+				;;
+			*) return 1 ;;
+		esac
+	done < "$REM_QEMU_HASHES"
+	(( seen_base == 1 && seen_active == 1 ))
+}
+proc_stat_state() {
+	local pid="$1" line rest
+	[[ -r "$REM_PROC_ROOT/$pid/stat" ]] || return 1
+	IFS= read -r line <"$REM_PROC_ROOT/$pid/stat" || return 1
+	rest="${line##*) }"; [[ -n "$rest" ]] || return 1
+	set -- $rest; printf '%s\n' "$1"
+}
+pid_live() { local state; state="$(proc_stat_state "$1" 2>/dev/null)" || return 1; [[ "$state" != Z && "$state" != X ]]; }
+pid_is_manager() {
+	local pid="$1" cmd; pid_live "$pid" || return 1
+	cmd="$(proc_cmdline "$pid" 2>/dev/null)" || return 1
+	[[ "$cmd" == *"$REM_IMPL/remctl"* || "$cmd" == *"start-rem.sh"* || "$cmd" == *"rem-console.sh"* ]]
+}
+proc_cmdline() { [[ -r "$REM_PROC_ROOT/$1/cmdline" ]] || return 1; tr '\000' ' ' <"$REM_PROC_ROOT/$1/cmdline" 2>/dev/null; }
+pid_uses_rootfs() {
+	local pid="$1" arg fd image_id fd_id
+	[[ -r "$REM_PROC_ROOT/$pid/cmdline" ]] || return 1
+	while IFS= read -r -d '' arg; do [[ "$arg" == *"file=$REM_ROOTFS"* || "$arg" == "$REM_ROOTFS" ]] && return 0; done <"$REM_PROC_ROOT/$pid/cmdline"
+	image_id="$(stat -L -c '%d:%i' -- "$REM_ROOTFS" 2>/dev/null)" || return 1
+	for fd in "$REM_PROC_ROOT/$pid"/fd/*; do
+		[[ -e "$fd" ]] || continue
+		fd_id="$(stat -L -c '%d:%i' -- "$fd" 2>/dev/null || true)"
+		[[ -n "$fd_id" && "$fd_id" == "$image_id" ]] && return 0
+	done
+	return 1
+}
+pid_qemu_for_image() {
+	local pid="$1" state exe name
+	[[ "$pid" =~ ^[0-9]+$ ]] || return 1
+	state="$(proc_stat_state "$pid" 2>/dev/null)" || return 1; [[ "$state" != Z && "$state" != X ]] || return 1
+	exe="$(readlink -f -- "$REM_PROC_ROOT/$pid/exe" 2>/dev/null)" || return 1
+	name="${exe##*/}"; [[ "$name" == qemu-system* || "$name" == qemu ]] || return 1
+	pid_uses_rootfs "$pid"
+}
+image_pids() { local f pid; for f in "$REM_PROC_ROOT"/[0-9]*/stat; do [[ -r "$f" ]] || continue; pid="${f#"$REM_PROC_ROOT"/}"; pid="${pid%/stat}"; pid_qemu_for_image "$pid" && printf '%s\n' "$pid"; done; }
+managed_qemu() {
+	local pid="$1" exe cmd real_base real_new
+	load_qemu_hashes || return 1
+	pid_qemu_for_image "$pid" || return 1
+	exe="$(readlink -f -- "$REM_PROC_ROOT/$pid/exe" 2>/dev/null)" || return 1
+	real_base="$(readlink -f -- "$REM_BASE_QEMU" 2>/dev/null || printf '%s' "$REM_BASE_QEMU")"
+	real_new="$(readlink -f -- "$REM_QEMU" 2>/dev/null || printf '%s' "$REM_QEMU")"
+	if [[ "$exe" == "$real_base" ]]; then [[ "$(hash_file "$REM_BASE_QEMU" 2>/dev/null || true)" == "$REM_EXPECTED_BASE_QEMU" ]] || return 1
+	elif [[ "$exe" == "$real_new" ]]; then [[ "$(hash_file "$REM_QEMU" 2>/dev/null || true)" == "$REM_EXPECTED_QEMU" ]] || return 1
+	else return 1; fi
+	cmd="$(proc_cmdline "$pid" 2>/dev/null)" || return 1; [[ "$cmd" == *"path=$REM_SOCKET"* ]]
+}
+console_pids() {
+	local f pid exe name cmd
+	for f in "$REM_PROC_ROOT"/[0-9]*/stat; do [[ -r "$f" ]] || continue; pid="${f#"$REM_PROC_ROOT"/}"; pid="${pid%/stat}"; pid_live "$pid" || continue
+		exe="$(readlink -f -- "$REM_PROC_ROOT/$pid/exe" 2>/dev/null || true)"; name="${exe##*/}"; name="${name% (deleted)}"; [[ "$name" == rem-console-client ]] || continue
+		cmd="$(proc_cmdline "$pid" 2>/dev/null || true)"; [[ "$cmd" == *"$REM_SOCKET"* ]] && printf '%s\n' "$pid"
+	done
+}
+joined() { local x; x="$(tr '\n' ',' <<<"$1")"; printf '%s' "${x%,}"; }
+ensure_state() { mkdir -p -m 700 -- "$REM_STATE"; }
+log_event() {
+	local bytes; if [[ -f "$REM_LOG" ]]; then bytes="$(wc -c <"$REM_LOG" | tr -d '[:space:]')"; if [[ "$bytes" =~ ^[0-9]+$ ]] && (( bytes > 262144 )); then mv -f -- "$REM_LOG" "$REM_LOG.previous"; fi; fi
+	printf '%s %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*" >>"$REM_LOG"
+}
+verify_install() {
+	load_qemu_hashes || die "missing or invalid QEMU hash file: $REM_QEMU_HASHES"
+	[[ -x "$REM_BASE_QEMU" && -x "$REM_QEMU" ]] || die 'base and R4 final QEMU must both exist'
+	[[ -r "$REM_KERNEL" && -w "$REM_ROOTFS" ]] || die 'kernel/rootfs missing or inaccessible'
+	local actual; actual="$(hash_file "$REM_BASE_QEMU")" || die 'cannot hash original QEMU'
+	[[ "$actual" == "$REM_EXPECTED_BASE_QEMU" ]] || die "original QEMU hash mismatch ($actual); refusing to launch"
+	actual="$(hash_file "$REM_QEMU")" || die 'cannot hash final QEMU'
+	[[ "$actual" == "$REM_EXPECTED_QEMU" ]] || die "final QEMU hash mismatch ($actual); refusing to launch"
+}
+read_owner() { local file="$1"; [[ -r "$file" ]] && IFS= read -r REPLY <"$file" || REPLY=""; }
+state_stale_list() {
+	local stale='' clients writers; clients="$(console_pids || true)"; writers="$(image_pids || true)"
+	if [[ -r "$REM_PIDFILE" ]]; then read_owner "$REM_PIDFILE"; if ! [[ "$REPLY" =~ ^[0-9]+$ ]] || ! managed_qemu "$REPLY"; then stale+='stale pidfile, '; fi; fi
+	if [[ -d "$REM_START_LOCK" ]]; then read_owner "$REM_START_LOCK/owner"; [[ "$REPLY" =~ ^[0-9]+$ ]] && pid_is_manager "$REPLY" || stale+='stale start lock, '; fi
+	if [[ -d "$REM_CONSOLE_LOCK" ]]; then read_owner "$REM_CONSOLE_LOCK/owner"; if ! [[ "$REPLY" =~ ^[0-9]+$ ]] || ! pid_is_manager "$REPLY"; then [[ -z "$clients" ]] && stale+='stale console lock, '; fi; fi
+	if [[ -e "$REM_SOCKET" && -z "$writers" ]]; then stale+='orphan console socket, '; fi
+	if [[ -n "$stale" ]]; then printf '%s\n' "${stale%, }"; else printf 'none\n'; fi
+}
+write_pidfile() { local pid="$1" tmp="$REM_PIDFILE.tmp.$$"; printf '%s\n' "$pid" >"$tmp" && mv -f -- "$tmp" "$REM_PIDFILE"; }
+find_managed_pid() { local pids pid count=0 found=''; pids="$(image_pids || true)"; while IFS= read -r pid; do [[ -n "$pid" ]] || continue; managed_qemu "$pid" || continue; found="$pid"; ((count+=1)); done <<<"$pids"; ((count == 1)) || return 1; printf '%s\n' "$found"; }
+remove_stale_owned_lock() {
+	local lock="$1" owner stamp; [[ -d "$lock" ]] || return 0; read_owner "$lock/owner"; owner="$REPLY"
+	if [[ "$owner" =~ ^[0-9]+$ ]]; then pid_is_manager "$owner" && return 1; rm -rf -- "$lock"; return 0; fi
+	stamp="$(stat -c '%Y' "$lock" 2>/dev/null || printf 0)"; [[ "$stamp" =~ ^[0-9]+$ ]] && (( $(date '+%s') - stamp < 3 )) && return 1; rm -rf -- "$lock"
+}
+rem_status() {
+	ensure_state; local writers clients pid stale qhash; writers="$(image_pids || true)"; clients="$(console_pids || true)"; local -a wp=() cp=()
+	while IFS= read -r pid; do [[ -n "$pid" ]] && wp+=("$pid"); done <<<"$writers"; while IFS= read -r pid; do [[ -n "$pid" ]] && cp+=("$pid"); done <<<"$clients"
+	if (( ${#wp[@]} == 0 )); then printf 'REM VM: STOPPED\nQEMU PID: none\n'; elif (( ${#wp[@]} == 1 )); then printf 'REM VM: RUNNING\nQEMU PID: %s\n' "${wp[0]}"; else printf 'REM VM: RUNNING (DUPLICATE WRITERS)\nQEMU PID: %s\n' "$(joined "$writers")"; fi
+	printf 'REM QEMU processes: %s' "${#wp[@]}"; (( ${#wp[@]} == 0 )) || printf ' (%s)' "$(joined "$writers")"; printf '\n'
+	if (( ${#cp[@]} == 0 )); then if [[ -d "$REM_CONSOLE_LOCK" ]]; then read_owner "$REM_CONSOLE_LOCK/owner"; if [[ "$REPLY" =~ ^[0-9]+$ ]] && pid_is_manager "$REPLY"; then printf 'Console: ATTACHED (connection starting; manager PID %s)\n' "$REPLY"; else printf 'Console: DETACHED (stale attachment lock)\n'; fi; else printf 'Console: DETACHED\n'; fi; elif (( ${#cp[@]} == 1 )); then printf 'Console: ATTACHED (client PID %s)\n' "${cp[0]}"; else printf 'Console: ATTACHED (WARNING: %s clients: %s)\n' "${#cp[@]}" "$(joined "$clients")"; fi
+	printf 'Rootfs writers: %s' "${#wp[@]}"; (( ${#wp[@]} == 0 )) || printf ' (%s)' "$(joined "$writers")"; printf '\n'; stale="$(state_stale_list)"; printf 'Stale state: %s\n' "$stale"
+	if load_qemu_hashes; then qhash="$(hash_file "$REM_QEMU" 2>/dev/null || printf missing)"; [[ "$qhash" == "$REM_EXPECTED_QEMU" ]] || printf 'R4 QEMU hash: MISMATCH (%s); new launch disabled\n' "$qhash"; else printf 'R4 QEMU hash: unavailable (missing/invalid %s); new launch disabled\n' "$REM_QEMU_HASHES"; fi
+}
+rem_recover() {
+	ensure_state; local writers clients pid lock owner stamp; writers="$(image_pids || true)"; clients="$(console_pids || true)"; local -a wp=() cp=()
+	while IFS= read -r pid; do [[ -n "$pid" ]] && wp+=("$pid"); done <<<"$writers"; while IFS= read -r pid; do [[ -n "$pid" ]] && cp+=("$pid"); done <<<"$clients"
+	if (( ${#wp[@]} > 1 )); then printf 'RECOVERY REFUSED: %s rootfs writers: %s\nNo process was killed and no state was removed.\n' "${#wp[@]}" "$(joined "$writers")" >&2; return 4; fi
+	if (( ${#cp[@]} > 1 )); then printf 'RECOVERY REFUSED: multiple console clients: %s\n' "$(joined "$clients")" >&2; return 5; fi
+	if (( ${#wp[@]} == 1 )); then pid="${wp[0]}"; managed_qemu "$pid" || { printf 'RECOVERY REFUSED: unrecognized QEMU PID %s uses rootfs; no changes made.\n' "$pid" >&2; return 6; }; write_pidfile "$pid"; remove_stale_owned_lock "$REM_START_LOCK" || true; (( ${#cp[@]} == 0 )) && remove_stale_owned_lock "$REM_CONSOLE_LOCK" || true; printf 'RECOVERY: one R4 managed VM verified (PID %s); not restarted.\n' "$pid"; return 0; fi
+	(( ${#cp[@]} == 0 )) || { printf 'RECOVERY REFUSED: console client(s) remain without VM.\n' >&2; return 7; }
+	for lock in "$REM_START_LOCK" "$REM_CONSOLE_LOCK"; do [[ -d "$lock" ]] || continue; read_owner "$lock/owner"; owner="$REPLY"; if [[ "$owner" =~ ^[0-9]+$ ]] && pid_is_manager "$owner"; then printf 'RECOVERY REFUSED: active manager PID %s.\n' "$owner" >&2; return 8; fi; stamp="$(stat -c '%Y' "$lock" 2>/dev/null || printf 0)"; [[ ! "$stamp" =~ ^[0-9]+$ ]] || (( $(date '+%s') - stamp >= 3 )) || { printf 'RECOVERY REFUSED: recent lock; retry later.\n' >&2; return 9; }; done
+	rm -f -- "$REM_PIDFILE" "$REM_SOCKET"; remove_stale_owned_lock "$REM_START_LOCK" || true; remove_stale_owned_lock "$REM_CONSOLE_LOCK" || true; printf 'RECOVERY: no QEMU owns the rootfs; stale state cleared. No VM started.\n'
+}
+rem_start() {
+	verify_install; ensure_state; local writers clients owner stamp active; active="$(find_managed_pid 2>/dev/null || true)"; [[ -z "$active" ]] || { printf 'REM already running (PID %s).\n' "$active"; return 10; }
+	writers="$(image_pids || true)"; [[ -z "$writers" ]] || die "QEMU process(es) already have rootfs open: $(joined "$writers"); run remctl recover"
+	clients="$(console_pids || true)"; [[ -z "$clients" ]] || die "console client(s) remain (PID(s): $(joined "$clients")); run remctl recover"
+	if ! mkdir -m 700 -- "$REM_START_LOCK" 2>/dev/null; then read_owner "$REM_START_LOCK/owner"; owner="$REPLY"; [[ ! "$owner" =~ ^[0-9]+$ ]] || ! pid_is_manager "$owner" || die "REM startup in progress (PID $owner)"; stamp="$(stat -c '%Y' "$REM_START_LOCK" 2>/dev/null || printf 0)"; [[ "$stamp" =~ ^[0-9]+$ ]] && (( $(date '+%s') - stamp >= 3 )) || die 'startup lock is too recent; retry'; rm -rf -- "$REM_START_LOCK"; mkdir -m 700 -- "$REM_START_LOCK" || die 'another session acquired startup lock'; fi
+	trap 'rm -rf -- "$REM_START_LOCK"' EXIT; printf '%s\n' "$$" >"$REM_START_LOCK/owner"; writers="$(image_pids || true)"; [[ -z "$writers" ]] || die "QEMU opened rootfs during startup: $(joined "$writers")"
+	rm -f -- "$REM_PIDFILE" "$REM_SOCKET"; local termux_prefix="${PREFIX:-/data/data/com.termux/files/usr}"; export LD_LIBRARY_PATH="$REM_HOME/lib:$termux_prefix/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+	log_event "start requested rootfs=$REM_ROOTFS qemu_sha256=$REM_EXPECTED_QEMU"
+	local -a args=(-daemonize -pidfile "$REM_PIDFILE" -M 'myemulator32,append=console=ttyMY0 115200 root=/dev/myemu0 rw init=/sbin/init myemu.tty_rows=42 myemu.tty_cols=132 ip=off virtio_mmio.device=0x200@0xf0200000:5' -m 512M -kernel "$REM_KERNEL" -drive "file=$REM_ROOTFS,format=raw,if=none,id=myemulator2-disk,file.locking=off" -netdev 'user,id=net0,hostfwd=tcp:127.0.0.1:2304-:2304' -display none -chardev "socket,id=remconsole,path=$REM_SOCKET,server=on,wait=off" -serial chardev:remconsole -monitor none -no-reboot)
+	"$REM_QEMU" "${args[@]}" >>"$REM_LOG" 2>&1 || { log_event 'QEMU daemonize failed'; die "QEMU failed; see $REM_LOG"; }
+	local i; active=''; for ((i=0; i<40; i++)); do active="$(find_managed_pid 2>/dev/null || true)"; [[ -n "$active" ]] && break; sleep .25; done
+	[[ -n "$active" ]] || die 'QEMU did not become one managed rootfs writer; run remctl status'; write_pidfile "$active"; log_event "started pid=$active"; rm -rf -- "$REM_START_LOCK"; trap - EXIT; printf 'REM started (PID %s).\n' "$active"
+}
+rem_attach() {
+	local mode="$1" clients owner rc active; ensure_state; active="$(find_managed_pid 2>/dev/null || true)"; [[ -n "$active" ]] || die 'REM is not running; use rem'; clients="$(console_pids || true)"; [[ -z "$clients" ]] || { printf 'REM console already attached (client PID(s): %s).\n' "$(joined "$clients")"; return 10; }
+	if ! mkdir -m 700 -- "$REM_CONSOLE_LOCK" 2>/dev/null; then read_owner "$REM_CONSOLE_LOCK/owner"; owner="$REPLY"; [[ ! "$owner" =~ ^[0-9]+$ ]] || ! pid_is_manager "$owner" || { printf 'REM console already claimed by Termux session PID %s.\n' "$owner"; return 10; }; remove_stale_owned_lock "$REM_CONSOLE_LOCK" || die 'console lock busy; run remctl status'; mkdir -m 700 -- "$REM_CONSOLE_LOCK" || die 'another session claimed the console'; fi
+	printf '%s\n' "$$" >"$REM_CONSOLE_LOCK/owner"; printf 'Attaching to REM PID %s.\n' "$active"; set +e; "$REM_CLIENT" "$REM_SOCKET"; rc=$?; set -e; rm -rf -- "$REM_CONSOLE_LOCK"; log_event "console ended rc=$rc pid=$active mode=$mode"; return "$rc"
+}
+usage() { cat <<'EOF'
+Usage: remctl {status|console|stop|shell|recover}
+  status   Show VM, console, rootfs writers and stale state
+  console  Attach to the one running REM VM; never starts a VM
+  stop     Explain safe guest poweroff; never kills QEMU
+  shell    Open an ordinary Termux maintenance shell
+  recover  Safely inspect/clear stale state; never launches or kills QEMU
+EOF
+}
+command="${1:-}"
+case "$command" in
+	status) rem_status ;;
+	console) verify_install; rem_attach console ;;
+	stop)
+		writers="$(image_pids || true)"; if [[ -z "$writers" ]]; then printf 'REM is not running.\n'; else localstop=() ; while IFS= read -r pid; do [[ -n "$pid" ]] && localstop+=("$pid"); done <<<"$writers"; if (( ${#localstop[@]} == 1 )); then if managed_qemu "${localstop[0]}"; then printf 'SAFE HOST STOP UNAVAILABLE: QEMU PID %s has no management channel. No signal sent; attach and run sudo poweroff in REM.\n' "${localstop[0]}"; else printf 'Unmanaged QEMU PID %s uses rootfs; no signal sent.\n' "${localstop[0]}"; fi; else printf 'REM has %s rootfs writers (%s); no process killed.\n' "${#localstop[@]}" "$(joined "$writers")"; fi; fi ;;
+	shell) export REMCTL_MAINTENANCE=1 REM_TERMUX_MAINTENANCE=1 REM_NO_AUTO_ATTACH=1; exec "${BASH:-/data/data/com.termux/files/usr/bin/bash}" -i ;;
+	recover) rem_recover ;;
+	run) verify_install; if ! active="$(find_managed_pid 2>/dev/null)"; then rem_start || { rc=$?; (( rc == 10 )) || exit "$rc"; }; fi; rem_attach run ;;
+	*) usage >&2; exit 2 ;;
+esac
