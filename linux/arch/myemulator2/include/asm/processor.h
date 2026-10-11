@@ -28,8 +28,10 @@ struct thread_struct {
 	/* One-shot software breakpoint used to implement PTRACE_SINGLESTEP. */
 	unsigned long debug_step_addr;
 	unsigned long debug_step_insn;
+	unsigned long debug_step_link_value;
 	unsigned int debug_step_pending;
 	unsigned int debug_step_active;
+	unsigned int debug_step_link;
 };
 #define INIT_THREAD { 0 }
 #define cpu_relax() barrier()

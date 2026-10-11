@@ -2,13 +2,13 @@ cc = @CC@
 root = ../../..
 
 rule cc
-  command = mkdir -p $directory && $cc $flags -c $in -o $out
+  command = mkdir -p $directory && rm -f $out.tmp && $cc $flags -c $in -o $out.tmp && mv -f $out.tmp $out
   description = CC $in
 rule archive
-  command = ar rcs $out $in
+  command = rm -f $out.tmp && ar rcs $out.tmp $in && mv -f $out.tmp $out
   description = AR $out
 rule link
-  command = mkdir -p ../native/bin && ld -r -T $root/bootstrap/rem-reloc.ld -o $out.partial.o $in && $cc -o $out $out.partial.o $libraries
+  command = mkdir -p ../native/bin && rm -f $out.partial.o.tmp $out.tmp && ld -r -T $root/bootstrap/rem-reloc.ld -o $out.partial.o.tmp $in && mv -f $out.partial.o.tmp $out.partial.o && $cc -o $out.tmp $out.partial.o $libraries && mv -f $out.tmp $out
   description = LINK $out
 
 build objects/hardscroll.o: cc ../ncurses/tty/hardscroll.c | include/ncurses_dll.h include/ncurses_cfg.h include/term.h include/unctrl.h include/config.h include/parametrized.h include/hashsize.h include/curses.h include/ncurses_def.h include/termcap.h ncurses/init_keytry.h progs/transform.h progs/termsort.h

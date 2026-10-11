@@ -445,3 +445,79 @@ This rules out a generic `strcmp`, pointer-array, struct-pointer, realloc, or
 static-keyword-table failure. No chibicc change is justified by these probes.
 The remaining difference is specific to the full scanner/build-graph path and
 needs a smaller scanner reproducer or a valid guest fault trace.
+
+## Current clean qualification after compiler fixes
+
+The clean unmodified Samurai sources were rebuilt with the current chibicc
+backend after fixing indirect function-pointer calls and REM `not` operand
+order. The resulting binary is `/tmp/samurai-clean-final2/samu`, SHA-256
+`26128967b0cd60506321534617af359cc21d795a59633aa99fa05d13c04e936b`.
+
+On the pinned QEMU/kernel/runtime tuple, `samu -n` completed successfully and
+printed the expected `[1/1] echo built > out.txt`. The same image and command
+using the GCC-built Samurai also completed `-n`, establishing that the next
+failure is outside the compiler comparison.
+
+A real build then reached Samurai's process-launch path and failed for both
+binaries with:
+
+```text
+samu: posix_spawn /bin/sh: Function not implemented
+samu: job failed to start
+```
+
+This is `ENOSYS` from the common REM process-creation/runtime tuple, not a
+Samurai source or chibicc failure. Consequently real, incremental, and clean
+command execution remain blocked until `posix_spawn`/`clone`/`exec` support is
+available. No Samurai source was changed.
+
+## Disposable `NO_POSIX_SPAWN` qualification
+
+Samurai's upstream source provides a `fork`/`execvp` fallback selected by
+`-DNO_POSIX_SPAWN`. A disposable clean build of all twelve translation units
+with the current chibicc and this flag produced `/tmp/samurai-nospawn/samu`
+(SHA-256 `98aec69f3b5810d299045010bd5a5569bae1e3102032ddf77f2c89cf1064e15f`).
+On a freshly built ext4 image with the same pinned tuple it passed:
+
+```text
+samu -n                         -> DRYRC=0
+samu                           -> REALRC=0, OUT=built
+modified manifest; samu        -> INCRC=0, INCOUT=changed
+samu -t clean                  -> CLEANRC=0, CLEANED=1
+samu                           -> REBUILD_RC=0, REBUILT=changed
+```
+
+This proves the chibicc-built Samurai graph, filesystem, incremental logic,
+native assembler/linker output, and the REM `fork`/`execvp` path work together.
+The default POSIX-spawn build remains blocked by the missing `posix_spawn`
+implementation; `NO_POSIX_SPAWN` is an upstream-supported build configuration,
+not a Samurai source modification. A flight package must either build Samurai
+with this flag or add and validate the `posix_spawn`/clone path.
+
+## Stage-7 compiler rebuild comparison (2026-10-04)
+
+The unmodified 13-file source set from `/tmp/samurai-clean-compare` was rebuilt inside REM using Stage-7 chibicc (`-DNO_POSIX_SPAWN -DCHIBICC_REM`), native `as`, and the established `ld -r` plus final-link workaround. The extracted binary `/tmp/samu-stage7` has SHA256 `623cb3ff64ea04ca0526fd1bdf2f63384fb3afacc450594e22bb293b9daa345a`; all translation units, assembly, partial link and final link passed. `-n` returned 0. The real tiny build produced and ran its target (exit 42), then samu itself faulted after child completion at PC `0x02035eb4` (musl `memchr`/`strnlen`, bad address `0x183`). The prior reference `/tmp/samurai-nospawn/samu` reproduced the same post-build fault in the same disposable image, so this is not a demonstrated Stage-7 compiler-only regression. Earlier clean-tuple NO_POSIX_SPAWN qualification remains the authoritative full real/incremental/clean PASS.
+## Stage-7 post-build fault investigation (2026-10-04)
+
+Stage-7 chibicc `/tmp/chibicc-stage7` (SHA256 `72bf5c9b519eb2a33ab5eb2e014a48d21ef661049e240b3a42000f39f423eba0`) is qualified: all nine compiler translation units, partial/final link, `--help`, and a hosted compile/link/run returning 42 pass. All 13 unmodified Samurai translation units rebuilt with it, linked, and passed `samu -n`; a real one-target build produced and ran its target. The remaining fault occurs after the child succeeds, in the Samurai post-build logging/metadata path (musl `memchr`/`strnlen`). The reference Samurai binary reproduces the same fault on the same guest, so this evidence does not implicate Stage-7 chibicc.
+
+The smallest current reproducer is a one-rule build whose command is `touch hello`: the target is created successfully, then `samu` faults with a small invalid string address. A standalone high-value 64-bit `printf` probe was also reduced and passes when built from the current Stage-7 compiler, so the Samurai fault is not yet proven to be the generic variadic ABI.
+
+Further reduction identified the concrete shared cause: Stage-7's
+`preprocess.c:eval_const_expr()` returned `long`. On REM32 this truncated
+`UINT64_MAX`, making musl's `#if UINTPTR_MAX == UINT64_MAX` branch select
+`PRId64="ld"` instead of `"lld"`. Samurai's `PRId64` log call then passed a
+64-bit value while musl consumed one 32-bit word, using the high word as the
+following `%s` pointer. The source fix is `int64_t` evaluation plus
+`test/rem-pp-uintptr-width.c`; rebuilding a corrected native compiler and
+requalifying Samurai is the next required step.
+
+The targeted fixes were rebuilt into `/tmp/chibicc-fix-build/chibicc`
+(SHA256 `9aa9782dfeeac64e2ffa22d222f88afb3e2293cd19dc34d857bbf721a05ac761`).
+It emits `PRId64="lld"` for the REM32 headers. Rebuilding only Samurai's
+`log.c` with this compiler and relinking produced `/tmp/samu-fix` (SHA256
+`1bee2e3c9aa19fe0ece0af1eb333b41e63ba7382bff993b68d297515d9d1aa93`). On a
+cleaned disposable guest, `samu-fix` completed the real `touch hello` build
+with exit 0, a second no-op build with exit 0, `-n` with exit 0, and a rebuild
+after changing the input with exit 0. The prior post-build memchr/strnlen
+fault did not recur.

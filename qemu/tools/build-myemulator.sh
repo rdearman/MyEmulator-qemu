@@ -46,6 +46,13 @@ elif [ ! -x "$qemu_source/configure" ]; then
     exit 1
 fi
 
+qemu_source_version=$(tr -d '\r\n' < "$qemu_source/VERSION")
+if [ "$qemu_source_version" != 9.2.0 ]; then
+    printf 'QEMU source version mismatch: expected pinned v9.2.0, found %s\n' \
+        "$qemu_source_version" >&2
+    exit 1
+fi
+
 printf 'Applying MyEmulator overlay to %s\n' "$qemu_source"
 "$project_root/qemu/tools/apply-overlay.sh" "$qemu_source"
 

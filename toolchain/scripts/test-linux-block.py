@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
+from linux_build_config import temporary_linux_config
 
 ROOT = Path(__file__).resolve().parents[2]
 PREFIX = Path(os.environ.get("MYEMU_TOOLCHAIN_PREFIX",
@@ -51,11 +52,12 @@ def main():
             "nod /dev/ttyMY0 0600 0 0 c 240 0\n"
             "nod /dev/myemu0 0600 0 0 b 259 0\n")
         config = LINUX / "scripts/config"
-        subprocess.run([str(config), "--file", str(BUILD / ".config"),
-                        "--set-str", "INITRAMFS_SOURCE", str(init_list)],
-                       check=True)
-        subprocess.run([str(ROOT / "toolchain/scripts/build-linux.sh")],
-                       check=True, stdout=subprocess.DEVNULL)
+        with temporary_linux_config(BUILD / ".config"):
+            subprocess.run([str(config), "--file", str(BUILD / ".config"),
+                            "--set-str", "INITRAMFS_SOURCE", str(init_list)],
+                           check=True)
+            subprocess.run([str(ROOT / "toolchain/scripts/build-linux.sh")],
+                           check=True, stdout=subprocess.DEVNULL)
 
         image = out / "disk.img"
         with image.open("wb") as disk:

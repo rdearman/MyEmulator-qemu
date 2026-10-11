@@ -10,8 +10,9 @@ launch from Termux with one command:
 
 The package carries QEMU, its required Termux libraries, the matching REM32
 Linux kernel, and the persistent ext4 guest disk. It runs machine
-`myemulator32` with 128 MiB RAM and an interactive serial console. Networking
-is optional and is not required to boot. The package and disk are relocatable
+`myemulator32` with 128 MiB RAM and an interactive serial console. QEMU user
+networking is enabled for `-netdev user` and host forwarding. Networking is
+optional and is not required to boot. The package and disk are relocatable
 within Termux private storage; shared Android storage may prevent executable
 files from running.
 

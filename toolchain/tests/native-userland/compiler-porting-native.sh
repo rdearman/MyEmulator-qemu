@@ -4,6 +4,43 @@ case $0 in */*) cd "${0%/*}/.." ;; esac
 source ./native-env.sh
 compiler=${TEST_CC:-$CC}
 mkdir -p native-tests/porting
+run_caller_abi_tests() {
+    as tests/aggregate-gcc-helpers.s -o native-tests/porting/gcc-helpers.o
+    "$compiler" -DAGGREGATE_EXTERNAL -DAGGREGATE_SMALL_RETURN_ONLY \
+        tests/aggregate-abi.c native-tests/porting/gcc-helpers.o \
+        -o native-tests/porting/chibicc-small-return-caller
+    if native-tests/porting/chibicc-small-return-caller; then
+        echo "PASS chibicc caller small aggregate return / REM ABI"
+    else
+        rc=$?
+        echo "FAIL chibicc caller small aggregate return (exit $rc)" >&2
+        exit "$rc"
+    fi
+    "$compiler" -DAGGREGATE_EXTERNAL tests/aggregate-abi.c \
+        native-tests/porting/gcc-helpers.o -o native-tests/porting/chibicc-caller
+    if native-tests/porting/chibicc-caller; then
+        echo "PASS chibicc caller / GCC aggregate callee"
+    else
+        rc=$?
+        echo "FAIL chibicc-caller (exit $rc)" >&2
+        exit "$rc"
+    fi
+    as tests/aggregate-gcc-caller.s -o native-tests/porting/gcc-caller.o
+    "$compiler" -DAGGREGATE_NO_MAIN tests/aggregate-abi.c \
+        native-tests/porting/gcc-caller.o -o native-tests/porting/gcc-caller
+    if native-tests/porting/gcc-caller; then
+        echo "PASS GCC caller / chibicc aggregate callee"
+    else
+        rc=$?
+        echo "FAIL gcc-caller (exit $rc)" >&2
+        exit "$rc"
+    fi
+}
+if [[ ${REM_PORTING_START_AT:-} == chibicc-caller ]]; then
+    run_caller_abi_tests
+    echo "COMPILER_PORTING_RESUME|PASS"
+    exit 0
+fi
 for name in aggregate-small-return aggregate-abi alloca-frame vla-frame long-conditional-branch designator-unnamed-bitfield \
     preprocessor-signed-comparison line-in-conditional \
     parenthesized-function-parameter nested-designator-continuation \
@@ -43,14 +80,5 @@ echo "PASS unsupported atomic capability rejection"
     -o native-tests/porting/hashmap-tombstone
 native-tests/porting/hashmap-tombstone
 echo "PASS hashmap-tombstone"
-as tests/aggregate-gcc-helpers.s -o native-tests/porting/gcc-helpers.o
-"$compiler" -DAGGREGATE_EXTERNAL tests/aggregate-abi.c \
-    native-tests/porting/gcc-helpers.o -o native-tests/porting/chibicc-caller
-native-tests/porting/chibicc-caller
-echo "PASS chibicc caller / GCC aggregate callee"
-as tests/aggregate-gcc-caller.s -o native-tests/porting/gcc-caller.o
-"$compiler" -DAGGREGATE_NO_MAIN tests/aggregate-abi.c \
-    native-tests/porting/gcc-caller.o -o native-tests/porting/gcc-caller
-native-tests/porting/gcc-caller
-echo "PASS GCC caller / chibicc aggregate callee"
+run_caller_abi_tests
 echo COMPILER_REQUIRED_PORTING_TESTS_OK

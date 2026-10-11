@@ -21,6 +21,56 @@
 static struct uart_driver myemu_uart_driver;
 static struct uart_port myemu_uart_port;
 static struct platform_device *myemu_uart_pdev;
+static void myemu_console_putchar(struct uart_port *port, unsigned char ch);
+
+/* Serial transports do not expose host terminal geometry through the UART
+ * itself.  Keep a useful default and allow boot-time override without
+ * emitting cursor-query escape sequences into the user's console. */
+static unsigned int myemu_console_rows = 40;
+static unsigned int myemu_console_cols = 120;
+
+static int __init myemu_rows_setup(char *str)
+{
+	myemu_console_rows = simple_strtoul(str, NULL, 0);
+	return 0;
+}
+early_param("myemu.tty_rows", myemu_rows_setup);
+
+static int __init myemu_cols_setup(char *str)
+{
+	myemu_console_cols = simple_strtoul(str, NULL, 0);
+	return 0;
+}
+early_param("myemu.tty_cols", myemu_cols_setup);
+
+int myemulator2_console_get_winsize(struct winsize *ws)
+{
+	if (!ws)
+		return -EINVAL;
+	ws->ws_row = myemu_console_rows;
+	ws->ws_col = myemu_console_cols;
+	ws->ws_xpixel = 0;
+	ws->ws_ypixel = 0;
+	return 0;
+}
+
+/* setup_arch invokes this after the machine command line has been copied.
+ * Keep the early_param hooks for normal Linux boot, but parse explicitly too:
+ * the REM reset ABI supplies the command line through a low-memory pointer,
+ * which is installed later than some early parameter consumers. */
+void myemulator2_console_parse_cmdline(const char *cmdline)
+{
+	const char *p;
+
+	if (!cmdline)
+		return;
+	p = strstr(cmdline, "myemu.tty_rows=");
+	if (p)
+		myemu_console_rows = simple_strtoul(p + 15, NULL, 0);
+	p = strstr(cmdline, "myemu.tty_cols=");
+	if (p)
+		myemu_console_cols = simple_strtoul(p + 15, NULL, 0);
+}
 
 static void myemu_console_putchar(struct uart_port *port, unsigned char ch)
 {

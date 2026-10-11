@@ -1,112 +1,93 @@
-# REM debugger
+# remdbg — GDB command language for REM32
 
-## State
+`remdbg` is the native ptrace debugger for REM Linux. Its command language is
+the GNU GDB command language (subset): GDB command names, GDB unique-prefix
+abbreviation, GDB syntax and GDB semantics. The old non-GDB commands
+(`regs`, `mem`, `disasm`, `load`, `write`, `symbol`, `globals`, `source`,
+`locals`) no longer exist; use the GDB equivalents below.
 
-A first native REM process-debugger prototype is at
-[`toolchain/remdbg/remdbg.c`](../toolchain/remdbg/remdbg.c). It builds as a
-static ELF32 REM executable with the repository GCC, REM musl CRT/libc, and
-REM linker script. It is **not yet a usable debugger in the guest**: its first
-launch test fails because `PTRACE_TRACEME` returns `ENOSYS`. No kernel, libc,
-compiler, QEMU, or flight-image changes were made.
+    remdbg ./program [args]
+    (remdbg) i r
 
-## Existing debugger reviewed: `mydebug`
+Commands are resolved GDB-style: an exact command/alias wins, otherwise a
+unique prefix. An ambiguous prefix reports `Ambiguous command "di": ...`;
+an unknown one reports `Undefined command`. Multiword commands (`info`,
+`set`, `show`) use the same prefix rule (`i r` = `info registers`,
+`i b` = `info breakpoints`). An empty line repeats `stepi`/`nexti`/
+`continue`/`x`.
 
-The existing debugger is [`tools/mydebug`](../tools/mydebug), documented in
-[`mydebug.md`](mydebug.md). It is a Python client for QEMU's newline-delimited
-JSON QMP socket, with a structured `myemulator-debug` command backend. Its
-intended flow is Emacs/editor → `mydebug` → QEMU; it does not use GDB's remote
-protocol. Its command loop, register formatting, address expressions,
-breakpoint IDs, and machine-readable request/response mode are reusable UX and
-protocol patterns. Its working target is the earlier 8-bit MyEmulator CPU and
-QEMU instance; it is not a native Linux-process debugger.
+## IMPLEMENTED
 
-The 8-bit target QMP backend exposes registers, instruction/source stepping,
-continue/stop/reset, execution breakpoints, memory read/write, disassembly,
-and optional assembler debug-map symbols/locations. The tests are
-[`tests/run-mydebug-tests.sh`](../tests/run-mydebug-tests.sh) and
-[`tests/run-mydebug-halt-test.sh`](../tests/run-mydebug-halt-test.sh). The
-separate REM32 QEMU backend in `qemu/hw/myemulator32/myemulator32-debug.c`
-currently exposes register, guest-memory/physical-memory, IRQ, and NMI
-operations; it does not provide a user-process debug interface.
+| GDB command | Abbrev. | Notes |
+|---|---|---|
+| run | r | start/restart the inferior |
+| start, starti | | `start` needs a `main` symbol |
+| continue [N] | c, cont | N = ignore this breakpoint N-1 more times |
+| stepi [N] | si | exactly one machine instruction |
+| nexti [N] | ni | steps over `jal`/calls |
+| finish | | runs to the return address (LR) |
+| until/advance *ADDR | u | run to a location |
+| jump *ADDR | j | |
+| kill, quit | k, q | |
+| break/tbreak LOCATION | b, br | `*ADDR`, `ADDR`, `FUNC`, `FUNC+off`; GDB numbering |
+| delete [N...] | d | |
+| disable/enable [N...] | | `disable` alone = all; ranges `N-M` |
+| ignore N COUNT | | |
+| info breakpoints | i b | hit counts |
+| info registers [REG] | i r | r0–r15, sp, lr, pc, sr, cause, info; hex + natural |
+| print[/FMT] EXPR | p, inspect | `$r1`..`$r15`, `$sp`, `$lr`, `$fp`, `$pc`, `$sr`, `$N`, symbols, `*ptr`, C operators |
+| output, echo | | |
+| x/NFU ADDR | | formats `x d u o t a c s i z`; sizes `b h w g`; `x/10i`, `x/4x`, `x/8wx` |
+| disassemble [START,END] | disas | REM32 decoder; function around PC by default |
+| set var $reg=EXPR, set {char/short/int}ADDR=EXPR | | |
+| set args | | |
+| backtrace | bt, where | heuristic (LR chain) |
+| frame | f | frame 0 only |
+| list | l | around PC, requires source via guest tools |
+| info symbol/stack/locals/source/variables | | partial |
+| help, help COMMAND, help info X | h | |
 
-## Native REM prototype
+## PARTIALLY IMPLEMENTED
 
-The prototype follows familiar `mydebug` command names but targets a Linux
-REM process launched as `remdbg PROGRAM [ARG ...]`:
+- `step` / `next` / `until` (no arg): print an explicit
+  "not implemented: no DWARF line-table support". Real GDB `step` needs
+  `.debug_line` parsing, line-range stepping, and frame-aware step-over/step-out.
+  Use `stepi` / `nexti`.
+- `finish` uses LR only (wrong if LR was spilled); `backtrace` has no CFI/DWARF
+  unwinder; `frame N` for N>0 is unsupported.
+- `info locals/source/variables/symbol`: use guest `readelf`; `info symbol`
+  always says `.text`.
+- `break FUNC` uses the exact function address (no prologue skipping).
+- `p` prints decimal as signed 32-bit.
 
-- `regs`: general registers, PC, SR, SP/LR/FP, and nearest ELF symbol;
-- `mem ADDRESS LENGTH`: read tracee memory;
-- `write ADDRESS BYTE`: modify tracee memory;
-- `disasm [ADDRESS [COUNT]]`: decode the fixed-width REM32 instruction at
-  the current PC or another address;
-- `symbol ADDRESS`: find the nearest ELF32 static/dynamic function symbol;
-- `continue`: resume and report exit, signal, or stop state;
-- `step` / `next`: request `PTRACE_SINGLESTEP`;
-- `break ADDRESS`: explain the current platform breakpoint limitation.
+## NOT YET IMPLEMENTED (stubbed with an honest message)
 
-The implementation reads ELF32 little-endian symbol tables directly. It does
-not shell out to `nm`, `readelf`, or `objdump`. The decoder follows the REM32
-instruction fields used by the target disassembler. Build with:
+Line-number breakpoints (`break 12`), `break ... if`, conditions, watchpoints,
+`display`, `ptype`/`whatis`, `call`, `file`, `load`, `attach`, `x/f` (no FPU),
+`info frame`, `info line`, threads, multiple inferiors, `frame N>0`.
 
-```sh
-make -C toolchain/remdbg \
-  REM_CC=/path/to/myemulator2-elf-gcc \
-  MUSL_PREFIX=/path/to/rem-musl-prefix \
-  OUTPUT=/tmp/remdbg
-```
+## Differences from GDB (deliberate)
 
-The target compiler and musl prefix must be from the same validated REM ABI
-tuple. The Makefile defaults to the in-image musl location for rebuilds from
-inside REM.
+- The inferior is held at its exec stop at startup, so `i r`, `b`, `x`,
+  `disas` work before `run`. GDB would say "The program has no registers now".
+  The first `run` resumes it; later `run`s restart it.
+- Breakpoints persist across inferior exit/restart. A second breakpoint at an
+  address already holding one is refused with a Note.
+- Exit status is printed GDB-style: `[Inferior 1 (process N) exited with code 52]`
+  (octal, as GDB does).
 
-## Qualification evidence and blocker
+## Compact reference (offline)
 
-The prototype compiled with GCC SHA-256
-`07ef3aaab8ce4ce47c0a093a4b7b2590e98c936e6e8a651d7261e0f07f0087fe`; the
-final Makefile result `/tmp/remdbg-final` is REM ELF32 `ET_EXEC`, machine
-`MyEmulator2`, entry `0x02000094`, SHA-256
-`d52ea72951ee88ed8c9f5de5ad06a68759a0d09de8bdbdb19f958129329c7c2a`.
-It was launched with a trivial static REM fixture (SHA-256
-`1c84e53e073bbcf6fe3c52607055f81e8a532878520c7d42056e48f4a2628464`) in a
-disposable copy of the root filesystem (SHA-256
-`c469881cbc954556961868dc0bc2aad7258288ea261979cb94205a5cd90469ee`). Before
-the debugger could obtain registers or reach its command prompt, the child
-reported:
+    r  c  c N  si  si N  ni  finish  u *A  j *A  k  q
+    b *A / b FUNC   tbreak   d N   disable N   enable N   i b
+    i r   i r r1   p $pc   p/x $sp   p $r1+4   p *0x2000000
+    x/4x A   x/8wx A   x/2gx A   x/s A   x/10i $pc   x/3dw $sp
+    disas   disas A,B   bt   f   l   help   help break   help info registers
 
-```text
-remdbg: PTRACE_TRACEME: Function not implemented
-```
+## Testing
 
-The tested kernel SHA-256 is
-`c77547060463da37cf9730e41e799c94998ad9f6e24e2c1a3282ee3299215a63`; QEMU
-SHA-256 is
-`0154db549ad01d0bcdfd79c0dde9544266fc14c75fe7825d14942ff47a75641a`. The
-REM syscall table has no case for syscall 117 (`ptrace`), despite musl
-providing its declaration and constants. Therefore register, memory, symbol,
-disassembly, continue, and fault reporting are source-implemented but not
-runtime-qualified. The initial `PTRACE_TRACEME` boundary prevents exercising
-them in the guest.
-
-There are two further source-level blockers for the requested execution
-controls. Linux's generic ptrace path rejects `PTRACE_SINGLESTEP` with `EIO`
-when `arch_has_single_step()` is false; the REM architecture does not define
-that hook or stepping state. The REM `break` instruction raises exception
-vector 13, which the current architecture exception dispatcher does not
-convert into a ptrace stop (unhandled vectors reach the kernel panic path).
-Adding a userspace command cannot provide those CPU/kernel stop semantics.
-
-## Status / next work
-
-- **Reviewed:** existing 8-bit QMP debugger architecture, command model, and
-  automated tests.
-- **Prototype built:** native REM process debugger source and static ELF.
-- **Guest result:** blocked at `PTRACE_TRACEME` / `ENOSYS`; none of the
-  debugger commands are accepted as guest-tested.
-- **Required platform work for this design:** syscall 117 dispatch plus
-  functional ptrace launch/attach and register/memory access; architecture
-  single-step support; a defined user breakpoint exception-to-`SIGTRAP` and
-  ptrace-stop path.
-- **Not done:** kernel work is outside this assignment's explicit boundary.
-  Until those interfaces exist, the full “load, step, inspect, debug” success
-  criterion cannot be met by a native Linux-process debugger. The host-side
-  QMP `mydebug` remains the qualified debugger for its original QEMU target.
+Fixture: `tests/debugger/remdbg-gdb-test.S` (`_start` calls `add3`, exits 42).
+Verified on real REM32 (desktop QEMU, Fold icount settings): `i r`, `b *0x20000a0`,
+`i b`, `r`, `si` (PC moved into `add3`, r1–r3/lr changed), `c` (exit code 52 octal =
+42), `x/4x`, `x/10i`, `disas`, `d 1`, `q`. No ptrace kernel change was required.
+Build: `make REM_CC=... MUSL_PREFIX=... OUTPUT=remdbg` in `toolchain/remdbg`.

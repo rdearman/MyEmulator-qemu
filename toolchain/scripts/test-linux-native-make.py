@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
+from linux_build_config import temporary_linux_config
 
 ROOT = Path(__file__).resolve().parents[2]
 GCC = Path(os.environ.get("MYEMU_NATIVE_GCC", "/tmp/myemu-native/bin/myemulator2-linux-musl-gcc"))
@@ -70,10 +71,11 @@ int main(void) {
         INITRAMFS.parent.mkdir(parents=True, exist_ok=True)
         with INITRAMFS.open("wb") as out:
             subprocess.run([str(GEN_INIT_CPIO), str(listing)], check=True, stdout=out)
-        subprocess.run([str(LINUX / "scripts/config"), "--file",
-                        str(BUILD / ".config"), "--set-str",
-                        "INITRAMFS_SOURCE", str(INITRAMFS)], check=True)
-        subprocess.run([str(ROOT / "toolchain/scripts/build-linux.sh")], check=True, stdout=subprocess.DEVNULL)
+        with temporary_linux_config(BUILD / ".config"):
+            subprocess.run([str(LINUX / "scripts/config"), "--file",
+                            str(BUILD / ".config"), "--set-str",
+                            "INITRAMFS_SOURCE", str(INITRAMFS)], check=True)
+            subprocess.run([str(ROOT / "toolchain/scripts/build-linux.sh")], check=True, stdout=subprocess.DEVNULL)
         sock_path = tmp / "console.sock"
         qemu_args = [
             str(QEMU), "-M", "myemulator32", "-m", "16M", "-kernel", str(KERNEL),

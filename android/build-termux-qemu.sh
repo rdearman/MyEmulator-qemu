@@ -10,11 +10,17 @@ jobs="${JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || printf '2')}"
 
 command -v pkg-config >/dev/null || { echo 'missing pkg-config; pkg install pkg-config' >&2; exit 2; }
 pkg-config --exists glib-2.0 || { echo 'missing Termux GLib; pkg install glib' >&2; exit 2; }
+pkg-config --exists slirp || { echo 'missing Termux libslirp development files; install libslirp' >&2; exit 2; }
 
 if [[ ! -x "$qemu_source/configure" ]]; then
   mkdir -p "$(dirname "$qemu_source")"
   git clone --branch "$qemu_ref" --depth 1 "$qemu_repo" "$qemu_source"
 fi
+qemu_source_version=$(tr -d '\r\n' < "$qemu_source/VERSION")
+[[ "$qemu_source_version" == 9.2.0 ]] || {
+  echo "QEMU source version mismatch: expected pinned v9.2.0, found $qemu_source_version" >&2
+  exit 2
+}
 
 "$project_root/qemu/tools/apply-overlay.sh" "$qemu_source"
 mkdir -p "$qemu_build"
@@ -32,7 +38,7 @@ mkdir -p "$qemu_build"
     --disable-sdl \
     --disable-opengl \
     --disable-vnc \
-    --disable-slirp \
+    --enable-slirp \
     --disable-pipewire \
     --disable-alsa \
     --disable-pa \

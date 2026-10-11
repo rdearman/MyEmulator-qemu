@@ -31,6 +31,13 @@ myemulator2_switch_to:
 	sw r15, 44(r1)
 
 	lw r13, 0(r2)
+	/* The boot CPU starts on init_stack before the idle task has a
+	 * materialized thread.sp.  When the scheduler first switches back to
+	 * that task, a zero context must resolve to the boot stack rather than
+	 * becoming an invalid kernel SP (which faults in arch_cpu_idle()). */
+	bne r13, r0, 1f
+	li r13, __end_init_stack
+1:
 	lw r5, 12(r2)
 	lw r6, 16(r2)
 	lw r7, 20(r2)
@@ -40,6 +47,11 @@ myemulator2_switch_to:
 	lw r11, 36(r2)
 	lw r12, 40(r2)
 	lw r15, 44(r2)
+	/* The boot idle context has no saved frame register either.  Keep the
+	 * frame base coherent with the fallback stack selected above. */
+	bne r15, r0, 2f
+	add r15, r13, r0
+2:
 	lw r3, 8(r2)
 	mtsr tp, r3
 	lw r14, 4(r2)

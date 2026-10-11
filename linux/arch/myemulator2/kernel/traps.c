@@ -36,12 +36,6 @@ void myemulator2_exception_dispatch(struct pt_regs *regs)
 	 * make a child inherit a kernel PC instead of its user continuation.
 	 * Explicit exception handlers still use their regs argument directly. */
 	if (regs->cause == 12) {
-		if (regs->r[1] == 220) {
-			pr_emerg("MYEMU_TTYTRACE syscall-frame pid=%d pc=%08lx sr=%08lx\n",
-				 current->pid, regs->pc, regs->sr);
-			pr_emerg("MYEMU_TTYTRACE syscall-frame user=%d regs=%px\n",
-				 user_mode(regs), regs);
-		}
 		/* A syscall frame is the authoritative saved userspace continuation
 		 * for fork/clone, including the first syscall after kernel_execve(). */
 		current_thread_info()->regs = regs;
@@ -60,14 +54,8 @@ void myemulator2_exception_dispatch(struct pt_regs *regs)
 			myemulator2_finish_user_exception(regs);
 			return;
 		}
-		if (!strcmp(current->comm, "bash"))
-			pr_emerg("MYEMU_TTYTRACE bash-sys-enter nr=%lu a0=%08lx a1=%08lx\n",
-				 regs->orig_r1, regs->r[2], regs->r[3]);
 		regs->r[1] = myemulator2_syscall(regs->r[1], regs->r[2],
 			regs->r[3], regs->r[4], regs->r[5], regs->r[6], regs->r[7]);
-		if (!strcmp(current->comm, "bash"))
-			pr_emerg("MYEMU_TTYTRACE bash-sys-exit nr=%ld ret=%08lx\n",
-				 regs->orig_r1, regs->r[1]);
 		myemulator2_finish_user_exception(regs);
 		return;
 	}

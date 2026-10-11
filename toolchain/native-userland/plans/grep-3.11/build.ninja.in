@@ -2,13 +2,13 @@ cc = @CC@
 root = ../../..
 
 rule cc
-  command = mkdir -p $directory && $cc $flags -c $in -o $out
+  command = mkdir -p $directory && rm -f $out.tmp && $cc $flags -c $in -o $out.tmp && mv -f $out.tmp $out
   description = CC $in
 rule archive
-  command = ar rcs $out $in
+  command = rm -f $out.tmp && ar rcs $out.tmp $in && mv -f $out.tmp $out
   description = AR $out
 rule link
-  command = mkdir -p ../native/bin && ld -r -T $root/bootstrap/rem-reloc.ld -o $out.partial.o $in && $cc -o $out $out.partial.o $libraries
+  command = mkdir -p ../native/bin && rm -f $out.partial.o.tmp $out.tmp && ld -r -T $root/bootstrap/rem-reloc.ld -o $out.partial.o.tmp $in && mv -f $out.partial.o.tmp $out.partial.o && $cc -o $out.tmp $out.partial.o $libraries && mv -f $out.tmp $out
   description = LINK $out
 
 build lib/libgreputils_a-argmatch.o: cc ../lib/argmatch.c | config.h lib/iconv.h lib/stdio.h lib/unitypes.h lib/sigsegv.h lib/unistr.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/locale.h lib/wchar.h lib/stddef.h lib/fcntl.h lib/stdckdint.h lib/langinfo.h lib/stdint.h lib/uniwidth.h lib/inttypes.h lib/string.h lib/configmake.h lib/getopt.h lib/limits.h lib/dirent.h lib/wctype.h lib/ctype.h lib/unistd.h lib/error.h lib/time.h lib/sys/types.h lib/sys/stat.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h

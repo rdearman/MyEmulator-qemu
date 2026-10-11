@@ -27,9 +27,12 @@ done
 
 "$AS" -o ld-empty.o /root/binqual/src/empty.S >ld-empty-as.log 2>&1
 empty_as_rc=$?
+"$AS" -c /root/binqual/src/empty.S -o ld-empty-c.o >ld-empty-c-as.log 2>&1
+empty_c_as_rc=$?
 "$AS" -o ld-hello.o /root/binqual/src/ld-hello.S >ld-hello-as.log 2>&1
 ld_hello_as_rc=$?
-if [ "$empty_as_rc" -eq 0 ] && [ "$ld_hello_as_rc" -eq 0 ]; then pass 'as minimal and hello linker inputs'; else fail 'as minimal linker inputs'; fi
+if [ "$empty_as_rc" -eq 0 ] && [ "$empty_c_as_rc" -eq 0 ] && [ "$ld_hello_as_rc" -eq 0 ]; then pass 'as minimal, -c, and hello linker inputs'; else fail 'as minimal/-c linker inputs'; fi
+if [ "$empty_as_rc" -eq 0 ] && [ "$empty_c_as_rc" -eq 0 ] && cmp -s ld-empty.o ld-empty-c.o; then pass 'as -c matches default object output'; else fail 'as -c object equivalence'; fi
 "$LD" -r ld-empty.o -o ld-empty-rel.o >ld-empty-rel.log 2>&1
 if [ $? -eq 0 ]; then pass 'native root linker -r empty object'; else fail 'native root linker -r empty object'; fi
 "$LD" -r ld-hello.o -o ld-hello-rel.o >ld-hello-rel.log 2>&1

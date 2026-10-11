@@ -14,6 +14,7 @@ Offline documentation for using the REM development environment.
 - [Binutils Guide](BINUTILS_GUIDE.md) — assembler, linker, archive, and inspection tools.
 - [REM Assembly Guide](REM_ASSEMBLY_GUIDE.md) — verified assembly reference and links.
 - [Flight Checklist](FLIGHT_CHECKLIST.md) — pre-flight validation sequence.
+- [Source Backup and Restore](../REM_SOURCE_BACKUP.md) — desktop-hosted HTTP archive transfer workflow and current qualification status.
 
 ## Existing reference material
 

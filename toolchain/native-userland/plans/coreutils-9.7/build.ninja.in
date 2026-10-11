@@ -2,13 +2,13 @@ cc = @CC@
 root = ../../..
 
 rule cc
-  command = mkdir -p $directory && $cc $flags -c $in -o $out
+  command = mkdir -p $directory && rm -f $out.tmp && $cc $flags -c $in -o $out.tmp && mv -f $out.tmp $out
   description = CC $in
 rule archive
-  command = ar rcs $out $in
+  command = rm -f $out.tmp && ar rcs $out.tmp $in && mv -f $out.tmp $out
   description = AR $out
 rule link
-  command = mkdir -p ../native/bin && ld -r -T $root/bootstrap/rem-reloc.ld -o $out.partial.o $in && $cc -o $out $out.partial.o $libraries
+  command = mkdir -p ../native/bin && rm -f $out.partial.o.tmp $out.tmp && ld -r -T $root/bootstrap/rem-reloc.ld -o $out.partial.o.tmp $in && mv -f $out.partial.o.tmp $out.partial.o && $cc -o $out.tmp $out.partial.o $libraries && mv -f $out.tmp $out
   description = LINK $out
 
 build src/chroot.o: cc ../src/chroot.c | lib/iconv.h lib/stdio.h lib/unitypes.h lib/unistr.h lib/signal.h lib/getopt-cdefs.h lib/stdlib.h lib/locale.h lib/wchar.h lib/stddef.h lib/utime.h lib/unictype.h lib/uninorm.h lib/fcntl.h lib/stdbit.h lib/stdckdint.h lib/gmp.h lib/math.h lib/langinfo.h lib/stdint.h lib/unicase.h lib/uchar.h lib/config.h lib/uniwidth.h lib/inttypes.h lib/string.h lib/termios.h lib/configmake.h lib/getopt.h lib/obstack.h lib/limits.h lib/netdb.h lib/dirent.h lib/wctype.h lib/float.h lib/sched.h lib/pthread.h lib/ctype.h lib/unistd.h lib/error.h lib/time.h src/version.h src/coreutils.h lib/arpa/inet.h lib/selinux/label.h lib/selinux/selinux.h lib/selinux/context.h lib/sys/utsname.h lib/sys/socket.h lib/sys/select.h lib/sys/random.h lib/sys/uio.h lib/sys/wait.h lib/sys/resource.h lib/sys/ioctl.h lib/sys/types.h lib/sys/stat.h lib/sys/time.h lib/malloc/dynarray-skeleton.gl.h lib/malloc/dynarray.gl.h lib/malloc/scratch_buffer.gl.h

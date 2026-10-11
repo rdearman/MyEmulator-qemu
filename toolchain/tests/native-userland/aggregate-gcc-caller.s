@@ -1,4 +1,6 @@
 	.file	"aggregate-abi.c"
+# The GCC-generated small-aggregate call sites are adapted to the REM ABI:
+# pass the aggregate argument pointer in r1 and collect the direct r1:r2 result.
 	.text
 	.p2align	2
 	.global	main
@@ -15,15 +17,15 @@ main:
 	sw r1, -36(r15)
 	li r1, 22
 	sw r1, -32(r15)
-	subi r3, r15, 44
+	subi r5, r15, 44
 	lw r1, -36(r15)
 	sw r1, -92(r15)
 	lw r1, -32(r15)
 	sw r1, -88(r15)
 	subi r1, r15, 92
-	add r2, r1, r0
-	add r1, r3, r0
 	jal small_copy
+	sw r1, 0(r5)
+	sw r2, 4(r5)
 	li r1, 1410065408
 	sw r1, -60(r15)
 	li r1, 2
@@ -122,15 +124,15 @@ main:
 	li r1, 3
 	j .L11
 .L8:
-	subi r3, r15, 28
+	subi r5, r15, 28
 	lw r1, -36(r15)
 	sw r1, -92(r15)
 	lw r1, -32(r15)
 	sw r1, -88(r15)
 	subi r1, r15, 92
-	add r2, r1, r0
-	add r1, r3, r0
 	jal small_copy
+	sw r1, 0(r5)
+	sw r2, 4(r5)
 	lw r2, -24(r15)
 	li r1, 23
 	bne r2, r1, .Lmyemu_cbranch_skip121

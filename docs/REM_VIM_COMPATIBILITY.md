@@ -348,3 +348,105 @@ owner to investigate the `syn_name2id` invalid pointer together with the
 ext4/page-fault warnings, then repeat the two command modes on clean images.
 Until then, use the independently validated Kilo editor; there is no Vim
 startup configuration workaround established by these tests.
+
+## Minimal libc/memory probes for the pre-screen fault (2026-09-27)
+
+On disposable clones of the same `REM-FLIGHT-TTY` tuple above, I built the
+same standalone probe with GCC and chibicc, linked against the same flight-kit
+musl runtime. Source: [`rem-vim-runtime-stress-probe.c`](../toolchain/tests/rem-vim-runtime-stress-probe.c).
+The 16 MiB malloc/free plus realloc-preservation/end-point test passed;
+reading `/bin/busybox` to EOF, checking its ELF header/checksum, and closing
+the fd passed; file-backed and 8 MiB anonymous mmap access/unmap passed.
+These results do not reproduce Vim's bad pointer through those operations.
+
+The string phase passes `strcpy`, `strcat`, `strcmp`, and `strlen`, then faults
+inside the shared musl `strstr` implementation for both GCC and chibicc caller
+builds. GCC O2, GCC O0, and chibicc all fault at the `strstr` saved-register
+restore: GCC O2 PC `0x02001b4c`, chibicc PC `0x02008464`, the bad load is
+`0x46c`, and the reported frame pointer is `0x480`. Both PCs map to the same
+restore sequence (`lw r9,0(r12)` with `r12=fp-20`).
+The run therefore reproduces a non-Vim runtime failure and narrows the first
+failing boundary to `strstr`/its call-frame state. It does **not** prove whether
+musl's implementation, the compiler/ABI boundary, or other runtime state
+causes the corrupted frame. The kernel reports the invalid user access; no
+kernel change was made. The recurring ext4 warnings concern inode 258
+(`/usr/bin/bash`) and pages 464-466 on an `e2fsck`-clean pre-boot clone; no
+causal link to the `strstr` fault is established.
+
+The probe's `/proc/self/maps` phase could not run: the tested rootfs has no
+`mount` command and procfs is not mounted. This is a packaging/test-environment
+limitation, not evidence that the kernel lacks procfs. The probe and logs are
+under `/tmp/rem-vim-runtime-probe` for this session; no Vim, kernel, libc, or
+flight artifact was changed.
+
+## Rebuilt candidate edit/save/readback (2026-09-30)
+
+A full Vim 9.1.1724 O0 rebuild was tested on a clean disposable ext4 guest
+image. Candidate package and build notes are in
+[`tools/rem-flight-image/staging/applications/vim-rem-9.1.1724`](../tools/rem-flight-image/staging/applications/vim-rem-9.1.1724/README.md).
+
+- QEMU SHA-256: `9d1f47b2a6fb2e2f808e4538d316265cf220534dc2cb42c76a486391a4f27f16`
+- Kernel SHA-256: `f6f5f57ef5bf18af984b8b11febb40d76204109ec3533621ba5969006af19138`
+- Pre-test disposable rootfs SHA-256: `1f0e44b19fd782c8431728ccc67e4870ac8cd73b6c5cf3ed9158333e961e3232`
+- Vim binary SHA-256: `c28488ace99d02e133db37594e141325a3f092f114be7c1fc67c0fce0a431ae3`
+- Launcher SHA-256: `dc3a93b3645f4b33073b7855a5ea09a3738afe3d2987f52472e88112c9495a15`
+
+With `TERM=xterm`, Vim opened `/root/vim-uat.txt` as a new buffer. The test
+inserted `VIM_QUIET_ACCEPTANCE` and `SECOND_LINE`; `:wq` reported two lines and
+33 bytes written, returned to the shell, and guest `cat` returned exactly those
+two lines. After guest `sync`, QEMU was quit through its monitor and exited
+with status 0. Host `debugfs` readback matched the 33 expected bytes (SHA-256
+`0cd3c6f01886581a745c10b28b6c7292577704d6d1feaf50a99f80fa31bda879`). This
+proves an interactive create/edit/save/exit/readback cycle for this candidate;
+it does not prove persistence across a reboot.
+
+The clean O0 build without an extra call still faulted during `estack_init`.
+Retaining a call to a gated allocation trace helper at the large-allocation
+site allowed the editor cycle to complete with tracing disabled by default.
+This is evidence of layout-sensitive behavior, not a root cause or a compiler,
+ABI, or kernel fix. A small `strstr` fallback was also linked because the
+tested musl `strstr` path faults in separate GCC and chibicc caller probes.
+The package records both modifications; the candidate is not yet integrated
+or validated in the current flight distribution.
+
+The launcher applies `set nofsync` because the tested musl fsync syscall
+number (82) differs from the kernel's handled number (74); the unwrapped Vim
+save had returned E667. The tested write followed by guest `sync` succeeded.
+Post-write `e2fsck` found the free-block and free-inode counts each off by one,
+so filesystem accounting after the save remains a separate reliability issue.
+
+The packaged wrapper was then tested with normal startup on fresh rootfs images.
+The guest reached the Vim screen, accepted two lines, reported `2L, 41B
+written`, returned to the shell, and `cat` returned both exact lines. In one
+synced image, host `debugfs` readback matched the 41 expected bytes. Guest
+`poweroff` did not exit QEMU within 20 seconds; the tracked QEMU was then quit
+through its monitor and exited 0. Post-write e2fsck found free-block and
+free-inode counts each off by one.
+
+Repeatability was not established: another fresh image showed the same Vim
+save and guest `cat`, but host `debugfs` could not find the file after monitor
+quit. That image's ext4 superblock reported zero free blocks and inodes, while
+e2fsck's recount found 51,053 free blocks and 37,225 free inodes. Both images
+passed pre-boot e2fsck. This is evidence of an unresolved filesystem/writeback
+or shutdown problem, not a Vim rendering or editing failure. Do not treat the
+candidate's source saves as reliable across guest shutdown until that system
+issue is resolved. QEMU PID, command line, purpose, artifact hashes, and exit
+status are recorded under `/tmp/rem-vim-rebuild-20260929/test/package-uat/`.
+
+## Quiet-hook candidate rebuild (2026-09-30)
+
+To remove the trace helper from the staged candidate, Vim was rebuilt from the
+same source tree and toolchain at O0 with a side-effect-free, non-inlined hook
+at the two large-allocation call sites. The static MyEmulator2 ELF32 binary is
+SHA-256 `4cd43926d08faa52ef67ad997c087514752c73335e6bc6d876490b0b52e8bb61`.
+On a fresh rootfs that passed pre-boot e2fsck, normal `/usr/bin/vim` startup,
+interactive insertion, save (`2L, 41B written`), return to shell, exact guest
+`cat`, and `sync` all passed. QEMU ran as tracked PID 8 and exited 0 after
+monitor `quit`.
+
+After shutdown, host `debugfs` could not find the saved file. Post-write e2fsck
+reported zero free blocks/inodes in the superblock while recounting 51,053
+blocks and 37,225 inodes free. This reproduces the storage reliability
+boundary with the quiet-hook candidate. Vim's interactive edit/save path is
+working; durable persistence is not accepted. No kernel or filesystem code
+was changed.

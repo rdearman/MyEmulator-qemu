@@ -8,11 +8,21 @@
 #include <linux/sched/task_stack.h>
 #include <asm/processor.h>
 #include <asm/irqflags.h>
+#include <asm/io.h>
+
+#define MYEMU2_POWER_RESTART  0x52455354UL /* "REST" */
+#define MYEMU2_POWER_OFF      0x504f4646UL /* "POFF" */
 
 unsigned long init_stack[THREAD_SIZE / sizeof(unsigned long)]
 	__aligned(THREAD_SIZE);
 
 asmlinkage void ret_from_fork(void);
+
+/* Register the board power controller with generic reboot.c.  Without this
+ * hook Linux downgrades POWER_OFF to HALT and skips the orderly shutdown
+ * path, leaving ext4's final journal checkpoint pending. */
+void machine_power_off(void);
+void (*pm_power_off)(void) = machine_power_off;
 
 /* Keep pt_regs field accesses based on the pointer argument.  Folding
  * task_pt_regs(task) into a stack-base plus 8176-byte displacement is not
@@ -48,18 +58,23 @@ void arch_cpu_idle(void)
 void machine_restart(char *cmd)
 {
 	pr_emerg("MyEmulator2 restart requested\n");
+	writel(MYEMU2_POWER_RESTART, (void __iomem *)MYEMU2_POWER_VIRT);
 	for (;;)
 		asm volatile("halt" ::: "memory");
 }
 
 void machine_halt(void)
 {
+	/* QEMU has no separate halt state.  Treat a privileged Linux halt as a
+	 * guest shutdown so the disposable machine terminates cleanly. */
+	writel(MYEMU2_POWER_OFF, (void __iomem *)MYEMU2_POWER_VIRT);
 	for (;;)
 		asm volatile("halt" ::: "memory");
 }
 
 void machine_power_off(void)
 {
+	writel(MYEMU2_POWER_OFF, (void __iomem *)MYEMU2_POWER_VIRT);
 	machine_halt();
 }
 
@@ -158,8 +173,6 @@ int copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
 		childregs->sr = (1u << 5);
 		p->thread.fn = (unsigned long)args->fn;
 		p->thread.fn_arg = (unsigned long)args->fn_arg;
-		pr_emerg("MYEMU_TTYTRACE copy-thread pid=%d sp=%08lx pc=%08lx\n",
-			 p->pid, p->thread.sp, p->thread.pc);
 		return 0;
 	}
 
@@ -176,11 +189,5 @@ int copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
 		asm volatile("mfsr %0, tp" : "=r"(tp));
 		p->thread.tp = tp;
 	}
-	pr_emerg("MYEMU_TTYTRACE copy-thread pid=%d sp=%08lx pc=%08lx\n",
-		 p->pid, p->thread.sp, p->thread.pc);
-	pr_emerg("MYEMU_TTYTRACE copied-regs pc=%08lx sp=%08lx sr=%08lx\n",
-		 childregs->pc, childregs->r[13], childregs->sr);
-	pr_emerg("MYEMU_TTYTRACE source-regs=%px pc=%08lx sp=%08lx\n",
-		 current_pt_regs(), current_pt_regs()->pc, current_pt_regs()->r[13]);
 	return 0;
 }

@@ -1,23 +1,74 @@
---- a/build-native.sh	1970-01-01 01:00:00.000000000 +0100
-+++ b/build-native.sh	2026-10-07 00:07:08.976317571 +0100
-@@ -0,0 +1,20 @@
+--- a/build-native.sh	1970-01-01 00:00:00.000000000 +0000
++++ b/build-native.sh	2026-10-10 00:00:00.000000000 +0000
+@@ -0,0 +1,22 @@
 +#!/bin/bash
-+set -eu
-+case $0 in */*) cd "${0%/*}" ;; esac
-+source ../../native-env.sh
-+mkdir -p native
-+objects=
-+for source in blocksort huffman crctable randtable compress decompress bzlib; do
-+    echo "CC $source.c"
-+    "$CC" -D_FILE_OFFSET_BITS=64 -I. -c "$source.c" -o "native/$source.o"
-+    objects="$objects native/$source.o"
++set -Eeuo pipefail
++USERLAND_ROOT=${REM_USERLAND_ROOT:?REM_USERLAND_ROOT must be exported}
++PKG_ROOT=$USERLAND_ROOT/packages/bzip2-1.0.8
++SAMU=${SAMU:-samu}
++PATH=$USERLAND_ROOT/bootstrap/tools/native:$USERLAND_ROOT/packages/coreutils-9.7/native/bin:/usr/bin:/bin:$PATH
++export PATH
++command -v "$SAMU" >/dev/null 2>&1 || { echo 'Samurai (samu) is missing' >&2; exit 1; }
++[[ -s $PKG_ROOT/build.ninja ]] || { echo "bzip2 Ninja file missing: $PKG_ROOT/build.ninja" >&2; exit 1; }
++cd "$PKG_ROOT"
++echo 'REM_STAGE|bzip2-samu|start'
++"$SAMU" -j1
++for output in native/libbz2.a native/bin/bzip2 native/bin/bzip2recover native/bin/bunzip2 native/bin/bzcat; do
++    [[ -s $output || -L $output ]] || { echo "bzip2 output missing: $output" >&2; exit 1; }
 +done
-+ar rcs native/libbz2.a $objects
-+"$CC" -D_FILE_OFFSET_BITS=64 -I. -c bzip2.c -o native/bzip2.o
-+ld -r -T ../../bootstrap/rem-reloc.ld -o native/bzip2-partial.o native/bzip2.o $objects
-+"$CC" -o native/bzip2 native/bzip2-partial.o
-+"$CC" -I. -o native/bzip2recover bzip2recover.c
-+mkdir -p native/bin
-+cp native/bzip2 native/bzip2recover native/bin/
-+ln -sf bzip2 native/bin/bunzip2
-+ln -sf bzip2 native/bin/bzcat
++mkdir -p build/smoke
++printf 'REM Samurai atomic archive smoke test\n' > build/smoke/input
++native/bin/bzip2 -c build/smoke/input > build/smoke/input.bz2
++native/bin/bzip2 -dc build/smoke/input.bz2 > build/smoke/output
++cmp build/smoke/input build/smoke/output
++echo 'PASS bzip2'
++echo 'REM_STAGE|bzip2-samu|finish'
+--- a/build.ninja	1970-01-01 00:00:00.000000000 +0000
++++ b/build.ninja	2026-10-10 00:00:00.000000000 +0000
+@@ -0,0 +1,46 @@
++cc = ../../bootstrap/native/chibicc-selfbuilt
++ld = ld
++ar = ar
++reloc = ../../bootstrap/rem-reloc.ld
++
++rule cc
++  command = mkdir -p $directory && rm -f $out.tmp && $cc -D_FILE_OFFSET_BITS=64 -I. -c $in -o $out.tmp && mv -f $out.tmp $out
++  description = CC bzip2 $in
++rule archive
++  command = rm -f $out.tmp && $ar rcs $out.tmp $in && mv -f $out.tmp $out
++  description = AR bzip2 $out
++rule link
++  command = mkdir -p native/bin build && $rm -f $out.partial.o.tmp $out.tmp && ld -r -T $reloc -o $out.partial.o.tmp $in && mv -f $out.partial.o.tmp $out.partial.o && $cc -o $out.tmp $out.partial.o && mv -f $out.tmp $out
++  description = LINK bzip2 $out
++rule symlink
++  command = rm -f $out.tmp && ln -s $target $out.tmp && mv -f $out.tmp $out
++  description = LINK bzip2 alias $out
++
++build build/obj/blocksort.o: cc blocksort.c
++  directory = build/obj
++build build/obj/huffman.o: cc huffman.c
++  directory = build/obj
++build build/obj/crctable.o: cc crctable.c
++  directory = build/obj
++build build/obj/randtable.o: cc randtable.c
++  directory = build/obj
++build build/obj/compress.o: cc compress.c
++  directory = build/obj
++build build/obj/decompress.o: cc decompress.c
++  directory = build/obj
++build build/obj/bzlib.o: cc bzlib.c
++  directory = build/obj
++build build/obj/bzip2.o: cc bzip2.c
++  directory = build/obj
++build build/obj/bzip2recover.o: cc bzip2recover.c
++  directory = build/obj
++
++build native/libbz2.a: archive build/obj/blocksort.o build/obj/huffman.o build/obj/crctable.o build/obj/randtable.o build/obj/compress.o build/obj/decompress.o build/obj/bzlib.o
++build native/bin/bzip2: link build/obj/bzip2.o build/obj/blocksort.o build/obj/huffman.o build/obj/crctable.o build/obj/randtable.o build/obj/compress.o build/obj/decompress.o build/obj/bzlib.o
++build native/bin/bzip2recover: link build/obj/bzip2recover.o
++build native/bin/bunzip2: symlink native/bin/bzip2
++  target = bzip2
++build native/bin/bzcat: symlink native/bin/bzip2
++  target = bzip2
++
++default native/libbz2.a native/bin/bzip2 native/bin/bzip2recover native/bin/bunzip2 native/bin/bzcat

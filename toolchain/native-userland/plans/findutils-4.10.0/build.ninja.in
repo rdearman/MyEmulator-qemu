@@ -2,13 +2,13 @@ cc = @CC@
 root = ../../..
 
 rule cc
-  command = mkdir -p $directory && $cc $flags -c $in -o $out
+  command = mkdir -p $directory && rm -f $out.tmp && $cc $flags -c $in -o $out.tmp && mv -f $out.tmp $out
   description = CC $in
 rule archive
-  command = ar rcs $out $in
+  command = rm -f $out.tmp && ar rcs $out.tmp $in && mv -f $out.tmp $out
   description = AR $out
 rule link
-  command = mkdir -p ../native/bin && ld -r -T $root/bootstrap/rem-reloc.ld -o $out.partial.o $in && $cc -o $out $out.partial.o $libraries
+  command = mkdir -p ../native/bin && rm -f $out.partial.o.tmp $out.tmp && ld -r -T $root/bootstrap/rem-reloc.ld -o $out.partial.o.tmp $in && mv -f $out.partial.o.tmp $out.partial.o && $cc -o $out.tmp $out.partial.o $libraries && mv -f $out.tmp $out
   description = LINK $out
 
 build gl/lib/libgnulib_a-allocator.o: cc ../gl/lib/allocator.c | config.h gl/lib/stdio.h gl/lib/unitypes.h gl/lib/unistr.h gl/lib/getopt-cdefs.h gl/lib/stdlib.h gl/lib/locale.h gl/lib/wchar.h gl/lib/stddef.h gl/lib/unictype.h gl/lib/uninorm.h gl/lib/fcntl.h gl/lib/stdckdint.h gl/lib/fnmatch.h gl/lib/math.h gl/lib/langinfo.h gl/lib/stdint.h gl/lib/unicase.h gl/lib/uchar.h gl/lib/uniwidth.h gl/lib/inttypes.h gl/lib/string.h gl/lib/getopt.h gl/lib/limits.h gl/lib/dirent.h gl/lib/wctype.h gl/lib/strings.h gl/lib/ctype.h gl/lib/unistd.h gl/lib/error.h gl/lib/time.h gl/lib/selinux/label.h gl/lib/selinux/selinux.h gl/lib/selinux/context.h gl/lib/sys/utsname.h gl/lib/sys/socket.h gl/lib/sys/uio.h gl/lib/sys/wait.h gl/lib/sys/types.h gl/lib/sys/stat.h gl/lib/sys/time.h gl/lib/malloc/dynarray-skeleton.gl.h gl/lib/malloc/dynarray.gl.h gl/lib/malloc/scratch_buffer.gl.h

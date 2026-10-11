@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
+from linux_build_config import temporary_linux_config
 
 ROOT = Path(__file__).resolve().parents[2]
 PREFIX = Path(os.environ.get("MYEMU_TOOLCHAIN_PREFIX", ROOT / ".toolchain-install"))
@@ -75,15 +76,16 @@ def main():
         subprocess.run(["truncate", "-s", "16M", str(image)], check=True)
         subprocess.run(["mkfs.ext4", "-q", "-F", "-d", str(rootfs), str(image)], check=True)
         config = LINUX / "scripts/config"
-        subprocess.run([str(config), "--file", str(BUILD / ".config"),
-                        "--set-str", "INITRAMFS_SOURCE", ""], check=True)
-        subprocess.run([str(config), "--file", str(BUILD / ".config"),
-                        "--enable", "EXT4_FS"], check=True)
-        subprocess.run([str(config), "--file", str(BUILD / ".config"),
-                        "--set-str", "CMDLINE",
-                        "console=ttyMY0,115200 earlycon=myemulator2,0xf0000000 root=/dev/myemu0 rw init=/sbin/init"], check=True)
-        subprocess.run([str(ROOT / "toolchain/scripts/build-linux.sh")], check=True,
-                       stdout=subprocess.DEVNULL)
+        with temporary_linux_config(BUILD / ".config"):
+            subprocess.run([str(config), "--file", str(BUILD / ".config"),
+                            "--set-str", "INITRAMFS_SOURCE", ""], check=True)
+            subprocess.run([str(config), "--file", str(BUILD / ".config"),
+                            "--enable", "EXT4_FS"], check=True)
+            subprocess.run([str(config), "--file", str(BUILD / ".config"),
+                            "--set-str", "CMDLINE",
+                            "console=ttyMY0,115200 earlycon=myemulator2,0xf0000000 root=/dev/myemu0 rw init=/sbin/init"], check=True)
+            subprocess.run([str(ROOT / "toolchain/scripts/build-linux.sh")], check=True,
+                           stdout=subprocess.DEVNULL)
         first = out / "first.log"
         second = out / "second.log"
         first_data = boot(image, first)

@@ -17,6 +17,12 @@ int main(void)
 {
   struct small s = {11, 22};
   struct small t = small_copy(s);
+#ifdef AGGREGATE_SMALL_RETURN_ONLY
+  if (s.last != 22) return 11;
+  if (t.first != 11) return 12;
+  if (t.last != 23) return 13;
+  return 0;
+#else
   struct large l = {10000000000LL, 7, 123};
   struct large m = large_copy(1, 2, 3, l, 4);
   if (s.last != 22 || t.first != 11 || t.last != 23) return 1;
@@ -25,5 +31,6 @@ int main(void)
   if (small_copy(s).last != 23) return 4;
   if (large_copy(1, 2, 3, l, 4).nanos != 124) return 5;
   return 0;
+#endif
 }
 #endif

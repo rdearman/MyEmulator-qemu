@@ -9,6 +9,7 @@
 #include <linux/uio.h>
 #include <linux/resource.h>
 #include <linux/tty.h>
+#include <linux/statfs.h>
 #include <uapi/asm-generic/ioctls.h>
 
 /* Linux's generic 32-bit syscall numbering is used by this initial port.
@@ -18,6 +19,7 @@
 #define MYEMU2_NR_WRITE      64
 #define MYEMU2_NR_WRITEV     66
 #define MYEMU2_NR_FCHMOD     52
+#define MYEMU2_NR_FCHOWNAT   54
 #define MYEMU2_NR_FCHMODAT   53
 #define MYEMU2_NR_FACCESSAT  48
 #define MYEMU2_NR_FACCESSAT2 439
@@ -25,8 +27,9 @@
 #define MYEMU2_NR_IOCTL      29
 #define MYEMU2_NR_OPENAT     56
 #define MYEMU2_NR_CLOSE      57
-#define MYEMU2_NR_FSYNC      74
+#define MYEMU2_NR_FSYNC      82
 #define MYEMU2_NR_SYNC       81
+#define MYEMU2_NR_SYNCFS     306
 #define MYEMU2_NR_PIPE2      59
 #define MYEMU2_NR_GETDENTS64 61
 #define MYEMU2_NR_DUP        23
@@ -37,6 +40,7 @@
 #define MYEMU2_NR_BRK        214
 #define MYEMU2_NR_MMAP       222
 #define MYEMU2_NR_MPROTECT   226
+#define MYEMU2_NR_MADVISE    233
 #define MYEMU2_NR_EXIT       93
 #define MYEMU2_NR_EXIT_GROUP 94
 #define MYEMU2_NR_NANOSLEEP  101
@@ -55,13 +59,21 @@
 #define MYEMU2_NR_SETGID     144
 #define MYEMU2_NR_SETUID     146
 #define MYEMU2_NR_SETGROUPS  159
+#define MYEMU2_NR_GETGROUPS  158
+#define MYEMU2_NR_MKNODAT    33
 #define MYEMU2_NR_EXECVE     221
 #define MYEMU2_NR_CLOCK_GETTIME64 403
+#define MYEMU2_NR_CLOCK_NANOSLEEP_TIME64 407
 #define MYEMU2_NR_CLONE      220
 #define MYEMU2_NR_WAIT4      260
 #define MYEMU2_NR_GETCWD     17
 #define MYEMU2_NR_MKDIRAT    34
 #define MYEMU2_NR_UNLINKAT   35
+#define MYEMU2_NR_SYMLINKAT  36
+#define MYEMU2_NR_LINKAT     37
+#define MYEMU2_NR_STATFS     43
+#define MYEMU2_NR_FSTATFS    44
+#define MYEMU2_NR_SYSLOG     116
 #define MYEMU2_NR_RENAMEAT   38
 #define MYEMU2_NR_CHDIR      49
 #define MYEMU2_NR_UMASK      166
@@ -85,6 +97,7 @@
 #define MYEMU2_NR_UMOUNT2    39
 #define MYEMU2_NR_MOUNT      40
 #define MYEMU2_NR_SOCKET    198
+#define MYEMU2_NR_SOCKETPAIR 199
 #define MYEMU2_NR_BIND      200
 #define MYEMU2_NR_LISTEN    201
 #define MYEMU2_NR_ACCEPT    202
@@ -99,6 +112,7 @@
 #define MYEMU2_NR_SENDMSG   211
 #define MYEMU2_NR_RECVMSG   212
 #define MYEMU2_NR_PTRACE    117
+#define MYEMU2_NR_REBOOT    142
 
 extern ssize_t ksys_write(unsigned int fd, const char __user *buf,
 			  size_t count);
@@ -106,20 +120,26 @@ extern ssize_t myemulator2_console_write_user(const char __user *buf,
 						      size_t count);
 extern ssize_t myemulator2_console_read_user(char __user *buf,
 						     size_t count);
+extern int myemulator2_console_get_winsize(struct winsize *ws);
 extern long sys_ioctl(unsigned int fd, unsigned int cmd,
 				      unsigned long arg);
 extern long sys_close(unsigned int fd);
 extern long sys_ptrace(long request, long pid, unsigned long addr,
 		       unsigned long data);
+extern long sys_reboot(int magic1, int magic2, unsigned int cmd,
+			void __user *arg);
 extern long sys_fsync(unsigned int fd);
 extern long sys_fdatasync(unsigned int fd);
 extern long sys_fchmod(unsigned int fd, umode_t mode);
 extern long sys_fchmodat(int dfd, const char __user *filename, umode_t mode);
+extern long sys_fchownat(int dfd, const char __user *filename, uid_t user,
+			 gid_t group, int flags);
 extern long sys_faccessat(int dfd, const char __user *filename, int mode);
 extern long sys_faccessat2(int dfd, const char __user *filename, int mode,
 			   int flags);
 extern long sys_ftruncate64(unsigned int fd, loff_t length);
 extern void ksys_sync(void);
+extern long sys_syncfs(int fd);
 extern long sys_dup(unsigned int fd);
 extern long sys_dup3(unsigned int oldfd, unsigned int newfd, int flags);
 extern long sys_pipe2(int __user *fildes, int flags);
@@ -128,6 +148,10 @@ extern long sys_getdents64(unsigned int fd, struct linux_dirent64 __user *dirent
 extern long sys_brk(unsigned long brk);
 extern long sys_munmap(unsigned long addr, size_t len);
 extern long sys_mprotect(unsigned long start, size_t len, unsigned long prot);
+extern long sys_madvise(unsigned long start, size_t len, int behavior);
+extern long sys_clock_nanosleep(clockid_t which_clock, int flags,
+				const struct __kernel_timespec __user *rqtp,
+				struct __kernel_timespec __user *rmtp);
 extern long sys_mmap_pgoff(unsigned long addr, unsigned long len,
 			   unsigned long prot, unsigned long flags,
 			   unsigned long fd, unsigned long pgoff);
@@ -137,7 +161,12 @@ extern long sys_execve(const char __user *filename,
 extern long sys_nanosleep_time32(struct old_timespec32 __user *rqtp,
 					 struct old_timespec32 __user *rmtp);
 extern long sys_clock_gettime32(clockid_t which_clock,
-					 struct old_timespec32 __user *tp);
+						 struct old_timespec32 __user *tp);
+/* REM userspace uses musl's time64 ABI: time_t is 64-bit and
+ * struct timespec has a 64-bit tv_sec.  Do not route syscall 403 through
+ * the compat time32 helper, which writes the fields at the wrong offsets. */
+extern long sys_clock_gettime(clockid_t which_clock,
+						 struct __kernel_timespec __user *tp);
 extern long sys_getpid(void);
 extern long sys_times(struct tms __user *tbuf);
 extern long sys_getrusage(int who, struct rusage __user *ru);
@@ -153,6 +182,9 @@ extern long sys_setsid(void);
 extern long sys_setgid(gid_t gid);
 extern long sys_setuid(uid_t uid);
 extern long sys_setgroups(int gidsetsize, gid_t __user *grouplist);
+extern long sys_getgroups(int gidsetsize, gid_t __user *grouplist);
+extern long sys_mknodat(int dfd, const char __user *filename,
+			umode_t mode, unsigned int dev);
 extern long sys_fcntl(unsigned int fd, unsigned int cmd, unsigned long arg);
 extern long sys_fcntl64(unsigned int fd, unsigned int cmd, unsigned long arg);
 extern long sys_writev(unsigned long fd, const struct iovec __user *vec,
@@ -175,6 +207,15 @@ extern long sys_wait4(pid_t pid, int __user *stat_addr, int options,
 extern long sys_getcwd(char __user *buf, unsigned long size);
 extern long sys_mkdirat(int dfd, const char __user *pathname, umode_t mode);
 extern long sys_unlinkat(int dfd, const char __user *pathname, int flag);
+extern long sys_symlinkat(const char __user *oldname, int newdfd,
+                          const char __user *newname);
+extern long sys_linkat(int olddfd, const char __user *oldname, int newdfd,
+                       const char __user *newname, int flags);
+extern long sys_statfs64(const char __user *path, size_t sz,
+                         struct statfs64 __user *buf);
+extern long sys_fstatfs64(unsigned int fd, size_t sz,
+                          struct statfs64 __user *buf);
+extern long sys_syslog(int type, char __user *buf, int len);
 extern long sys_renameat(int olddfd, const char __user *oldname,
                          int newdfd, const char __user *newname);
 extern long sys_chdir(const char __user *filename);
@@ -222,6 +263,9 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 		unsigned long a3, unsigned long a4, unsigned long a5)
 {
 	switch (nr) {
+	case MYEMU2_NR_REBOOT:
+		return sys_reboot((int)a0, (int)a1, (unsigned int)a2,
+				  (void __user *)a3);
 	case MYEMU2_NR_PTRACE:
 		return sys_ptrace((long)a0, (long)a1, a2, a3);
 	case MYEMU2_NR_MOUNT:
@@ -231,6 +275,9 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 		return sys_umount((char __user *)a0, (int)a1);
 	case MYEMU2_NR_SOCKET:
 		return sys_socket((int)a0, (int)a1, (int)a2);
+	case MYEMU2_NR_SOCKETPAIR:
+		return sys_socketpair((int)a0, (int)a1, (int)a2,
+				      (int __user *)a3);
 	case MYEMU2_NR_BIND:
 		return sys_bind((int)a0, (struct sockaddr __user *)a1, (int)a2);
 	case MYEMU2_NR_LISTEN:
@@ -267,39 +314,20 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 		return sys_recvmsg((int)a0, (struct user_msghdr __user *)a1,
 				   (unsigned)a2);
 	case MYEMU2_NR_READ:
-		if (current->pid >= 20)
-			pr_emerg("MYEMU_TTYTRACE read-enter pid=%d fd=%lu count=%lu\n",
-				 current->pid, a0, a2);
 		if (a0 == 0) {
 			struct file *file = fget((unsigned int)a0);
 			ssize_t ret;
 			if (file) {
 				fput(file);
-				if (current->pid >= 20)
-					pr_emerg("MYEMU_TTYTRACE read-enter pid=%d fd=0 count=%lu\n",
-						 current->pid, a2);
 				ret = ksys_read((unsigned int)a0, (char __user *)a1,
 						(size_t)a2);
-				if (current->pid >= 20)
-					pr_emerg("MYEMU_TTYTRACE read-exit pid=%d ret=%ld\n",
-						 current->pid, ret);
 				return ret;
 			}
 			ret = myemulator2_console_read_user((char __user *)a1,
 							      (size_t)a2);
-			if (current->pid >= 20)
-				pr_emerg("MYEMU_TTYTRACE console-read-exit pid=%d ret=%ld\n",
-					 current->pid, ret);
 			return ret;
 		}
-		{
-			ssize_t ret = ksys_read((unsigned int)a0, (char __user *)a1,
-						(size_t)a2);
-			if (current->pid >= 20)
-				pr_emerg("MYEMU_TTYTRACE read-exit pid=%d ret=%ld\n",
-					 current->pid, ret);
-			return ret;
-		}
+		return ksys_read((unsigned int)a0, (char __user *)a1, (size_t)a2);
 	case MYEMU2_NR_WRITE:
 		if (a0 == 1 || a0 == 2) {
 			struct file *file = fget((unsigned int)a0);
@@ -345,16 +373,7 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 		}
 		return sys_writev(a0, (const struct iovec __user *)a1, a2);
 	case 65: /* __NR_readv */
-		if (current->pid >= 20)
-			pr_emerg("MYEMU_TTYTRACE readv-enter pid=%d fd=%lu count=%lu\n",
-				 current->pid, a0, a2);
-		{
-			long ret = sys_readv(a0, (const struct iovec __user *)a1, a2);
-			if (current->pid >= 20)
-				pr_emerg("MYEMU_TTYTRACE readv-exit pid=%d ret=%ld\n",
-					 current->pid, ret);
-			return ret;
-		}
+		return sys_readv(a0, (const struct iovec __user *)a1, a2);
 	case MYEMU2_NR_FCNTL:
 		/* __NR3264_fcntl selects the 64-bit flock ABI on a 32-bit
 		 * kernel.  musl's off_t is 64-bit, and SQLite relies on this
@@ -371,6 +390,9 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 				   (int)a2, (umode_t)a3);
 	case MYEMU2_NR_FCHMOD:
 		return sys_fchmod((unsigned int)a0, (umode_t)a1);
+	case MYEMU2_NR_FCHOWNAT:
+		return sys_fchownat((int)a0, (const char __user *)a1,
+			(uid_t)a2, (gid_t)a3, (int)a4);
 	case MYEMU2_NR_FCHMODAT:
 		return sys_fchmodat((int)a0, (const char __user *)a1,
 				    (umode_t)a2);
@@ -395,6 +417,8 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 	case MYEMU2_NR_SYNC:
 		ksys_sync();
 		return 0;
+	case MYEMU2_NR_SYNCFS:
+		return sys_syncfs((int)a0);
 	case MYEMU2_NR_DUP:
 		return sys_dup((unsigned int)a0);
 	case MYEMU2_NR_DUP3:
@@ -412,54 +436,36 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 		return sys_mmap_pgoff(a0, a1, a2, a3, a4, a5);
 	case MYEMU2_NR_MPROTECT:
 		return sys_mprotect(a0, a1, a2);
+	case MYEMU2_NR_MADVISE:
+		return sys_madvise(a0, a1, (int)a2);
+	case MYEMU2_NR_CLOCK_NANOSLEEP_TIME64:
+		return sys_clock_nanosleep((clockid_t)a0, (int)a1,
+			(const struct __kernel_timespec __user *)a2,
+			(struct __kernel_timespec __user *)a3);
 	case MYEMU2_NR_IOCTL:
-		/* A serial console has no window-size negotiation with the host
-		 * terminal.  Supply the documented bootstrap geometry so programs
-		 * such as Kilo do not fall back to an unanswered ESC[6n query. */
+		/* Ask the serial terminal for its current dimensions. Keep a fixed
+		 * bootstrap size for noninteractive serial clients that cannot answer. */
 		if (a1 == TIOCGWINSZ) {
-			struct winsize ws = {
-				.ws_row = 24,
-				.ws_col = 80,
-				.ws_xpixel = 0,
-				.ws_ypixel = 0,
-			};
+			struct winsize ws = { .ws_row = 24, .ws_col = 80 };
+			myemulator2_console_get_winsize(&ws);
 			return copy_to_user((void __user *)a2, &ws, sizeof(ws))
 				? -EFAULT : 0;
 		}
-		if (current->pid >= 20)
-			pr_emerg("MYEMU_TTYTRACE ioctl pid=%d fd=%lu cmd=%08lx\n",
-				 current->pid, a0, a1);
-		{
-			long ret = sys_ioctl((unsigned int)a0, (unsigned int)a1, a2);
-			if (current->pid >= 20)
-				pr_emerg("MYEMU_TTYTRACE ioctl-result pid=%d ret=%ld\n",
-					 current->pid, ret);
-			return ret;
-		}
+		return sys_ioctl((unsigned int)a0, (unsigned int)a1, a2);
 	case MYEMU2_NR_PPOLL:
 		/* asm-generic assigns ppoll to 73 and uses the time32 ABI on
 		 * 32-bit architectures.  musl's poll() wrapper calls this syscall;
 		 * leaving it out makes interactive programs report ENOSYS while
 		 * waiting for terminal input. */
-		if (current->pid >= 20)
-			pr_emerg("MYEMU_TTYTRACE ppoll-enter pid=%d nfds=%lu\n",
-				 current->pid, a1);
-		{
-			long ret = sys_ppoll_time32((struct pollfd __user *)a0,
+		return sys_ppoll_time32((struct pollfd __user *)a0,
 				(unsigned int)a1,
 				(struct old_timespec32 __user *)a2,
 				(const sigset_t __user *)a3, a4);
-			if (current->pid >= 20)
-				pr_emerg("MYEMU_TTYTRACE ppoll-exit pid=%d ret=%ld\n",
-					 current->pid, ret);
-			return ret;
-		}
 	case MYEMU2_NR_EXIT:
 	case MYEMU2_NR_EXIT_GROUP:
-		if (current->pid >= 20)
-			pr_emerg("MYEMU_TTYTRACE exit pid=%d status=%ld\n",
-				 current->pid, a0);
-		do_group_exit((int)a0);
+		/* Linux exit syscalls accept an 8-bit exit code, but wait status
+		 * stores normal exit codes in bits 8..15. */
+		do_group_exit(((int)a0 & 0xff) << 8);
 		return 0;
 	case MYEMU2_NR_GETPID:
 		return sys_getpid();
@@ -491,6 +497,11 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 		return sys_setuid((uid_t)a0);
 	case MYEMU2_NR_SETGROUPS:
 		return sys_setgroups((int)a0, (gid_t __user *)a1);
+	case MYEMU2_NR_GETGROUPS:
+		return sys_getgroups((int)a0, (gid_t __user *)a1);
+	case MYEMU2_NR_MKNODAT:
+		return sys_mknodat((int)a0, (const char __user *)a1,
+				   (umode_t)a2, (unsigned int)a3);
 	case MYEMU2_NR_SET_TID_ADDRESS:
 		return sys_set_tid_address((int __user *)a0);
 	case MYEMU2_NR_GETTID:
@@ -532,8 +543,8 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 		return sys_nanosleep_time32((struct old_timespec32 __user *)a0,
 			(struct old_timespec32 __user *)a1);
 	case MYEMU2_NR_CLOCK_GETTIME64:
-		return sys_clock_gettime32((clockid_t)a0,
-			(struct old_timespec32 __user *)a1);
+		return sys_clock_gettime((clockid_t)a0,
+							(struct __kernel_timespec __user *)a1);
 	case MYEMU2_NR_CLONE:
 		return sys_clone(a0, a1, (int __user *)a2,
 			(int __user *)a3, 0);
@@ -547,6 +558,22 @@ asmlinkage long myemulator2_syscall(unsigned long nr,
 				   (umode_t)a2);
 	case MYEMU2_NR_UNLINKAT:
 		return sys_unlinkat((int)a0, (const char __user *)a1, (int)a2);
+	case MYEMU2_NR_SYMLINKAT:
+		return sys_symlinkat((const char __user *)a0, (int)a1,
+				     (const char __user *)a2);
+	case MYEMU2_NR_LINKAT:
+		return sys_linkat((int)a0, (const char __user *)a1, (int)a2,
+				  (const char __user *)a3, (int)a4);
+	/* musl's struct statfs uses the 64-bit statfs64 layout. */
+	case MYEMU2_NR_STATFS:
+		return sys_statfs64((const char __user *)a0,
+				    sizeof(struct statfs64),
+				    (struct statfs64 __user *)a1);
+	case MYEMU2_NR_FSTATFS:
+		return sys_fstatfs64((unsigned int)a0, sizeof(struct statfs64),
+				     (struct statfs64 __user *)a1);
+	case MYEMU2_NR_SYSLOG:
+		return sys_syslog((int)a0, (char __user *)a1, (int)a2);
 	case MYEMU2_NR_RENAMEAT:
 		return sys_renameat((int)a0, (const char __user *)a1,
 				   (int)a2, (const char __user *)a3);

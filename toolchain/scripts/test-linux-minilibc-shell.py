@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
+from linux_build_config import temporary_linux_config
 
 ROOT = Path(__file__).resolve().parents[2]
 PREFIX = Path(os.environ.get("MYEMU_TOOLCHAIN_PREFIX",
@@ -48,11 +49,12 @@ def main():
             "dir /dev 0755 0 0\n"
             "nod /dev/console 0600 0 0 c 5 1\n"
             "nod /dev/ttyMY0 0600 0 0 c 240 0\n")
-        subprocess.run([str(LINUX / "scripts/config"), "--file",
-                        str(BUILD / ".config"), "--set-str",
-                        "INITRAMFS_SOURCE", str(INIT_LIST)], check=True)
-        subprocess.run([str(ROOT / "toolchain/scripts/build-linux.sh")],
-                       check=True, stdout=subprocess.DEVNULL)
+        with temporary_linux_config(BUILD / ".config"):
+            subprocess.run([str(LINUX / "scripts/config"), "--file",
+                            str(BUILD / ".config"), "--set-str",
+                            "INITRAMFS_SOURCE", str(INIT_LIST)], check=True)
+            subprocess.run([str(ROOT / "toolchain/scripts/build-linux.sh")],
+                           check=True, stdout=subprocess.DEVNULL)
         sock_path = out / "console.sock"
         proc = subprocess.Popen([
             str(QEMU), "-M", "myemulator32", "-m", "16M", "-kernel",

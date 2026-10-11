@@ -22,6 +22,11 @@ _start:
 	 * implementation derives the initial task from init_thread_union, so
 	 * establish the top of the linked init_stack before entering C. */
 	li r13, __end_init_stack
+	/* Double-fault entry uses a physical emergency stack and can occur before
+	 * paging or normal exception handling is available.  Keep this stack in
+	 * the identity-mapped kernel image and install it before setting up vectors. */
+	li r1, __myemulator2_df_stack_top
+	mtsr dfsp, r1
 	li r1, __vectors_start
 	mtsr vbr, r1
 
@@ -38,3 +43,13 @@ _start:
 	halt
 	j 3b
 	.size _start, .-_start
+
+	/* DFSP is a physical address.  The kernel image is identity-mapped during
+	 * early boot and this section is included in the BSS clearing range. */
+	.section .bss..page_aligned,"aw",@nobits
+	.align 12
+	.globl __myemulator2_df_stack_bottom
+__myemulator2_df_stack_bottom:
+	.space 4096
+	.globl __myemulator2_df_stack_top
+__myemulator2_df_stack_top:

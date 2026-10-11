@@ -19,6 +19,7 @@ enum {
     BLOCK_CMD_IDENTIFY = 1,
     BLOCK_CMD_READ = 2,
     BLOCK_CMD_WRITE = 3,
+    BLOCK_CMD_FLUSH = 4,
 };
 
 enum {
@@ -104,6 +105,16 @@ static void block_transfer(MyEmulator32BlockState *s, bool write)
     s->status = MYEMU32_BLOCK_STATUS_READY;
 }
 
+static void block_flush(MyEmulator32BlockState *s)
+{
+    if (!s->blk || blk_flush(s->blk) < 0) {
+        block_error(s, BLOCK_ERROR_IO);
+        return;
+    }
+    s->status = MYEMU32_BLOCK_STATUS_READY;
+    s->error = BLOCK_ERROR_NONE;
+}
+
 static uint64_t block_read(void *opaque, hwaddr offset, unsigned size)
 {
     MyEmulator32BlockState *s = opaque;
@@ -149,6 +160,8 @@ static void block_write(void *opaque, hwaddr offset, uint64_t value,
             block_transfer(s, false);
         } else if (value == BLOCK_CMD_WRITE) {
             block_transfer(s, true);
+        } else if (value == BLOCK_CMD_FLUSH) {
+            block_flush(s);
         } else {
             block_error(s, BLOCK_ERROR_IO);
         }

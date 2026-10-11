@@ -909,7 +909,7 @@
 +#endif
 --- a/build-native.sh	1970-01-01 01:00:00.000000000 +0100
 +++ b/build-native.sh	2026-10-06 23:17:00.693168529 +0100
-@@ -0,0 +1,37 @@
+@@ -0,0 +1,68 @@
 +#!/bin/bash
 +set -eu
 +case $0 in */*) cd "${0%/*}" ;; esac
@@ -930,19 +930,50 @@
 +    time/timer_create time/wcsftime unistd/faccessat" ;;
 +*) echo "Usage: build-native.sh [seed|full]" >&2; exit 1 ;;
 +esac
++valid_elf() {
++    [ -s "$1" ] && [ "$(od -An -tx1 -N4 "$1" | tr -d ' \n')" = 7f454c46 ] || return 1
++    if command -v readelf >/dev/null 2>&1; then
++        readelf -h -S "$1" >/dev/null 2>&1
++    else
++        [ "$(wc -c < "$1")" -ge 52 ]
++    fi
++}
 +for file in $files; do
 +    name=${file##*/}
-+    echo "CC musl $file.c"
-+    "$CC" -D_XOPEN_SOURCE=700 -Iarch/myemulator2 -Iarch/generic \
-+        -Isrc/include -Isrc/internal -Inative-headers -Iinclude \
-+        -c "src/$file.c" -o "native/$name.o"
-+    objects="$objects native/$name.o"
++    output="native/$name.o"
++    if valid_elf "$output"; then
++        echo "SKIP musl $file.c (valid object exists)"
++    else
++        temporary="$output.tmp.$$"
++        trap 'rm -f "$temporary"' EXIT
++        echo "CC musl $file.c"
++        "$CC" -D_XOPEN_SOURCE=700 -Iarch/myemulator2 -Iarch/generic \
++            -Isrc/include -Isrc/internal -Inative-headers -Iinclude \
++            -c "src/$file.c" -o "$temporary"
++        valid_elf "$temporary" || { echo "FAIL invalid ELF object: $temporary" >&2; exit 1; }
++        mv -f "$temporary" "$output"
++        trap - EXIT
++    fi
++    objects="$objects $output"
 +done
-+as -o native/native_syscall.o arch/myemulator2/src/native_syscall.S
-+ar rcs native/librem-runtime.a $objects native/native_syscall.o
-+cp /usr/lib/libc.a native/libc.a
-+ar rcs native/libc.a $objects native/native_syscall.o
-+ld -r -T ../rem-reloc.ld -o native/rem-runtime.o $objects native/native_syscall.o
++temporary=native/native_syscall.o.tmp.$$
++trap 'rm -f "$temporary"' EXIT
++if ! valid_elf native/native_syscall.o; then
++    as -o "$temporary" arch/myemulator2/src/native_syscall.S
++    valid_elf "$temporary" || { echo "FAIL invalid ELF object: $temporary" >&2; exit 1; }
++    mv -f "$temporary" native/native_syscall.o
++fi
++trap - EXIT
++temporary=native/librem-runtime.a.tmp.$$
++ar rcs "$temporary" $objects native/native_syscall.o
++mv -f "$temporary" native/librem-runtime.a
++temporary=native/libc.a.tmp.$$
++cp /usr/lib/libc.a "$temporary"
++ar rcs "$temporary" $objects native/native_syscall.o
++mv -f "$temporary" native/libc.a
++temporary=native/rem-runtime.o.tmp.$$
++ld -r -T ../rem-reloc.ld -o "$temporary" $objects native/native_syscall.o
++mv -f "$temporary" native/rem-runtime.o
 +case ${1:-full} in
 +seed) echo "Temporary source-built strtod seed ready; remaining libc repairs are not yet built." ;;
 +full) echo "All 32 audited libc members rebuilt, with strtod and REM ABI support." ;;

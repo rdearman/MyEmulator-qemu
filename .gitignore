@@ -3,6 +3,8 @@
 .android-build/
 __pycache__/
 build/
+.busybox-build/
+.musl-build/
 .toolchain-downloads/
 .toolchain-build/
 .toolchain-install/

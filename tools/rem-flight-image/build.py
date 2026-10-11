@@ -75,6 +75,11 @@ def main():
         raise SystemExit(f"rootfs extraction failed: {extraction.stderr.strip()}")
     if not (tree / "sbin/init").is_file() or not (tree / "bin/busybox").is_file():
         raise SystemExit("base rootfs extraction is incomplete (init or BusyBox missing)")
+    for guest_path in spec.get("required_base_guest_files", []):
+        base_file = tree / safe_guest_path(guest_path)
+        if not base_file.is_file() or base_file.stat().st_size == 0:
+            raise SystemExit(
+                f"base distribution file missing/empty before overlay: {guest_path}")
 
     selected = []
     dependency_checks = []
@@ -212,7 +217,6 @@ def main():
 
     shutil.copy2(inputs["qemu"], out / "qemu-system-myemulator32")
     shutil.copy2(inputs["kernel"], out / "vmlinux")
-    os.chmod(out / "qemu-system-myemulator32", 0o755)
     tuple_record = {
         "tuple": spec["name"], "machine": spec["machine"], "memory": spec["memory"],
         "integration_status": ("TEST ONLY: contains unaccepted candidate-test artifacts"
@@ -239,6 +243,10 @@ def main():
     shutil.copy2(tool_dir / "verify.py", out / "verify.py")
     shutil.copy2(tool_dir / "boot.sh", out / "boot.sh")
     shutil.rmtree(tree)
+    hash_paths = ["boot.sh", "manifest.json", "qemu-system-myemulator32",
+                  "rem-rootfs.ext4", "verify.py", "vmlinux"]
+    (out / "SHA256SUMS").write_text("".join(
+        f"{sha(out / name)}  {name}\n" for name in hash_paths), encoding="ascii")
     print(out)
 
 

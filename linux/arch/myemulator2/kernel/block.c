@@ -16,6 +16,7 @@
 #define MYEMU2_CMD_IDENTIFY 1
 #define MYEMU2_CMD_READ 2
 #define MYEMU2_CMD_WRITE 3
+#define MYEMU2_CMD_FLUSH 4
 
 #define REG_COMMAND 0x00
 #define REG_STATUS 0x01
@@ -96,9 +97,28 @@ static blk_status_t myemu2_queue_rq(struct blk_mq_hw_ctx *hctx,
 {
 	struct request *rq = bd->rq;
 	blk_status_t status;
-
 	blk_mq_start_request(rq);
+	/* Propagate filesystem journal/data flushes to the host-backed image. */
+	if (req_op(rq) == REQ_OP_FLUSH) {
+		writeb(MYEMU2_CMD_FLUSH, myemu2_block + REG_COMMAND);
+		status = readb(myemu2_block + REG_STATUS) == MYEMU2_STATUS_READY
+			? BLK_STS_OK : BLK_STS_IOERR;
+		blk_mq_end_request(rq, status);
+		return BLK_STS_OK;
+	}
+	if (rq->cmd_flags & REQ_PREFLUSH) {
+		writeb(MYEMU2_CMD_FLUSH, myemu2_block + REG_COMMAND);
+		if (readb(myemu2_block + REG_STATUS) != MYEMU2_STATUS_READY) {
+			blk_mq_end_request(rq, BLK_STS_IOERR);
+			return BLK_STS_OK;
+		}
+	}
 	status = myemu2_transfer(rq, rq_data_dir(rq) == WRITE);
+	if (status == BLK_STS_OK && (rq->cmd_flags & REQ_FUA)) {
+		writeb(MYEMU2_CMD_FLUSH, myemu2_block + REG_COMMAND);
+		if (readb(myemu2_block + REG_STATUS) != MYEMU2_STATUS_READY)
+			status = BLK_STS_IOERR;
+	}
 	blk_mq_end_request(rq, status);
 	return BLK_STS_OK;
 }

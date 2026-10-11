@@ -100,7 +100,10 @@ def main():
             stat = subprocess.run(["debugfs", "-R", f"stat {guest_path}", str(image)],
                                   text=True, capture_output=True).stdout
             mode = re.search(r"Mode:\s+([0-7]{3,6})", stat)
-            dev = re.search(r"Device major/minor number:\s*([0-9a-f]+):([0-9a-f]+)", stat, re.I)
+            dev = re.search(r"Device major/minor number:\s*[0-9a-f]+:[0-9a-f]+\s*\(hex\s+([0-9a-f]+):([0-9a-f]+)\)",
+                            stat, re.I)
+            if not dev:
+                dev = re.search(r"Device major/minor number:\s*([0-9a-f]+):([0-9a-f]+)", stat, re.I)
             if expected["type"] not in stat or not mode or int(mode.group(1), 8) & 0o7777 != int(expected["mode"], 8):
                 failures.append(f"guest device type/mode mismatch: {guest_path}")
             if not dev or int(dev.group(1), 16) != expected["major"] or int(dev.group(2), 16) != expected["minor"]:

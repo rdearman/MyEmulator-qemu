@@ -25,11 +25,10 @@ pgprot_t vm_get_page_prot(unsigned long vm_flags)
 	pgprot_t prot = _PAGE_PRESENT;
 	if (vm_flags & VM_READ)
 		prot |= _PAGE_READ;
-	/* Private writable mappings need writable PTEs too.  VM_SHARED controls
-	 * sharing/COW semantics; it is not a permission bit.  Omitting _PAGE_WRITE
-	 * for MAP_PRIVATE anonymous mappings leaves musl's dynamically allocated
-	 * TLS block read-only and makes its final initialization store fault. */
-	if (vm_flags & VM_WRITE)
+	/* A writable private file mapping must remain write-protected until the
+	 * generic MM performs COW.  Anonymous write faults install writable PTEs
+	 * in do_anonymous_page(); shared mappings can be writable immediately. */
+	if ((vm_flags & (VM_WRITE | VM_SHARED)) == (VM_WRITE | VM_SHARED))
 		prot |= _PAGE_WRITE;
 	if (vm_flags & VM_EXEC)
 		prot |= _PAGE_EXEC;
@@ -174,6 +173,7 @@ void __init paging_init(void)
 	mmio_pte[0] = __pte(0xf0000000UL | kernel_flags);
 	mmio_pte[0x100] = __pte(0xf0100000UL | kernel_flags);
 	mmio_pte[0x200] = __pte(0xf0200000UL | kernel_flags);
+	mmio_pte[0x300] = __pte(0xf0300000UL | kernel_flags);
 	swapper_pg_dir[MYEMU2_UART_VIRT >> PGDIR_SHIFT] =
 		__pgd(myemulator2_table_phys(mmio_pte) | kernel_flags);
 

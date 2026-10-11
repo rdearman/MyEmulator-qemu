@@ -21,6 +21,11 @@ The identified Fold private libc SHA-256 0bc5770f...2b3186 is accepted only at
 /home/dev/rem-native-userland/bootstrap/musl/native/libc.a, never as an arbitrary
 system library. The full archive is replaced with the qualified runtime;
 no legacy object is carried into the updated archive.
+The exact Fold prior compiler-porting test SHA-256
+d17dafa21d95dd5457f2ab5a39111d99a7a8930f6bea002719d275ec7f9ae4f4 is also
+accepted only at /home/dev/rem-native-userland/tests/compiler-porting-native.sh;
+it is replaced with the package's compiler regression test and retained for
+rollback. Other unknown baselines remain rejected before mutation.
 It merges exact hunks independently, accepting already-applied Fold fixes and
 preserving other local source edits. Ambiguous or conflicting changes abort
 without applying half an ABI update. Backups and log:

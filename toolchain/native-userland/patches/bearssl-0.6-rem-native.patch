@@ -1,21 +1,616 @@
---- a/build-native.sh	1970-01-01 01:00:00.000000000 +0100
-+++ b/build-native.sh	2026-10-07 08:46:05.354636803 +0100
-@@ -0,0 +1,18 @@
+--- a/build-native.sh	1970-01-01 00:00:00.000000000 +0000
++++ b/build-native.sh	2026-10-10 00:00:00.000000000 +0000
+@@ -0,0 +1,47 @@
 +#!/bin/bash
-+set -eu
-+case $0 in */*) cd "${0%/*}" ;; esac
-+source ../../native-env.sh
-+mkdir -p build
-+objects=
-+for source in src/*.c src/*/*.c; do
-+    object="build/${source##*/}"
-+    object=${object%.c}.o
-+    echo "CC BearSSL $source"
-+    "$CC" -O0 -DBR_NO_ASM=1 -DBR_INT128=0 -Iinc -Isrc \
-+        -c "$source" -o "$object"
-+    objects="$objects $object"
++# Build BearSSL with ordinary Samurai/Ninja timestamp and dependency handling.
++set -Eeuo pipefail
++USERLAND_ROOT=${REM_USERLAND_ROOT:?REM_USERLAND_ROOT must be exported}
++PKG_ROOT=$USERLAND_ROOT/packages/bearssl-0.6
++SAMU=${SAMU:-samu}
++PATH=$USERLAND_ROOT/bootstrap/tools/native:$USERLAND_ROOT/packages/coreutils-9.7/native/bin:/usr/bin:/bin:$PATH
++export PATH
++command -v "$SAMU" >/dev/null 2>&1 && [[ -s $PKG_ROOT/build.ninja ]] || {
++    echo "BearSSL Samurai inputs are missing under $PKG_ROOT" >&2
++    exit 1
++}
++cd "$PKG_ROOT"
++echo 'REM_STAGE|bearssl-samu|start'
++# Keep compiler memory pressure bounded on the Fold and REM/QEMU CPU.
++"$SAMU" -j1
++[[ -s build/libbearssl.a ]] || { echo 'BearSSL archive missing after Samurai' >&2; exit 1; }
++ar t build/libbearssl.a >/dev/null
++nm -g build/libbearssl.a >/dev/null
++mkdir -p "$USERLAND_ROOT/native-deps/include" "$USERLAND_ROOT/native-deps/lib"
++for header in inc/*.h; do
++    name=${header##*/}
++    cp "$header" "$USERLAND_ROOT/native-deps/include/$name.tmp"
++    mv -f "$USERLAND_ROOT/native-deps/include/$name.tmp" "$USERLAND_ROOT/native-deps/include/$name"
 +done
-+ar rcs build/libbearssl.a $objects
-+mkdir -p ../../native-deps/include ../../native-deps/lib
-+cp inc/*.h ../../native-deps/include/
-+cp build/libbearssl.a ../../native-deps/lib/
++cp build/libbearssl.a "$USERLAND_ROOT/native-deps/lib/libbearssl.a.tmp"
++mv -f "$USERLAND_ROOT/native-deps/lib/libbearssl.a.tmp" \
++    "$USERLAND_ROOT/native-deps/lib/libbearssl.a"
++cat > build/rem-bearssl-link-smoke.c <<'EOF'
++#include <bearssl.h>
++int main(void)
++{
++    br_sha256_context ctx;
++    br_sha256_init(&ctx);
++    return 0;
++}
++EOF
++smoke=build/rem-bearssl-link-smoke
++rm -f "$smoke.tmp"
++"$USERLAND_ROOT/bootstrap/native/chibicc-selfbuilt" -O0 -DBR_NO_ASM=1 -DBR_INT128=0 \
++    -Iinc -Isrc "$smoke.c" "$USERLAND_ROOT/native-deps/lib/libbearssl.a" \
++    -o "$smoke.tmp"
++mv -f "$smoke.tmp" "$smoke"
++"$smoke"
++echo 'PASS BearSSL link smoke'
++echo 'PASS bearssl'
++echo 'REM_STAGE|bearssl-samu|finish'
+--- a/build.ninja	1970-01-01 00:00:00.000000000 +0000
++++ b/build.ninja	2026-10-10 00:00:00.000000000 +0000
+@@ -0,0 +1,563 @@
++rule cc
++  command = mkdir -p $objdir && rm -f $out.tmp && "$$REM_USERLAND_ROOT/bootstrap/native/chibicc-selfbuilt" -O0 -DBR_NO_ASM=1 -DBR_INT128=0 -Iinc -Isrc -c $in -o $out.tmp && mv -f $out.tmp $out
++  description = CC BearSSL $in
++rule archive
++  command = rm -f $out.tmp && ar rcs $out.tmp $in && mv -f $out.tmp $out
++  description = AR BearSSL $out
++build bearssl_headers: phony inc/bearssl.h inc/bearssl_aead.h inc/bearssl_block.h inc/bearssl_ec.h inc/bearssl_hash.h inc/bearssl_hmac.h inc/bearssl_kdf.h inc/bearssl_pem.h inc/bearssl_prf.h inc/bearssl_rand.h inc/bearssl_rsa.h inc/bearssl_ssl.h inc/bearssl_x509.h src/config.h src/inner.h
++build build/samu-obj/src/aead/ccm.o: cc src/aead/ccm.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/aead
++build build/samu-obj/src/aead/eax.o: cc src/aead/eax.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/aead
++build build/samu-obj/src/aead/gcm.o: cc src/aead/gcm.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/aead
++build build/samu-obj/src/codec/ccopy.o: cc src/codec/ccopy.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/codec
++build build/samu-obj/src/codec/dec16be.o: cc src/codec/dec16be.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/codec
++build build/samu-obj/src/codec/dec16le.o: cc src/codec/dec16le.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/codec
++build build/samu-obj/src/codec/dec32be.o: cc src/codec/dec32be.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/codec
++build build/samu-obj/src/codec/dec32le.o: cc src/codec/dec32le.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/codec
++build build/samu-obj/src/codec/dec64be.o: cc src/codec/dec64be.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/codec
++build build/samu-obj/src/codec/dec64le.o: cc src/codec/dec64le.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/codec
++build build/samu-obj/src/codec/enc16be.o: cc src/codec/enc16be.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/codec
++build build/samu-obj/src/codec/enc16le.o: cc src/codec/enc16le.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/codec
++build build/samu-obj/src/codec/enc32be.o: cc src/codec/enc32be.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/codec
++build build/samu-obj/src/codec/enc32le.o: cc src/codec/enc32le.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/codec
++build build/samu-obj/src/codec/enc64be.o: cc src/codec/enc64be.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/codec
++build build/samu-obj/src/codec/enc64le.o: cc src/codec/enc64le.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/codec
++build build/samu-obj/src/codec/pemdec.o: cc src/codec/pemdec.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/codec
++build build/samu-obj/src/codec/pemenc.o: cc src/codec/pemenc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/codec
++build build/samu-obj/src/ec/ec_all_m15.o: cc src/ec/ec_all_m15.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ec_all_m31.o: cc src/ec/ec_all_m31.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ec_c25519_i15.o: cc src/ec/ec_c25519_i15.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ec_c25519_i31.o: cc src/ec/ec_c25519_i31.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ec_c25519_m15.o: cc src/ec/ec_c25519_m15.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ec_c25519_m31.o: cc src/ec/ec_c25519_m31.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ec_curve25519.o: cc src/ec/ec_curve25519.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ec_default.o: cc src/ec/ec_default.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ec_keygen.o: cc src/ec/ec_keygen.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ec_p256_m15.o: cc src/ec/ec_p256_m15.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ec_p256_m31.o: cc src/ec/ec_p256_m31.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ec_prime_i15.o: cc src/ec/ec_prime_i15.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ec_prime_i31.o: cc src/ec/ec_prime_i31.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ec_pubkey.o: cc src/ec/ec_pubkey.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ec_secp256r1.o: cc src/ec/ec_secp256r1.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ec_secp384r1.o: cc src/ec/ec_secp384r1.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ec_secp521r1.o: cc src/ec/ec_secp521r1.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ecdsa_atr.o: cc src/ec/ecdsa_atr.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ecdsa_default_sign_asn1.o: cc src/ec/ecdsa_default_sign_asn1.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ecdsa_default_sign_raw.o: cc src/ec/ecdsa_default_sign_raw.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ecdsa_default_vrfy_asn1.o: cc src/ec/ecdsa_default_vrfy_asn1.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ecdsa_default_vrfy_raw.o: cc src/ec/ecdsa_default_vrfy_raw.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ecdsa_i15_bits.o: cc src/ec/ecdsa_i15_bits.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ecdsa_i15_sign_asn1.o: cc src/ec/ecdsa_i15_sign_asn1.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ecdsa_i15_sign_raw.o: cc src/ec/ecdsa_i15_sign_raw.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ecdsa_i15_vrfy_asn1.o: cc src/ec/ecdsa_i15_vrfy_asn1.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ecdsa_i15_vrfy_raw.o: cc src/ec/ecdsa_i15_vrfy_raw.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ecdsa_i31_bits.o: cc src/ec/ecdsa_i31_bits.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ecdsa_i31_sign_asn1.o: cc src/ec/ecdsa_i31_sign_asn1.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ecdsa_i31_sign_raw.o: cc src/ec/ecdsa_i31_sign_raw.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ecdsa_i31_vrfy_asn1.o: cc src/ec/ecdsa_i31_vrfy_asn1.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ecdsa_i31_vrfy_raw.o: cc src/ec/ecdsa_i31_vrfy_raw.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/ec/ecdsa_rta.o: cc src/ec/ecdsa_rta.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ec
++build build/samu-obj/src/hash/dig_oid.o: cc src/hash/dig_oid.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/hash
++build build/samu-obj/src/hash/dig_size.o: cc src/hash/dig_size.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/hash
++build build/samu-obj/src/hash/ghash_ctmul.o: cc src/hash/ghash_ctmul.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/hash
++build build/samu-obj/src/hash/ghash_ctmul32.o: cc src/hash/ghash_ctmul32.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/hash
++build build/samu-obj/src/hash/ghash_ctmul64.o: cc src/hash/ghash_ctmul64.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/hash
++build build/samu-obj/src/hash/ghash_pclmul.o: cc src/hash/ghash_pclmul.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/hash
++build build/samu-obj/src/hash/ghash_pwr8.o: cc src/hash/ghash_pwr8.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/hash
++build build/samu-obj/src/hash/md5.o: cc src/hash/md5.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/hash
++build build/samu-obj/src/hash/md5sha1.o: cc src/hash/md5sha1.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/hash
++build build/samu-obj/src/hash/mgf1.o: cc src/hash/mgf1.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/hash
++build build/samu-obj/src/hash/multihash.o: cc src/hash/multihash.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/hash
++build build/samu-obj/src/hash/sha1.o: cc src/hash/sha1.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/hash
++build build/samu-obj/src/hash/sha2big.o: cc src/hash/sha2big.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/hash
++build build/samu-obj/src/hash/sha2small.o: cc src/hash/sha2small.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/hash
++build build/samu-obj/src/int/i15_add.o: cc src/int/i15_add.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_bitlen.o: cc src/int/i15_bitlen.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_decmod.o: cc src/int/i15_decmod.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_decode.o: cc src/int/i15_decode.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_decred.o: cc src/int/i15_decred.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_encode.o: cc src/int/i15_encode.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_fmont.o: cc src/int/i15_fmont.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_iszero.o: cc src/int/i15_iszero.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_moddiv.o: cc src/int/i15_moddiv.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_modpow.o: cc src/int/i15_modpow.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_modpow2.o: cc src/int/i15_modpow2.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_montmul.o: cc src/int/i15_montmul.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_mulacc.o: cc src/int/i15_mulacc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_muladd.o: cc src/int/i15_muladd.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_ninv15.o: cc src/int/i15_ninv15.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_reduce.o: cc src/int/i15_reduce.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_rshift.o: cc src/int/i15_rshift.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_sub.o: cc src/int/i15_sub.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i15_tmont.o: cc src/int/i15_tmont.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_add.o: cc src/int/i31_add.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_bitlen.o: cc src/int/i31_bitlen.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_decmod.o: cc src/int/i31_decmod.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_decode.o: cc src/int/i31_decode.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_decred.o: cc src/int/i31_decred.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_encode.o: cc src/int/i31_encode.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_fmont.o: cc src/int/i31_fmont.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_iszero.o: cc src/int/i31_iszero.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_moddiv.o: cc src/int/i31_moddiv.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_modpow.o: cc src/int/i31_modpow.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_modpow2.o: cc src/int/i31_modpow2.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_montmul.o: cc src/int/i31_montmul.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_mulacc.o: cc src/int/i31_mulacc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_muladd.o: cc src/int/i31_muladd.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_ninv31.o: cc src/int/i31_ninv31.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_reduce.o: cc src/int/i31_reduce.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_rshift.o: cc src/int/i31_rshift.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_sub.o: cc src/int/i31_sub.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i31_tmont.o: cc src/int/i31_tmont.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i32_add.o: cc src/int/i32_add.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i32_bitlen.o: cc src/int/i32_bitlen.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i32_decmod.o: cc src/int/i32_decmod.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i32_decode.o: cc src/int/i32_decode.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i32_decred.o: cc src/int/i32_decred.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i32_div32.o: cc src/int/i32_div32.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i32_encode.o: cc src/int/i32_encode.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i32_fmont.o: cc src/int/i32_fmont.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i32_iszero.o: cc src/int/i32_iszero.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i32_modpow.o: cc src/int/i32_modpow.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i32_montmul.o: cc src/int/i32_montmul.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i32_mulacc.o: cc src/int/i32_mulacc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i32_muladd.o: cc src/int/i32_muladd.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i32_ninv32.o: cc src/int/i32_ninv32.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i32_reduce.o: cc src/int/i32_reduce.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i32_sub.o: cc src/int/i32_sub.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i32_tmont.o: cc src/int/i32_tmont.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/int/i62_modpow2.o: cc src/int/i62_modpow2.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/int
++build build/samu-obj/src/kdf/hkdf.o: cc src/kdf/hkdf.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/kdf
++build build/samu-obj/src/mac/hmac.o: cc src/mac/hmac.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/mac
++build build/samu-obj/src/mac/hmac_ct.o: cc src/mac/hmac_ct.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/mac
++build build/samu-obj/src/rand/aesctr_drbg.o: cc src/rand/aesctr_drbg.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rand
++build build/samu-obj/src/rand/hmac_drbg.o: cc src/rand/hmac_drbg.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rand
++build build/samu-obj/src/rand/sysrng.o: cc src/rand/sysrng.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rand
++build build/samu-obj/src/rsa/rsa_default_keygen.o: cc src/rsa/rsa_default_keygen.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_default_modulus.o: cc src/rsa/rsa_default_modulus.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_default_oaep_decrypt.o: cc src/rsa/rsa_default_oaep_decrypt.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_default_oaep_encrypt.o: cc src/rsa/rsa_default_oaep_encrypt.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_default_pkcs1_sign.o: cc src/rsa/rsa_default_pkcs1_sign.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_default_pkcs1_vrfy.o: cc src/rsa/rsa_default_pkcs1_vrfy.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_default_priv.o: cc src/rsa/rsa_default_priv.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_default_privexp.o: cc src/rsa/rsa_default_privexp.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_default_pub.o: cc src/rsa/rsa_default_pub.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_default_pubexp.o: cc src/rsa/rsa_default_pubexp.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i15_keygen.o: cc src/rsa/rsa_i15_keygen.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i15_modulus.o: cc src/rsa/rsa_i15_modulus.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i15_oaep_decrypt.o: cc src/rsa/rsa_i15_oaep_decrypt.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i15_oaep_encrypt.o: cc src/rsa/rsa_i15_oaep_encrypt.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i15_pkcs1_sign.o: cc src/rsa/rsa_i15_pkcs1_sign.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i15_pkcs1_vrfy.o: cc src/rsa/rsa_i15_pkcs1_vrfy.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i15_priv.o: cc src/rsa/rsa_i15_priv.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i15_privexp.o: cc src/rsa/rsa_i15_privexp.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i15_pub.o: cc src/rsa/rsa_i15_pub.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i15_pubexp.o: cc src/rsa/rsa_i15_pubexp.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i31_keygen.o: cc src/rsa/rsa_i31_keygen.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i31_keygen_inner.o: cc src/rsa/rsa_i31_keygen_inner.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i31_modulus.o: cc src/rsa/rsa_i31_modulus.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i31_oaep_decrypt.o: cc src/rsa/rsa_i31_oaep_decrypt.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i31_oaep_encrypt.o: cc src/rsa/rsa_i31_oaep_encrypt.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i31_pkcs1_sign.o: cc src/rsa/rsa_i31_pkcs1_sign.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i31_pkcs1_vrfy.o: cc src/rsa/rsa_i31_pkcs1_vrfy.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i31_priv.o: cc src/rsa/rsa_i31_priv.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i31_privexp.o: cc src/rsa/rsa_i31_privexp.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i31_pub.o: cc src/rsa/rsa_i31_pub.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i31_pubexp.o: cc src/rsa/rsa_i31_pubexp.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i32_oaep_decrypt.o: cc src/rsa/rsa_i32_oaep_decrypt.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i32_oaep_encrypt.o: cc src/rsa/rsa_i32_oaep_encrypt.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i32_pkcs1_sign.o: cc src/rsa/rsa_i32_pkcs1_sign.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i32_pkcs1_vrfy.o: cc src/rsa/rsa_i32_pkcs1_vrfy.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i32_priv.o: cc src/rsa/rsa_i32_priv.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i32_pub.o: cc src/rsa/rsa_i32_pub.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i62_keygen.o: cc src/rsa/rsa_i62_keygen.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i62_oaep_decrypt.o: cc src/rsa/rsa_i62_oaep_decrypt.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i62_oaep_encrypt.o: cc src/rsa/rsa_i62_oaep_encrypt.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i62_pkcs1_sign.o: cc src/rsa/rsa_i62_pkcs1_sign.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i62_pkcs1_vrfy.o: cc src/rsa/rsa_i62_pkcs1_vrfy.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i62_priv.o: cc src/rsa/rsa_i62_priv.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_i62_pub.o: cc src/rsa/rsa_i62_pub.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_oaep_pad.o: cc src/rsa/rsa_oaep_pad.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_oaep_unpad.o: cc src/rsa/rsa_oaep_unpad.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_pkcs1_sig_pad.o: cc src/rsa/rsa_pkcs1_sig_pad.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_pkcs1_sig_unpad.o: cc src/rsa/rsa_pkcs1_sig_unpad.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/rsa/rsa_ssl_decrypt.o: cc src/rsa/rsa_ssl_decrypt.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/rsa
++build build/samu-obj/src/settings.o: cc src/settings.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src
++build build/samu-obj/src/ssl/prf.o: cc src/ssl/prf.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/prf_md5sha1.o: cc src/ssl/prf_md5sha1.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/prf_sha256.o: cc src/ssl/prf_sha256.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/prf_sha384.o: cc src/ssl/prf_sha384.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_ccert_single_ec.o: cc src/ssl/ssl_ccert_single_ec.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_ccert_single_rsa.o: cc src/ssl/ssl_ccert_single_rsa.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_client.o: cc src/ssl/ssl_client.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_client_default_rsapub.o: cc src/ssl/ssl_client_default_rsapub.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_client_full.o: cc src/ssl/ssl_client_full.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_engine.o: cc src/ssl/ssl_engine.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_engine_default_aescbc.o: cc src/ssl/ssl_engine_default_aescbc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_engine_default_aesccm.o: cc src/ssl/ssl_engine_default_aesccm.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_engine_default_aesgcm.o: cc src/ssl/ssl_engine_default_aesgcm.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_engine_default_chapol.o: cc src/ssl/ssl_engine_default_chapol.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_engine_default_descbc.o: cc src/ssl/ssl_engine_default_descbc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_engine_default_ec.o: cc src/ssl/ssl_engine_default_ec.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_engine_default_ecdsa.o: cc src/ssl/ssl_engine_default_ecdsa.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_engine_default_rsavrfy.o: cc src/ssl/ssl_engine_default_rsavrfy.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_hashes.o: cc src/ssl/ssl_hashes.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_hs_client.o: cc src/ssl/ssl_hs_client.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_hs_server.o: cc src/ssl/ssl_hs_server.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_io.o: cc src/ssl/ssl_io.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_keyexport.o: cc src/ssl/ssl_keyexport.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_lru.o: cc src/ssl/ssl_lru.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_rec_cbc.o: cc src/ssl/ssl_rec_cbc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_rec_ccm.o: cc src/ssl/ssl_rec_ccm.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_rec_chapol.o: cc src/ssl/ssl_rec_chapol.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_rec_gcm.o: cc src/ssl/ssl_rec_gcm.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_scert_single_ec.o: cc src/ssl/ssl_scert_single_ec.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_scert_single_rsa.o: cc src/ssl/ssl_scert_single_rsa.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_server.o: cc src/ssl/ssl_server.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_server_full_ec.o: cc src/ssl/ssl_server_full_ec.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_server_full_rsa.o: cc src/ssl/ssl_server_full_rsa.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_server_mine2c.o: cc src/ssl/ssl_server_mine2c.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_server_mine2g.o: cc src/ssl/ssl_server_mine2g.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_server_minf2c.o: cc src/ssl/ssl_server_minf2c.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_server_minf2g.o: cc src/ssl/ssl_server_minf2g.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_server_minr2g.o: cc src/ssl/ssl_server_minr2g.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_server_minu2g.o: cc src/ssl/ssl_server_minu2g.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/ssl/ssl_server_minv2g.o: cc src/ssl/ssl_server_minv2g.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/ssl
++build build/samu-obj/src/symcipher/aes_big_cbcdec.o: cc src/symcipher/aes_big_cbcdec.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_big_cbcenc.o: cc src/symcipher/aes_big_cbcenc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_big_ctr.o: cc src/symcipher/aes_big_ctr.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_big_ctrcbc.o: cc src/symcipher/aes_big_ctrcbc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_big_dec.o: cc src/symcipher/aes_big_dec.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_big_enc.o: cc src/symcipher/aes_big_enc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_common.o: cc src/symcipher/aes_common.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_ct.o: cc src/symcipher/aes_ct.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_ct64.o: cc src/symcipher/aes_ct64.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_ct64_cbcdec.o: cc src/symcipher/aes_ct64_cbcdec.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_ct64_cbcenc.o: cc src/symcipher/aes_ct64_cbcenc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_ct64_ctr.o: cc src/symcipher/aes_ct64_ctr.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_ct64_ctrcbc.o: cc src/symcipher/aes_ct64_ctrcbc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_ct64_dec.o: cc src/symcipher/aes_ct64_dec.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_ct64_enc.o: cc src/symcipher/aes_ct64_enc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_ct_cbcdec.o: cc src/symcipher/aes_ct_cbcdec.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_ct_cbcenc.o: cc src/symcipher/aes_ct_cbcenc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_ct_ctr.o: cc src/symcipher/aes_ct_ctr.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_ct_ctrcbc.o: cc src/symcipher/aes_ct_ctrcbc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_ct_dec.o: cc src/symcipher/aes_ct_dec.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_ct_enc.o: cc src/symcipher/aes_ct_enc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_pwr8.o: cc src/symcipher/aes_pwr8.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_pwr8_cbcdec.o: cc src/symcipher/aes_pwr8_cbcdec.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_pwr8_cbcenc.o: cc src/symcipher/aes_pwr8_cbcenc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_pwr8_ctr.o: cc src/symcipher/aes_pwr8_ctr.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_pwr8_ctrcbc.o: cc src/symcipher/aes_pwr8_ctrcbc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_small_cbcdec.o: cc src/symcipher/aes_small_cbcdec.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_small_cbcenc.o: cc src/symcipher/aes_small_cbcenc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_small_ctr.o: cc src/symcipher/aes_small_ctr.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_small_ctrcbc.o: cc src/symcipher/aes_small_ctrcbc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_small_dec.o: cc src/symcipher/aes_small_dec.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_small_enc.o: cc src/symcipher/aes_small_enc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_x86ni.o: cc src/symcipher/aes_x86ni.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_x86ni_cbcdec.o: cc src/symcipher/aes_x86ni_cbcdec.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_x86ni_cbcenc.o: cc src/symcipher/aes_x86ni_cbcenc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_x86ni_ctr.o: cc src/symcipher/aes_x86ni_ctr.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/aes_x86ni_ctrcbc.o: cc src/symcipher/aes_x86ni_ctrcbc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/chacha20_ct.o: cc src/symcipher/chacha20_ct.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/chacha20_sse2.o: cc src/symcipher/chacha20_sse2.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/des_ct.o: cc src/symcipher/des_ct.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/des_ct_cbcdec.o: cc src/symcipher/des_ct_cbcdec.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/des_ct_cbcenc.o: cc src/symcipher/des_ct_cbcenc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/des_support.o: cc src/symcipher/des_support.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/des_tab.o: cc src/symcipher/des_tab.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/des_tab_cbcdec.o: cc src/symcipher/des_tab_cbcdec.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/des_tab_cbcenc.o: cc src/symcipher/des_tab_cbcenc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/poly1305_ctmul.o: cc src/symcipher/poly1305_ctmul.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/poly1305_ctmul32.o: cc src/symcipher/poly1305_ctmul32.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/poly1305_ctmulq.o: cc src/symcipher/poly1305_ctmulq.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/symcipher/poly1305_i15.o: cc src/symcipher/poly1305_i15.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/symcipher
++build build/samu-obj/src/x509/asn1enc.o: cc src/x509/asn1enc.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/x509
++build build/samu-obj/src/x509/encode_ec_pk8der.o: cc src/x509/encode_ec_pk8der.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/x509
++build build/samu-obj/src/x509/encode_ec_rawder.o: cc src/x509/encode_ec_rawder.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/x509
++build build/samu-obj/src/x509/encode_rsa_pk8der.o: cc src/x509/encode_rsa_pk8der.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/x509
++build build/samu-obj/src/x509/encode_rsa_rawder.o: cc src/x509/encode_rsa_rawder.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/x509
++build build/samu-obj/src/x509/skey_decoder.o: cc src/x509/skey_decoder.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/x509
++build build/samu-obj/src/x509/x509_decoder.o: cc src/x509/x509_decoder.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/x509
++build build/samu-obj/src/x509/x509_knownkey.o: cc src/x509/x509_knownkey.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/x509
++build build/samu-obj/src/x509/x509_minimal.o: cc src/x509/x509_minimal.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/x509
++build build/samu-obj/src/x509/x509_minimal_full.o: cc src/x509/x509_minimal_full.c | ../../bootstrap/native/chibicc-selfbuilt bearssl_headers
++  objdir = build/samu-obj/src/x509
++build build/libbearssl.a: archive build/samu-obj/src/aead/ccm.o build/samu-obj/src/aead/eax.o build/samu-obj/src/aead/gcm.o build/samu-obj/src/codec/ccopy.o build/samu-obj/src/codec/dec16be.o build/samu-obj/src/codec/dec16le.o build/samu-obj/src/codec/dec32be.o build/samu-obj/src/codec/dec32le.o build/samu-obj/src/codec/dec64be.o build/samu-obj/src/codec/dec64le.o build/samu-obj/src/codec/enc16be.o build/samu-obj/src/codec/enc16le.o build/samu-obj/src/codec/enc32be.o build/samu-obj/src/codec/enc32le.o build/samu-obj/src/codec/enc64be.o build/samu-obj/src/codec/enc64le.o build/samu-obj/src/codec/pemdec.o build/samu-obj/src/codec/pemenc.o build/samu-obj/src/ec/ec_all_m15.o build/samu-obj/src/ec/ec_all_m31.o build/samu-obj/src/ec/ec_c25519_i15.o build/samu-obj/src/ec/ec_c25519_i31.o build/samu-obj/src/ec/ec_c25519_m15.o build/samu-obj/src/ec/ec_c25519_m31.o build/samu-obj/src/ec/ec_curve25519.o build/samu-obj/src/ec/ec_default.o build/samu-obj/src/ec/ec_keygen.o build/samu-obj/src/ec/ec_p256_m15.o build/samu-obj/src/ec/ec_p256_m31.o build/samu-obj/src/ec/ec_prime_i15.o build/samu-obj/src/ec/ec_prime_i31.o build/samu-obj/src/ec/ec_pubkey.o build/samu-obj/src/ec/ec_secp256r1.o build/samu-obj/src/ec/ec_secp384r1.o build/samu-obj/src/ec/ec_secp521r1.o build/samu-obj/src/ec/ecdsa_atr.o build/samu-obj/src/ec/ecdsa_default_sign_asn1.o build/samu-obj/src/ec/ecdsa_default_sign_raw.o build/samu-obj/src/ec/ecdsa_default_vrfy_asn1.o build/samu-obj/src/ec/ecdsa_default_vrfy_raw.o build/samu-obj/src/ec/ecdsa_i15_bits.o build/samu-obj/src/ec/ecdsa_i15_sign_asn1.o build/samu-obj/src/ec/ecdsa_i15_sign_raw.o build/samu-obj/src/ec/ecdsa_i15_vrfy_asn1.o build/samu-obj/src/ec/ecdsa_i15_vrfy_raw.o build/samu-obj/src/ec/ecdsa_i31_bits.o build/samu-obj/src/ec/ecdsa_i31_sign_asn1.o build/samu-obj/src/ec/ecdsa_i31_sign_raw.o build/samu-obj/src/ec/ecdsa_i31_vrfy_asn1.o build/samu-obj/src/ec/ecdsa_i31_vrfy_raw.o build/samu-obj/src/ec/ecdsa_rta.o build/samu-obj/src/hash/dig_oid.o build/samu-obj/src/hash/dig_size.o build/samu-obj/src/hash/ghash_ctmul.o build/samu-obj/src/hash/ghash_ctmul32.o build/samu-obj/src/hash/ghash_ctmul64.o build/samu-obj/src/hash/ghash_pclmul.o build/samu-obj/src/hash/ghash_pwr8.o build/samu-obj/src/hash/md5.o build/samu-obj/src/hash/md5sha1.o build/samu-obj/src/hash/mgf1.o build/samu-obj/src/hash/multihash.o build/samu-obj/src/hash/sha1.o build/samu-obj/src/hash/sha2big.o build/samu-obj/src/hash/sha2small.o build/samu-obj/src/int/i15_add.o build/samu-obj/src/int/i15_bitlen.o build/samu-obj/src/int/i15_decmod.o build/samu-obj/src/int/i15_decode.o build/samu-obj/src/int/i15_decred.o build/samu-obj/src/int/i15_encode.o build/samu-obj/src/int/i15_fmont.o build/samu-obj/src/int/i15_iszero.o build/samu-obj/src/int/i15_moddiv.o build/samu-obj/src/int/i15_modpow.o build/samu-obj/src/int/i15_modpow2.o build/samu-obj/src/int/i15_montmul.o build/samu-obj/src/int/i15_mulacc.o build/samu-obj/src/int/i15_muladd.o build/samu-obj/src/int/i15_ninv15.o build/samu-obj/src/int/i15_reduce.o build/samu-obj/src/int/i15_rshift.o build/samu-obj/src/int/i15_sub.o build/samu-obj/src/int/i15_tmont.o build/samu-obj/src/int/i31_add.o build/samu-obj/src/int/i31_bitlen.o build/samu-obj/src/int/i31_decmod.o build/samu-obj/src/int/i31_decode.o build/samu-obj/src/int/i31_decred.o build/samu-obj/src/int/i31_encode.o build/samu-obj/src/int/i31_fmont.o build/samu-obj/src/int/i31_iszero.o build/samu-obj/src/int/i31_moddiv.o build/samu-obj/src/int/i31_modpow.o build/samu-obj/src/int/i31_modpow2.o build/samu-obj/src/int/i31_montmul.o build/samu-obj/src/int/i31_mulacc.o build/samu-obj/src/int/i31_muladd.o build/samu-obj/src/int/i31_ninv31.o build/samu-obj/src/int/i31_reduce.o build/samu-obj/src/int/i31_rshift.o build/samu-obj/src/int/i31_sub.o build/samu-obj/src/int/i31_tmont.o build/samu-obj/src/int/i32_add.o build/samu-obj/src/int/i32_bitlen.o build/samu-obj/src/int/i32_decmod.o build/samu-obj/src/int/i32_decode.o build/samu-obj/src/int/i32_decred.o build/samu-obj/src/int/i32_div32.o build/samu-obj/src/int/i32_encode.o build/samu-obj/src/int/i32_fmont.o build/samu-obj/src/int/i32_iszero.o build/samu-obj/src/int/i32_modpow.o build/samu-obj/src/int/i32_montmul.o build/samu-obj/src/int/i32_mulacc.o build/samu-obj/src/int/i32_muladd.o build/samu-obj/src/int/i32_ninv32.o build/samu-obj/src/int/i32_reduce.o build/samu-obj/src/int/i32_sub.o build/samu-obj/src/int/i32_tmont.o build/samu-obj/src/int/i62_modpow2.o build/samu-obj/src/kdf/hkdf.o build/samu-obj/src/mac/hmac.o build/samu-obj/src/mac/hmac_ct.o build/samu-obj/src/rand/aesctr_drbg.o build/samu-obj/src/rand/hmac_drbg.o build/samu-obj/src/rand/sysrng.o build/samu-obj/src/rsa/rsa_default_keygen.o build/samu-obj/src/rsa/rsa_default_modulus.o build/samu-obj/src/rsa/rsa_default_oaep_decrypt.o build/samu-obj/src/rsa/rsa_default_oaep_encrypt.o build/samu-obj/src/rsa/rsa_default_pkcs1_sign.o build/samu-obj/src/rsa/rsa_default_pkcs1_vrfy.o build/samu-obj/src/rsa/rsa_default_priv.o build/samu-obj/src/rsa/rsa_default_privexp.o build/samu-obj/src/rsa/rsa_default_pub.o build/samu-obj/src/rsa/rsa_default_pubexp.o build/samu-obj/src/rsa/rsa_i15_keygen.o build/samu-obj/src/rsa/rsa_i15_modulus.o build/samu-obj/src/rsa/rsa_i15_oaep_decrypt.o build/samu-obj/src/rsa/rsa_i15_oaep_encrypt.o build/samu-obj/src/rsa/rsa_i15_pkcs1_sign.o build/samu-obj/src/rsa/rsa_i15_pkcs1_vrfy.o build/samu-obj/src/rsa/rsa_i15_priv.o build/samu-obj/src/rsa/rsa_i15_privexp.o build/samu-obj/src/rsa/rsa_i15_pub.o build/samu-obj/src/rsa/rsa_i15_pubexp.o build/samu-obj/src/rsa/rsa_i31_keygen.o build/samu-obj/src/rsa/rsa_i31_keygen_inner.o build/samu-obj/src/rsa/rsa_i31_modulus.o build/samu-obj/src/rsa/rsa_i31_oaep_decrypt.o build/samu-obj/src/rsa/rsa_i31_oaep_encrypt.o build/samu-obj/src/rsa/rsa_i31_pkcs1_sign.o build/samu-obj/src/rsa/rsa_i31_pkcs1_vrfy.o build/samu-obj/src/rsa/rsa_i31_priv.o build/samu-obj/src/rsa/rsa_i31_privexp.o build/samu-obj/src/rsa/rsa_i31_pub.o build/samu-obj/src/rsa/rsa_i31_pubexp.o build/samu-obj/src/rsa/rsa_i32_oaep_decrypt.o build/samu-obj/src/rsa/rsa_i32_oaep_encrypt.o build/samu-obj/src/rsa/rsa_i32_pkcs1_sign.o build/samu-obj/src/rsa/rsa_i32_pkcs1_vrfy.o build/samu-obj/src/rsa/rsa_i32_priv.o build/samu-obj/src/rsa/rsa_i32_pub.o build/samu-obj/src/rsa/rsa_i62_keygen.o build/samu-obj/src/rsa/rsa_i62_oaep_decrypt.o build/samu-obj/src/rsa/rsa_i62_oaep_encrypt.o build/samu-obj/src/rsa/rsa_i62_pkcs1_sign.o build/samu-obj/src/rsa/rsa_i62_pkcs1_vrfy.o build/samu-obj/src/rsa/rsa_i62_priv.o build/samu-obj/src/rsa/rsa_i62_pub.o build/samu-obj/src/rsa/rsa_oaep_pad.o build/samu-obj/src/rsa/rsa_oaep_unpad.o build/samu-obj/src/rsa/rsa_pkcs1_sig_pad.o build/samu-obj/src/rsa/rsa_pkcs1_sig_unpad.o build/samu-obj/src/rsa/rsa_ssl_decrypt.o build/samu-obj/src/settings.o build/samu-obj/src/ssl/prf.o build/samu-obj/src/ssl/prf_md5sha1.o build/samu-obj/src/ssl/prf_sha256.o build/samu-obj/src/ssl/prf_sha384.o build/samu-obj/src/ssl/ssl_ccert_single_ec.o build/samu-obj/src/ssl/ssl_ccert_single_rsa.o build/samu-obj/src/ssl/ssl_client.o build/samu-obj/src/ssl/ssl_client_default_rsapub.o build/samu-obj/src/ssl/ssl_client_full.o build/samu-obj/src/ssl/ssl_engine.o build/samu-obj/src/ssl/ssl_engine_default_aescbc.o build/samu-obj/src/ssl/ssl_engine_default_aesccm.o build/samu-obj/src/ssl/ssl_engine_default_aesgcm.o build/samu-obj/src/ssl/ssl_engine_default_chapol.o build/samu-obj/src/ssl/ssl_engine_default_descbc.o build/samu-obj/src/ssl/ssl_engine_default_ec.o build/samu-obj/src/ssl/ssl_engine_default_ecdsa.o build/samu-obj/src/ssl/ssl_engine_default_rsavrfy.o build/samu-obj/src/ssl/ssl_hashes.o build/samu-obj/src/ssl/ssl_hs_client.o build/samu-obj/src/ssl/ssl_hs_server.o build/samu-obj/src/ssl/ssl_io.o build/samu-obj/src/ssl/ssl_keyexport.o build/samu-obj/src/ssl/ssl_lru.o build/samu-obj/src/ssl/ssl_rec_cbc.o build/samu-obj/src/ssl/ssl_rec_ccm.o build/samu-obj/src/ssl/ssl_rec_chapol.o build/samu-obj/src/ssl/ssl_rec_gcm.o build/samu-obj/src/ssl/ssl_scert_single_ec.o build/samu-obj/src/ssl/ssl_scert_single_rsa.o build/samu-obj/src/ssl/ssl_server.o build/samu-obj/src/ssl/ssl_server_full_ec.o build/samu-obj/src/ssl/ssl_server_full_rsa.o build/samu-obj/src/ssl/ssl_server_mine2c.o build/samu-obj/src/ssl/ssl_server_mine2g.o build/samu-obj/src/ssl/ssl_server_minf2c.o build/samu-obj/src/ssl/ssl_server_minf2g.o build/samu-obj/src/ssl/ssl_server_minr2g.o build/samu-obj/src/ssl/ssl_server_minu2g.o build/samu-obj/src/ssl/ssl_server_minv2g.o build/samu-obj/src/symcipher/aes_big_cbcdec.o build/samu-obj/src/symcipher/aes_big_cbcenc.o build/samu-obj/src/symcipher/aes_big_ctr.o build/samu-obj/src/symcipher/aes_big_ctrcbc.o build/samu-obj/src/symcipher/aes_big_dec.o build/samu-obj/src/symcipher/aes_big_enc.o build/samu-obj/src/symcipher/aes_common.o build/samu-obj/src/symcipher/aes_ct.o build/samu-obj/src/symcipher/aes_ct64.o build/samu-obj/src/symcipher/aes_ct64_cbcdec.o build/samu-obj/src/symcipher/aes_ct64_cbcenc.o build/samu-obj/src/symcipher/aes_ct64_ctr.o build/samu-obj/src/symcipher/aes_ct64_ctrcbc.o build/samu-obj/src/symcipher/aes_ct64_dec.o build/samu-obj/src/symcipher/aes_ct64_enc.o build/samu-obj/src/symcipher/aes_ct_cbcdec.o build/samu-obj/src/symcipher/aes_ct_cbcenc.o build/samu-obj/src/symcipher/aes_ct_ctr.o build/samu-obj/src/symcipher/aes_ct_ctrcbc.o build/samu-obj/src/symcipher/aes_ct_dec.o build/samu-obj/src/symcipher/aes_ct_enc.o build/samu-obj/src/symcipher/aes_pwr8.o build/samu-obj/src/symcipher/aes_pwr8_cbcdec.o build/samu-obj/src/symcipher/aes_pwr8_cbcenc.o build/samu-obj/src/symcipher/aes_pwr8_ctr.o build/samu-obj/src/symcipher/aes_pwr8_ctrcbc.o build/samu-obj/src/symcipher/aes_small_cbcdec.o build/samu-obj/src/symcipher/aes_small_cbcenc.o build/samu-obj/src/symcipher/aes_small_ctr.o build/samu-obj/src/symcipher/aes_small_ctrcbc.o build/samu-obj/src/symcipher/aes_small_dec.o build/samu-obj/src/symcipher/aes_small_enc.o build/samu-obj/src/symcipher/aes_x86ni.o build/samu-obj/src/symcipher/aes_x86ni_cbcdec.o build/samu-obj/src/symcipher/aes_x86ni_cbcenc.o build/samu-obj/src/symcipher/aes_x86ni_ctr.o build/samu-obj/src/symcipher/aes_x86ni_ctrcbc.o build/samu-obj/src/symcipher/chacha20_ct.o build/samu-obj/src/symcipher/chacha20_sse2.o build/samu-obj/src/symcipher/des_ct.o build/samu-obj/src/symcipher/des_ct_cbcdec.o build/samu-obj/src/symcipher/des_ct_cbcenc.o build/samu-obj/src/symcipher/des_support.o build/samu-obj/src/symcipher/des_tab.o build/samu-obj/src/symcipher/des_tab_cbcdec.o build/samu-obj/src/symcipher/des_tab_cbcenc.o build/samu-obj/src/symcipher/poly1305_ctmul.o build/samu-obj/src/symcipher/poly1305_ctmul32.o build/samu-obj/src/symcipher/poly1305_ctmulq.o build/samu-obj/src/symcipher/poly1305_i15.o build/samu-obj/src/x509/asn1enc.o build/samu-obj/src/x509/encode_ec_pk8der.o build/samu-obj/src/x509/encode_ec_rawder.o build/samu-obj/src/x509/encode_rsa_pk8der.o build/samu-obj/src/x509/encode_rsa_rawder.o build/samu-obj/src/x509/skey_decoder.o build/samu-obj/src/x509/x509_decoder.o build/samu-obj/src/x509/x509_knownkey.o build/samu-obj/src/x509/x509_minimal.o build/samu-obj/src/x509/x509_minimal_full.o
++default build/libbearssl.a

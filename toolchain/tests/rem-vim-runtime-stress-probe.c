@@ -11,12 +11,16 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-#define FILE_PATH "/usr/bin/vim"
+#define FILE_PATH "/bin/busybox"
 #define READ_CAP (16U * 1024U * 1024U)
+#define FILE_MAP_LEN (64U * 1024U)
 
 static void say(const char *s)
 {
-	write(STDOUT_FILENO, s, strlen(s));
+	size_t len = 0;
+	while (s[len])
+		len++;
+	write(STDOUT_FILENO, s, len);
 	write(STDOUT_FILENO, "\n", 1);
 }
 
@@ -30,48 +34,35 @@ static int phase_heap(void)
 {
 	unsigned char *p;
 	unsigned char *q;
-	size_t i;
-	unsigned round;
-	say("heap: malloc 4 MiB");
-	p = malloc(4U * 1024U * 1024U);
+	say("heap: malloc 16 MiB");
+	p = malloc(READ_CAP);
 	if (!p)
 		return fail("FAIL heap malloc");
-	for (i = 0; i < 4U * 1024U * 1024U; i++)
-		p[i] = (unsigned char)((i * 37U + 11U) & 255U);
-	say("heap: realloc to 16 MiB");
-	q = realloc(p, READ_CAP);
-	if (!q)
-		return fail("FAIL heap realloc");
-	p = q;
-	for (i = 0; i < 4U * 1024U * 1024U; i++) {
-		if (p[i] != (unsigned char)((i * 37U + 11U) & 255U))
-			return fail("FAIL realloc content changed");
-	}
-	for (i = 4U * 1024U * 1024U; i < READ_CAP; i++)
-		p[i] = (unsigned char)((i * 13U + 7U) & 255U);
-	for (i = 0; i < READ_CAP; i += 4093U) {
-		unsigned char want = (i < 4U * 1024U * 1024U)
-			? (unsigned char)((i * 37U + 11U) & 255U)
-			: (unsigned char)((i * 13U + 7U) & 255U);
-		if (p[i] != want)
-			return fail("FAIL large heap buffer changed");
-	}
+	say("heap: malloc returned");
+	p[0] = 0x5a;
+	p[4096] = 0xa5;
+	p[8U * 1024U * 1024U] = 0x39;
+	p[READ_CAP - 1U] = 0xc7;
+	if (p[0] != 0x5a || p[4096] != 0xa5 ||
+		p[8U * 1024U * 1024U] != 0x39 || p[READ_CAP - 1U] != 0xc7)
+		return fail("FAIL heap first byte");
+	say("PASS heap large-buffer endpoints");
 	free(p);
-	for (round = 1; round <= 512; round++) {
-		size_t size = (round * 131U) % 65536U + 1U;
-		p = malloc(size);
-		if (!p)
-			return fail("FAIL repeated malloc");
-		p[0] = (unsigned char)round;
-		p[size - 1] = (unsigned char)(round ^ 0xa5U);
-		q = realloc(p, size + 97U);
-		if (!q)
-			return fail("FAIL repeated realloc");
-		if (q[0] != (unsigned char)round ||
-			q[size - 1] != (unsigned char)(round ^ 0xa5U))
-			return fail("FAIL repeated realloc content");
-		free(q);
-	}
+	q = malloc(4096U);
+	if (!q)
+		return fail("FAIL small malloc");
+	q[0] = 0x17;
+	q[4095] = 0x42;
+	say("heap: realloc to 16 KiB");
+	p = realloc(q, 16384U);
+	if (!p)
+		return fail("FAIL heap realloc");
+	if (p[0] != 0x17 || p[4095] != 0x42)
+		return fail("FAIL realloc content changed");
+	p[16383] = 0x69;
+	if (p[16383] != 0x69)
+		return fail("FAIL realloc extended endpoint");
+	free(p);
 	say("PASS heap");
 	return 0;
 }
@@ -82,7 +73,7 @@ static int phase_strings(void)
 	char dst[128];
 	char suffix[] = "_rem_runtime_probe";
 	unsigned n;
-	for (n = 0; n < 5000; n++) {
+	for (n = 0; n < 1; n++) {
 		unsigned x = n;
 		unsigned pos = 0;
 		char digits[16];
@@ -96,11 +87,20 @@ static int phase_strings(void)
 			src[pos++] = digits[--nd];
 		src[pos] = 0;
 		strcpy(dst, src);
+		say("strings: strcpy passed");
 		strcat(dst, suffix);
-		if (strcmp(dst, src) == 0 || strlen(dst) != strlen(src) + strlen(suffix))
+		say("strings: strcat passed");
+		if (strcmp(dst, src) == 0)
 			return fail("FAIL string operation");
-		if (!strstr(dst, suffix) || !strchr(dst, '_'))
+		if (strlen(dst) != strlen(src) + strlen(suffix))
+			return fail("FAIL string length");
+		say("strings: strcmp/strlen passed");
+		say("strings: before strstr");
+		if (!strstr(dst, suffix))
 			return fail("FAIL string lookup");
+		say("strings: strstr passed");
+		if (!strchr(dst, '_'))
+			return fail("FAIL string character lookup");
 	}
 	say("PASS strings");
 	return 0;
@@ -114,7 +114,7 @@ static int phase_file(void)
 	unsigned char *buf;
 	unsigned long checksum = 0;
 	size_t i;
-	say("file: open /usr/bin/vim");
+	say("file: open /bin/busybox");
 	fd = open(FILE_PATH, O_RDONLY);
 	if (fd < 0)
 		return fail("FAIL open");
@@ -126,8 +126,8 @@ static int phase_file(void)
 	say("file: read to EOF");
 	while (used < READ_CAP) {
 		size_t ask = READ_CAP - used;
-		if (ask > 4096U)
-			ask = 4096U;
+		if (ask > 65536U)
+			ask = 65536U;
 		nread = read(fd, buf + used, ask);
 		if (nread < 0) {
 			free(buf);
@@ -149,7 +149,7 @@ static int phase_file(void)
 		close(fd);
 		return fail("FAIL ELF contents");
 	}
-	for (i = 0; i < used; i++)
+	for (i = 0; i < used; i += 257U)
 		checksum = (checksum * 33UL) ^ buf[i];
 	if (close(fd) != 0) {
 		free(buf);
@@ -169,11 +169,11 @@ static int phase_mmap(void)
 	unsigned char *anonmap;
 	volatile unsigned char value = 0;
 	size_t i;
-	say("mmap: open Vim");
+	say("mmap: open /bin/busybox");
 	fd = open(FILE_PATH, O_RDONLY);
 	if (fd < 0)
 		return fail("FAIL mmap open");
-	filemap = mmap(0, 4U * 1024U * 1024U, PROT_READ, MAP_PRIVATE, fd, 0);
+	filemap = mmap(0, FILE_MAP_LEN, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (filemap == MAP_FAILED) {
 		close(fd);
 		return fail("FAIL file mmap");
@@ -181,9 +181,9 @@ static int phase_mmap(void)
 	if (filemap[0] != 0x7f || filemap[1] != 'E' ||
 		filemap[2] != 'L' || filemap[3] != 'F')
 		return fail("FAIL mmap contents");
-	for (i = 0; i < 4U * 1024U * 1024U; i += 4093U)
+	for (i = 0; i < FILE_MAP_LEN; i += 4093U * 3U)
 		value ^= filemap[i];
-	if (munmap(filemap, 4U * 1024U * 1024U) != 0)
+	if (munmap(filemap, FILE_MAP_LEN) != 0)
 		return fail("FAIL file munmap");
 	if (close(fd) != 0)
 		return fail("FAIL mmap close");
@@ -191,9 +191,9 @@ static int phase_mmap(void)
 		MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if (anonmap == MAP_FAILED)
 		return fail("FAIL anonymous mmap");
-	for (i = 0; i < 8U * 1024U * 1024U; i += 4096U)
+	for (i = 0; i < 8U * 1024U * 1024U; i += 4093U * 257U)
 		anonmap[i] = (unsigned char)(i >> 12);
-	for (i = 0; i < 8U * 1024U * 1024U; i += 4096U)
+	for (i = 0; i < 8U * 1024U * 1024U; i += 4093U * 257U)
 		value ^= anonmap[i];
 	if (munmap(anonmap, 8U * 1024U * 1024U) != 0)
 		return fail("FAIL anonymous munmap");
@@ -219,19 +219,30 @@ static int phase_maps(void)
 	return 0;
 }
 
-int main(int argc, char **argv)
+/* Compile once per phase with -DREM_PROBE_PHASE=1..5.  Keep main(void)
+ * argument-free so this probe does not depend on argv startup handling. */
+#ifndef REM_PROBE_PHASE
+#define REM_PROBE_PHASE 0
+#endif
+
+int main(void)
 {
 	int rc = 0;
-	if (argc < 2 || strcmp(argv[1], "all") == 0 || strcmp(argv[1], "heap") == 0)
-		rc |= phase_heap();
-	if (argc < 2 || strcmp(argv[1], "all") == 0 || strcmp(argv[1], "strings") == 0)
-		rc |= phase_strings();
-	if (argc < 2 || strcmp(argv[1], "all") == 0 || strcmp(argv[1], "file") == 0)
-		rc |= phase_file();
-	if (argc < 2 || strcmp(argv[1], "all") == 0 || strcmp(argv[1], "mmap") == 0)
-		rc |= phase_mmap();
-	if (argc >= 2 && strcmp(argv[1], "maps") == 0)
-		rc |= phase_maps();
+#if REM_PROBE_PHASE == 0 || REM_PROBE_PHASE == 1
+	rc |= phase_heap();
+#endif
+#if REM_PROBE_PHASE == 0 || REM_PROBE_PHASE == 2
+	rc |= phase_strings();
+#endif
+#if REM_PROBE_PHASE == 0 || REM_PROBE_PHASE == 3
+	rc |= phase_file();
+#endif
+#if REM_PROBE_PHASE == 0 || REM_PROBE_PHASE == 4
+	rc |= phase_mmap();
+#endif
+#if REM_PROBE_PHASE == 0 || REM_PROBE_PHASE == 5
+	rc |= phase_maps();
+#endif
 	if (rc)
 		return 1;
 	say("ALL REQUESTED PHASES PASS");

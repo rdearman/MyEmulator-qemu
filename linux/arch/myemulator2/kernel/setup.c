@@ -13,6 +13,9 @@
 extern void start_kernel(void);
 extern void paging_init(void);
 extern char __vectors_start[];
+extern void myemulator2_console_parse_cmdline(const char *cmdline);
+#define MYEMU2_BOOT_RAM_SIZE 0x00000410UL
+#define MYEMU2_BOOT_CMDLINE_PTR 0x00000414UL
 
 unsigned long memory_start;
 unsigned long memory_end;
@@ -27,12 +30,20 @@ static void __init myemulator2_install_vectors(void)
 
 void __init setup_arch(char **cmdline_p)
 {
-	volatile u32 *boot_ram_size = (volatile u32 *)0x00000408UL;
+	volatile u32 *boot_ram_size = (volatile u32 *)MYEMU2_BOOT_RAM_SIZE;
 	u32 configured_ram;
 
 	console_verbose();
 	if (IS_ENABLED(CONFIG_CMDLINE_FORCE))
 		strscpy(boot_command_line, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
+	else {
+		u32 cmdline_phys = READ_ONCE(*(volatile u32 *)MYEMU2_BOOT_CMDLINE_PTR);
+		if (cmdline_phys)
+			strscpy(boot_command_line,
+				(const char *)cmdline_phys,
+				COMMAND_LINE_SIZE);
+	}
+	myemulator2_console_parse_cmdline(boot_command_line);
 	*cmdline_p = boot_command_line;
 
 	/* Describe RAM from the first usable machine page.  The complete

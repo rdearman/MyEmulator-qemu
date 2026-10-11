@@ -125,3 +125,158 @@ failing/unvalidated BusyBox, not a validated replacement. No BusyBox `cp`/`mv`
 acceptance result is currently available for the production image. This is a
 provenance finding only; no kernel or userspace source fix is justified by the
 available evidence.
+
+## REM 0.1 login syscall audit — setgroups
+
+| Syscall | Number | Status | First affected workload | Fix and validation |
+|---|---:|---|---|---|
+| `setgroups` | 159 | Implemented in the disposable REM 0.1 kernel | BusyBox `login` after password authentication | `linux/arch/myemulator2/kernel/syscall.c` now dispatches to Linux's generic `sys_setgroups(int, gid_t __user *)`, retaining standard count, user-pointer, and permission checks. The kernel built successfully; symbol table contains `sys_setgroups`. Full login-to-Yash acceptance remains pending because the RC3 password path did not complete in the available run. |
+
+The RC3 run reached the `dev` login and `Password:` prompt without
+`ENOSYS`, but did not reach the post-authentication `setgroups` call before
+the disposable test was stopped. This is therefore an implementation/build
+pass, not a claim that the complete login workflow is accepted. No rootfs or
+flight image was modified.
+
+## Login authentication boundary
+
+The disposable RC3 account files are internally consistent:
+
+- `/etc/passwd`: `dev` uses UID/GID `1000`, home `/home/dev`, shell
+  `/usr/bin/yash`;
+- `/etc/shadow`: `dev` has a SHA-512 crypt record with the `remdev` salt;
+- `/etc/group`: `dev` is a member of `users`.
+
+The BusyBox build enables shadow passwords, internal shadow lookup, internal
+crypt, and SHA-256/512 crypt. Traces show `login` accepts the username,
+prints `Password:`, and then blocks in its tty read; no authentication result,
+`setgroups(159)`, or `execve(/usr/bin/yash)` follows. This run therefore
+isolates the current boundary to password-input delivery or authentication
+runtime, rather than another missing syscall. The account/hash configuration
+is not evidence of a kernel defect by itself.
+
+The synchronized PTY run delivered every password byte successfully: the
+kernel trace contains one-byte reads for `r`, `e`, `m`, `t`, `e`, `s`, `t`,
+and the terminating newline. Login then reads the 138-byte shadow record and
+performs no further syscall before timeout; there is no `setgroups(159)`. The
+host verifies that `remtest` matches the recorded SHA-512 crypt hash. The
+remaining failure is therefore inside BusyBox's internal SHA-512 password
+verification path (or its generated runtime code), not tty delivery and not
+a missing syscall. A separately rebuilt and qualified login binary is needed
+before attributing this to the kernel.
+
+A disposable empty-password shadow test reached `setgroups(159)` and produced
+the `REM>` Yash prompt with the same kernel, tty, account, and login binary.
+Replacing the hash with SHA-512, SHA-256, or MD5 caused login to stop before
+syscall 159. This isolates the remaining defect to non-empty BusyBox internal
+`crypt()` execution (or its generated code); it is not caused by account
+lookup, tty input, `setgroups`, or Yash startup. These hash-modified images
+were disposable diagnostics only and were not used to qualify the flight
+image.
+
+A disposable BusyBox rebuild with `-O0` produced
+`/tmp/rem-busybox-o0/busybox` (SHA-256
+`262a644699aac3d64a94c6ccded9f384b47cee593c361fcbd81f2d88eae91033`), but
+the original SHA-512 login still stopped before `setgroups`. This rules out a
+simple optimization-level workaround. QEMU monitor sampling during the stall
+reached the kernel interrupt handler, but exposed no userspace fault or new
+missing syscall.
+
+An additional disposable reduction changed BusyBox `ROUNDS_DEFAULT` and
+`ROUNDS_MIN` to `1` in a copied source tree and rebuilt the crypt-enabled
+binary (`/tmp/rem-busybox-cryptone/busybox`, SHA-256
+`1d8ae8c351cedffdea2473c3d8108725be39c4f6899751d92af931044ad4d1b5`). Login
+still failed to reach syscall 159. The stall is therefore not caused by the
+5000-round password-cost setting; it occurs in the underlying internal hash
+path or generated arithmetic/runtime code.
+
+To reduce the failure further, a disposable BusyBox build with the `cryptpw`
+applet enabled was produced (`/tmp/rem-busybox-cryptprobe/busybox`, SHA-256
+`438296bd1d9143e8b6fe8d38c0b441b2d7b8063ce03c8b59abf94c1c289c49a1`). The
+login control with an empty password still reaches `setgroups`; attempts to
+invoke the interactive `cryptpw` command were limited by the separate Yash
+input-delivery path. No kernel syscall error was exposed by the reduction.
+
+## Standalone SHA-crypt probe (corrected boundary)
+
+The earlier one-round login reduction used a one-round BusyBox binary with the
+original 5000-round shadow hash, so its failure was not evidence that one-round
+crypt itself failed. A standalone probe was therefore built from the canonical
+BusyBox 1.37.0 sources (`libbb/hash_md5_sha.c`, `libbb/pw_encrypt_sha.c`,
+`libbb/bb_bswap_64.c`) with only the required support functions.
+
+Host and REM both produced the same one-round result for `remtest` and
+`$6$remdev$`:
+
+```
+$6$remdev$Egrm6z1lIgJsvpUNmT2VwLky59It4uvzggB5Qd9.Z8johEzWcNxTEbeFJBtLhmUBM/e.JZcW1eRGPFRQ0sNlz0
+```
+
+The REM executable was `/tmp/rem-sha-one` (ELF32 MyEmulator2); the host probe
+was `/tmp/rem-sha-one-host`. A 100-round probe also matched byte-for-byte:
+
+```
+$6$remdev$/p1P2oJBH5xD/9SiU2pWOBeTCooEN6HgQJ8RehjD1sZgA37Bt9xVZB54XbvZ7guA5OmlvLDp63SYxYD4BbmiY0
+```
+
+A disposable login image using the one-round BusyBox binary and the matching
+one-round shadow hash reached `setgroups(159)` and the `REM>` Yash prompt.
+Therefore the SHA arithmetic and REM generated code are correct for these
+probes. The original 5000-round run had been stopped by the short diagnostic
+harness timeout while the slow REM emulation was still computing; it was not a
+crypt correctness failure. No kernel or libc fix is justified by this probe.
+
+## REM 0.1 login follow-up — getgroups
+
+BusyBox's post-login test path issued syscall 158 (`getgroups`) and the
+previous disposable kernel returned `ENOSYS`. The MyEmulator2 dispatcher now
+routes syscall 158 to Linux's generic `sys_getgroups(int, gid_t __user *)`.
+This preserves Linux pointer/count validation and returns the caller's
+supplementary-group count/list semantics.
+
+Validation:
+
+- disposable kernel `/tmp/rem-kernel-exec/vmlinux` built successfully;
+- kernel SHA-256: `9e3e2562ccc08df34b255fed9a1aff5261c77e64e6a8fbd20744d2073a127c01`;
+- standalone REM probe returned `getgroups=0` rather than `ENOSYS`;
+- no new syscall failure was observed in that probe.
+
+## Targeted syscall audit — mknodat
+
+The existing PTY/device smoke test had a concrete gap: raw syscall 33
+(`mknodat`) returned `ENOSYS`, preventing userspace from creating device/FIFO
+nodes even though UNIX98 PTY support itself worked. The dispatcher now routes
+syscall 33 to Linux's generic `sys_mknodat`.
+
+Validation:
+
+- disposable kernel `/tmp/rem-kernel-exec/vmlinux` rebuilt;
+- kernel SHA-256: `8b949bc36a0e158d0bc93b82010b76199300b1f7c2306c2c775dfb406ceacb31`;
+- a static REM probe calling `mknod("/tmp/rem-mknod", S_IFIFO|0600, 0)` returned
+  `mknod=0` in a disposable ext4 image.
+
+No additional `ENOSYS` was exposed by the focused `getgroups`/`mknodat`
+probes. Further audit should be driven by actual failures from Yash, Kilo,
+BusyBox, chibicc, binutils, make/samu, or remdbg rather than the generic
+Linux syscall list.
+
+## Targeted REM 0.1 workload smoke audit
+
+Using a disposable RC3 rootfs and the rebuilt disposable kernel, the following
+startup/usage probes completed without an `ENOSYS` report:
+
+- `chibicc --help`
+- `as --version`
+- `ld --version`
+- `ar --version`
+- `nm --version`
+- `objdump --version`
+- `readelf --version`
+- `make --version`
+- BusyBox filesystem test path
+
+`yash -c` returned status 255 in this noninteractive launcher, so that result
+is not treated as a shell acceptance result; interactive Yash acceptance is
+covered separately. `samu -h` returned 130 in this launcher and requires its
+own owner test rather than a kernel conclusion. No new missing syscall was
+observed in the captured tool output.

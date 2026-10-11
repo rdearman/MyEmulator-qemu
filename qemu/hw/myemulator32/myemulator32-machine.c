@@ -16,16 +16,23 @@
 #include "myemulator32-debug.h"
 #include "myemulator32-console.h"
 #include "myemulator32-block.h"
+#include "myemulator32-power.h"
 #include "chardev/char.h"
 #include "sysemu/sysemu.h"
 #include "sysemu/block-backend.h"
+#include "exec/cpu-common.h"
+#include "qemu/timer.h"
 
 #define TYPE_MYEMULATOR32_MACHINE MACHINE_TYPE_NAME("myemulator32")
 #define MYEMU32_DEFAULT_RAM (16 * 1024 * 1024)
 #define MYEMU32_ELF_MACHINE 0xF2E2
 #define MYEMU32_RESET_SSP_ADDR 0x00000400
 #define MYEMU32_RESET_PC_ADDR  0x00000404
-#define MYEMU32_BOOT_RAM_ADDR  0x00000408
+#define MYEMU32_BOOT_EPOCH_LO_ADDR 0x00000408
+#define MYEMU32_BOOT_EPOCH_HI_ADDR 0x0000040c
+#define MYEMU32_BOOT_RAM_ADDR  0x00000410
+#define MYEMU32_BOOT_CMDLINE_PTR 0x00000414
+#define MYEMU32_BOOT_CMDLINE_ADDR 0x00000600
 #define MYEMU32_VIRTIO_NET_BASE 0xf0200000u
 #define MYEMU32_VIRTIO_NET_IRQ  5u
 
@@ -37,6 +44,18 @@ typedef struct MyEmulator32MachineState {
 
 DECLARE_INSTANCE_CHECKER(MyEmulator32MachineState, MYEMULATOR32_MACHINE,
                          TYPE_MYEMULATOR32_MACHINE)
+
+static void myemulator32_write_boot_epoch(void)
+{
+    uint64_t epoch_sec =
+        (uint64_t)(qemu_clock_get_ns(QEMU_CLOCK_HOST) /
+                   NANOSECONDS_PER_SECOND);
+
+    stl_le_phys(&address_space_memory, MYEMU32_BOOT_EPOCH_LO_ADDR,
+                (uint32_t)epoch_sec);
+    stl_le_phys(&address_space_memory, MYEMU32_BOOT_EPOCH_HI_ADDR,
+                (uint32_t)(epoch_sec >> 32));
+}
 
 static void myemulator32_machine_irq(void *opaque, int number, int level)
 {
@@ -103,6 +122,18 @@ static void myemulator32_machine_init(MachineState *machine)
          * kernel can use more than the historical 16 MiB default. */
         stl_le_phys(&address_space_memory, MYEMU32_BOOT_RAM_ADDR,
                     (uint32_t)machine->ram_size);
+        if (machine->kernel_cmdline && machine->kernel_cmdline[0]) {
+            size_t n = strlen(machine->kernel_cmdline) + 1;
+            if (MYEMU32_BOOT_CMDLINE_ADDR + n >= machine->ram_size) {
+                error_report("MyEmulator32 kernel command line is too large");
+            } else {
+                cpu_physical_memory_write(MYEMU32_BOOT_CMDLINE_ADDR,
+                                          machine->kernel_cmdline, n);
+                stl_le_phys(&address_space_memory,
+                            MYEMU32_BOOT_CMDLINE_PTR,
+                            MYEMU32_BOOT_CMDLINE_ADDR);
+            }
+        }
         is_elf = true;
     } else if (loaded != ELF_LOAD_NOT_ELF) {
         error_report("could not load MyEmulator2 ELF '%s': %s",
@@ -125,6 +156,7 @@ static void myemulator32_machine_init(MachineState *machine)
         memcpy(memory_region_get_ram_ptr(&s->ram), image, image_size);
     }
 
+    myemulator32_write_boot_epoch();
     s->cpu = MYEMULATOR32_CPU(cpu_create(machine->cpu_type));
     myemulator32_debug_register_qmp();
 
@@ -146,6 +178,10 @@ static void myemulator32_machine_init(MachineState *machine)
     }
     sysbus_realize_and_unref(SYS_BUS_DEVICE(block), &error_fatal);
     sysbus_mmio_map(SYS_BUS_DEVICE(block), 0, MYEMU32_BLOCK_BASE);
+
+    DeviceState *power = qdev_new(TYPE_MYEMULATOR32_POWER);
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(power), &error_fatal);
+    sysbus_mmio_map(SYS_BUS_DEVICE(power), 0, MYEMU32_POWER_BASE);
 
     myemulator32_create_network(s);
 

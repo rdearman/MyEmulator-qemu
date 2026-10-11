@@ -460,12 +460,32 @@ static void decode_and_translate(DisasContext *ctx)
                 ctx->base.is_jmp = DISAS_EXIT; return;
             }
             if (sysop == 3) {
+                /* HALT exits the translation block through a noreturn
+                 * helper.  TCG globals can still be held in host registers
+                 * at that point, so publish the architectural state before
+                 * the CPU is parked.  Without this, wakeup reloads stale
+                 * r13/r15 from CPUState; the idle epilogue then computes a
+                 * low invalid frame address (Fold panic: info=0xffff_ffd4).
+                 */
+                tcg_gen_st_i32(cpu_sr, tcg_env,
+                               offsetof(CPUMyEmulator32State, sr));
+                tcg_gen_st_i32(cpu_r[13], tcg_env,
+                               offsetof(CPUMyEmulator32State, r[13]));
+                tcg_gen_st_i32(cpu_r[15], tcg_env,
+                               offsetof(CPUMyEmulator32State, r[15]));
                 gen_next_pc(ctx); gen_helper_halt(tcg_env);
                 ctx->base.is_jmp = DISAS_NORETURN; return;
             }
             if (sysop == 4) {
                 gen_helper_breakpoint(tcg_env, tcg_constant_i32(pc));
                 ctx->base.is_jmp = DISAS_NORETURN; return;
+            }
+            if (sysop == 5) {
+                if (sysreg != 0 || reg != 0) { gen_invalid(ctx, insn); return; }
+                gen_next_pc(ctx);
+                gen_helper_codeflush(tcg_env);
+                ctx->base.is_jmp = DISAS_EXIT;
+                return;
             }
             gen_invalid(ctx, insn); return;
         }

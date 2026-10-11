@@ -17,6 +17,11 @@ target_prefix="$tools/aarch64-linux-android-"
 
 [[ -x "$clang" ]] || { echo "missing NDK compiler: $clang" >&2; exit 2; }
 [[ -x "$qemu_source/configure" ]] || { echo "missing QEMU source: $qemu_source" >&2; exit 2; }
+qemu_source_version=$(tr -d '\r\n' < "$qemu_source/VERSION")
+[[ "$qemu_source_version" == 9.2.0 ]] || {
+  echo "QEMU source version mismatch: expected pinned v9.2.0, found $qemu_source_version" >&2
+  exit 2
+}
 command -v curl >/dev/null || { echo 'curl is required' >&2; exit 2; }
 command -v dpkg-deb >/dev/null || { echo 'dpkg-deb is required on the Linux build host' >&2; exit 2; }
 
@@ -62,6 +67,7 @@ mkdir -p "$build"
       --without-default-features \
       --enable-system \
       --enable-tools \
+      --enable-slirp \
       --disable-fdt \
       --disable-docs \
       --disable-plugins \

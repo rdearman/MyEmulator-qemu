@@ -1,15 +1,31 @@
---- a/build-native.sh	1970-01-01 01:00:00.000000000 +0100
-+++ b/build-native.sh	2026-10-07 11:18:10.584466847 +0100
-@@ -0,0 +1,10 @@
+--- a/build-native.sh	1970-01-01 00:00:00.000000000 +0000
++++ b/build-native.sh	2026-10-10 00:00:00.000000000 +0000
+@@ -0,0 +1,26 @@
 +#!/bin/bash
-+set -eu
-+case $0 in */*) cd "${0%/*}" ;; esac
-+source ../../native-env.sh
-+mkdir -p native/bin "$ROOT/native-tests"
-+test -f "$ROOT/native-deps/lib/libncurses.a"
-+"$CC" "$ROOT/tests/vim-libc-contracts.c" -o "$ROOT/native-tests/vim-libc-contracts"
-+(cd "$ROOT"; native-tests/vim-libc-contracts)
-+bash "$ROOT/bootstrap/build-plan-native.sh" "$PWD"
++set -Eeuo pipefail
++ROOT=${REM_USERLAND_ROOT:?REM_USERLAND_ROOT must be exported}
++export REM_USERLAND_ROOT
++PACKAGE_ROOT=$ROOT/packages/vim-9.1.0000
++source "$ROOT/native-env.sh"
++cd "$PACKAGE_ROOT"
++atomic_copy() {
++    source=$1 target=$2
++    mkdir -p "${target%/*}"
++    cp "$source" "$target.tmp"
++    mv -f "$target.tmp" "$target"
++}
++atomic_link() {
++    source=$1 name=$2
++    rm -f "native/bin/$name.tmp"
++    ln -s "$source" "native/bin/$name.tmp"
++    mv -f "native/bin/$name.tmp" "native/bin/$name"
++}
++bash "$ROOT/bootstrap/build-plan-native.sh" "$PACKAGE_ROOT"
++mkdir -p "$PACKAGE_ROOT/native/bin" "$ROOT/native-tests"
++[[ -s $ROOT/native-deps/lib/libncurses.a ]] || { echo "ncurses library missing" >&2; exit 1; }
++"$CC" "$ROOT/tests/vim-libc-contracts.c" -o "$ROOT/native-tests/vim-libc-contracts.tmp"
++mv -f "$ROOT/native-tests/vim-libc-contracts.tmp" "$ROOT/native-tests/vim-libc-contracts"
++(cd "$ROOT" && native-tests/vim-libc-contracts)
 +native/bin/vim --version
 --- a/src/auto/configure	2024-01-02 15:51:11.000000000 +0000
 +++ b/src/auto/configure	2026-10-07 11:15:41.197140457 +0100

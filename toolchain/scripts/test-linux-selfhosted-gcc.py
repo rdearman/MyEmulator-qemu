@@ -12,6 +12,7 @@ import tempfile
 import time
 import shlex
 from pathlib import Path
+from linux_build_config import temporary_linux_config
 
 ROOT = Path(__file__).resolve().parents[2]
 QEMU = Path(os.environ.get("QEMU_MYEMULATOR32",
@@ -219,22 +220,23 @@ int main(void) {
                                check=True, stdout=output)
 
         linux_scripts_config = ROOT / ".linux-build/linux-6.12.1/scripts/config"
-        if use_ext4:
+        with temporary_linux_config(LINUX_BUILD / ".config"):
+            if use_ext4:
+                subprocess.run([str(linux_scripts_config), "--file",
+                                str(LINUX_BUILD / ".config"), "--set-str",
+                                "INITRAMFS_SOURCE", ""], check=True)
+                boot_args = "console=ttyMY0 root=/dev/myemu0 rw init=/sbin/init"
+            else:
+                subprocess.run([str(linux_scripts_config), "--file",
+                                str(LINUX_BUILD / ".config"), "--set-str",
+                                "INITRAMFS_SOURCE", str(initrd)], check=True)
+                boot_args = "console=ttyMY0 rdinit=/selfhost-init"
             subprocess.run([str(linux_scripts_config), "--file",
                             str(LINUX_BUILD / ".config"), "--set-str",
-                            "INITRAMFS_SOURCE", ""], check=True)
-            boot_args = "console=ttyMY0 root=/dev/myemu0 rw init=/sbin/init"
-        else:
-            subprocess.run([str(linux_scripts_config), "--file",
-                            str(LINUX_BUILD / ".config"), "--set-str",
-                            "INITRAMFS_SOURCE", str(initrd)], check=True)
-            boot_args = "console=ttyMY0 rdinit=/selfhost-init"
-        subprocess.run([str(linux_scripts_config), "--file",
-                        str(LINUX_BUILD / ".config"), "--set-str",
-                        "CMDLINE", boot_args],
-                       check=True)
-        subprocess.run([str(ROOT / "toolchain/scripts/build-linux.sh")],
-                       check=True, stdout=subprocess.DEVNULL)
+                            "CMDLINE", boot_args],
+                           check=True)
+            subprocess.run([str(ROOT / "toolchain/scripts/build-linux.sh")],
+                           check=True, stdout=subprocess.DEVNULL)
 
         sock_path = tmp / "console.sock"
         qmp_path = tmp / "qmp.sock"

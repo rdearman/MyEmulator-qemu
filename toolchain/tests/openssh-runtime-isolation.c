@@ -4,6 +4,7 @@
 #include <string.h>
 #include <openssl/crypto.h>
 #include <openssl/evp.h>
+#include <openssl/rand.h>
 #include <openssl/sha.h>
 #include <zlib.h>
 
@@ -25,20 +26,22 @@ int main(void)
 	if (!heap_ok) return 1;
 
 	z_stream zs = {0};
-	unsigned char compressed[128], plain[16];
+	unsigned char compressed[128], plain[32];
 	const unsigned char input[] = "REM transfer probe";
+	uLong compressed_len = 0;
 	int zret = deflateInit(&zs, Z_BEST_SPEED);
 	if (zret == Z_OK) {
 		zs.next_in = (Bytef *)input; zs.avail_in = sizeof(input);
 		zs.next_out = compressed; zs.avail_out = sizeof(compressed);
 		zret = deflate(&zs, Z_FINISH);
 		int compressed_ok = zret == Z_STREAM_END;
+		compressed_len = zs.total_out;
 		deflateEnd(&zs);
 		mark("ZLIB_COMPRESS", compressed_ok);
 		if (!compressed_ok) return 3;
 	} else { mark("ZLIB_COMPRESS", 0); return 3; }
 	if (inflateInit(&zs) != Z_OK) { mark("ZLIB_INFLATE", 0); return 4; }
-	zs.next_in = compressed; zs.avail_in = sizeof(compressed);
+	zs.next_in = compressed; zs.avail_in = compressed_len;
 	zs.next_out = plain; zs.avail_out = sizeof(plain);
 	zret = inflate(&zs, Z_FINISH);
 	int inflate_ok = zret == Z_STREAM_END && zs.total_out == sizeof(input) &&
@@ -48,10 +51,12 @@ int main(void)
 	if (!inflate_ok) return 4;
 
 	mark("OPENSSL_VERSION", OpenSSL_version_num() != 0);
-	if (OPENSSL_init_crypto(OPENSSL_INIT_NO_LOAD_CONFIG, NULL) != 1) {
+	if (OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_CIPHERS |
+	    OPENSSL_INIT_ADD_ALL_DIGESTS, NULL) != 1) {
 		mark("OPENSSL_INIT", 0); return 2;
 	}
 	mark("OPENSSL_INIT", 1);
+	mark("OPENSSL_RAND_STATUS", RAND_status() == 1);
 
 	unsigned char digest[SHA256_DIGEST_LENGTH];
 	static const unsigned char expected[SHA256_DIGEST_LENGTH] = {

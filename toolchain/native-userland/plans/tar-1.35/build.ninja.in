@@ -2,13 +2,13 @@ cc = @CC@
 root = ../../..
 
 rule cc
-  command = mkdir -p $directory && $cc $flags -c $in -o $out
+  command = mkdir -p $directory && rm -f $out.tmp && $cc $flags -c $in -o $out.tmp && mv -f $out.tmp $out
   description = CC $in
 rule archive
-  command = ar rcs $out $in
+  command = rm -f $out.tmp && ar rcs $out.tmp $in && mv -f $out.tmp $out
   description = AR $out
 rule link
-  command = mkdir -p ../native/bin && ld -r -T $root/bootstrap/rem-reloc.ld -o $out.partial.o $in && $cc -o $out $out.partial.o $libraries
+  command = mkdir -p ../native/bin && rm -f $out.partial.o.tmp $out.tmp && ld -r -T $root/bootstrap/rem-reloc.ld -o $out.partial.o.tmp $in && mv -f $out.partial.o.tmp $out.partial.o && $cc -o $out.tmp $out.partial.o $libraries && mv -f $out.tmp $out
   description = LINK $out
 
 build gnu/libgnu_a-acl-errno-valid.o: cc ../gnu/acl-errno-valid.c | config.h lib/rmt-command.h gnu/stdio.h gnu/unitypes.h gnu/signal.h gnu/getopt-cdefs.h gnu/stdlib.h gnu/locale.h gnu/wchar.h gnu/stddef.h gnu/utime.h gnu/unictype.h gnu/uninorm.h gnu/fcntl.h gnu/stdckdint.h gnu/langinfo.h gnu/stdint.h gnu/unicase.h gnu/uchar.h gnu/uniwidth.h gnu/inttypes.h gnu/string.h gnu/configmake.h gnu/getopt.h gnu/limits.h gnu/dirent.h gnu/wctype.h gnu/strings.h gnu/ctype.h gnu/unistd.h gnu/error.h gnu/time.h gnu/selinux/label.h gnu/selinux/selinux.h gnu/selinux/context.h gnu/sys/random.h gnu/sys/types.h gnu/sys/stat.h gnu/sys/time.h gnu/malloc/dynarray-skeleton.gl.h gnu/malloc/dynarray.gl.h gnu/malloc/scratch_buffer.gl.h

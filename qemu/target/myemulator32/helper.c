@@ -3,9 +3,11 @@
 #include "cpu.h"
 
 #include "exec/exec-all.h"
+#include "exec/tb-flush.h"
 #include "exec/cputlb.h"
 #include "exec/helper-proto.h"
 #include "exec/address-spaces.h"
+
 #include "exec/memory.h"
 #include "qemu/bswap.h"
 #include "sysemu/runstate.h"
@@ -230,6 +232,7 @@ void helper_halt(CPUMyEmulator32State *env)
 {
     CPUState *cs = env_cpu(env);
 
+
     if (!myemu32_supervisor(env)) {
         helper_exception(env, MYEMU32_VECTOR_PRIVILEGE, env->pc, 0);
     }
@@ -252,8 +255,6 @@ void helper_rfe(CPUMyEmulator32State *env, uint32_t pc)
                 pc, env->r[13], env->r[15], env->ssp, env->usp, env->sr);
         fflush(stderr);
     }
-
-
     if (!myemu32_supervisor(env)) {
         helper_exception(env, MYEMU32_VECTOR_PRIVILEGE, pc, 0);
     }
@@ -466,7 +467,8 @@ void helper_mtsr(CPUMyEmulator32State *env, uint32_t sysreg,
                               ((uint64_t)value << 32);
         env->timecmp = env->timecmp_shadow;
         env->timecmp_armed = true;
-        if (env->time_irq_asserted || (env->irq_asserted & (1u << 1))) {
+        if (env->time_irq_asserted ||
+            (qatomic_read(&env->irq_asserted) & (1u << 1))) {
             env->time_irq_asserted = false;
             myemulator32_cpu_set_irq(env_cpu(env), 1, false);
         }
@@ -494,10 +496,22 @@ void helper_syscall(CPUMyEmulator32State *env, uint32_t immediate,
 
 void helper_breakpoint(CPUMyEmulator32State *env, uint32_t pc)
 {
-    if (!myemu32_supervisor(env)) {
-        helper_exception(env, MYEMU32_VECTOR_PRIVILEGE, pc, 0);
-    }
+    /* BREAK is the software-debug trap instruction, not a privileged
+     * control-register operation. User programs and ptrace must be able to
+     * raise the dedicated breakpoint vector. */
     helper_exception(env, MYEMU32_VECTOR_BREAKPOINT, pc, 0);
+}
+
+void helper_codeflush(CPUMyEmulator32State *env)
+{
+    if (!myemu32_supervisor(env)) {
+        helper_exception(env, MYEMU32_VECTOR_PRIVILEGE, env->pc, 0);
+    }
+    /* Linux's ptrace writes user instruction bytes through page mappings,
+     * outside the guest's translated store path. Drop cached TCG blocks so
+     * the next fetch observes those bytes. */
+    tb_flush(env_cpu(env));
+    cpu_loop_exit_noexc(env_cpu(env));
 }
 
 void helper_tlbflush(CPUMyEmulator32State *env, uint32_t page,

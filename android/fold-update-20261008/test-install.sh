@@ -5,6 +5,7 @@ set -euo pipefail
 image=$1
 package=$2
 fold_libc=${FOLD_LIBC:-}
+fold_porting_test=${FOLD_PORTING_TEST:-}
 here=$(cd "${0%/*}" && pwd)
 repo=$(cd "$here/../.." && pwd)
 work=$(mktemp -d /tmp/rem-fold-update-test.XXXXXX)
@@ -19,6 +20,18 @@ cleanup() {
 trap cleanup EXIT
 export TMPDIR=/tmp
 kit=/home/dev/rem-native-userland
+sed -n '/^supported_previous_file()/,/^}/p' "$package/install.sh" > "$work/supported-previous-file.sh"
+. "$work/supported-previous-file.sh"
+supported_previous_file compiler-porting-native.sh \
+    d17dafa21d95dd5457f2ab5a39111d99a7a8930f6bea002719d275ec7f9ae4f4 \
+    "$kit/tests/compiler-porting-native.sh"
+if supported_previous_file compiler-porting-native.sh \
+    d17dafa21d95dd5457f2ab5a39111d99a7a8930f6bea002719d275ec7f9ae4f4 \
+    /usr/lib/compiler-porting-native.sh; then
+    echo "FAIL Fold compiler-porting baseline accepted at an unrelated path" >&2
+    exit 1
+fi
+echo "PASS exact Fold compiler-porting baseline accepted only at its known guest path"
 cp --sparse=always "$image" "$work/rootfs.ext4"
 cp "$package/payload/vmlinux" "$work/vmlinux"
 mkdir "$work/base"
@@ -57,6 +70,18 @@ if [ -n "$fold_libc" ]; then
     debugfs -w -R "sif $private_libc uid 1000" "$work/rootfs.ext4" >/dev/null 2>&1
     debugfs -w -R "sif $private_libc gid 100" "$work/rootfs.ext4" >/dev/null 2>&1
 fi
+porting_test_guest=$kit/tests/compiler-porting-native.sh
+if [ -n "$fold_porting_test" ]; then
+    [ "$(sha256sum "$fold_porting_test" | cut -d' ' -f1)" = d17dafa21d95dd5457f2ab5a39111d99a7a8930f6bea002719d275ec7f9ae4f4 ] ||
+        { echo "Fold compiler-porting baseline fixture hash mismatch" >&2; exit 1; }
+    debugfs -w -R "rm $porting_test_guest" "$work/rootfs.ext4" >/dev/null 2>&1
+    debugfs -w -R "write $fold_porting_test $porting_test_guest" "$work/rootfs.ext4" >/dev/null 2>&1
+    debugfs -w -R "sif $porting_test_guest mode 0100755" "$work/rootfs.ext4" >/dev/null 2>&1
+    debugfs -w -R "sif $porting_test_guest uid 1000" "$work/rootfs.ext4" >/dev/null 2>&1
+    debugfs -w -R "sif $porting_test_guest gid 100" "$work/rootfs.ext4" >/dev/null 2>&1
+fi
+debugfs -R "dump $porting_test_guest $work/original-porting-test.sh" "$work/rootfs.ext4" >/dev/null 2>&1
+test -f "$work/original-porting-test.sh"
 debugfs -R "dump $private_libc $work/original-private-libc.a" "$work/rootfs.ext4" >/dev/null 2>&1
 if [ -n "$fold_libc" ]; then
     cmp "$fold_libc" "$work/original-private-libc.a"
@@ -165,6 +190,12 @@ fi
 grep -q '^VERIFY_INCOMPLETE$' "$work/before-verify.log"
 echo "PASS verification rejects an incomplete local ABI update"
 sh "$package/install.sh" install "$work/rootfs.ext4" > "$work/install.log" 2>&1
+debugfs -R "dump $porting_test_guest $work/installed-porting-test.sh" "$work/rootfs.ext4" >/dev/null 2>&1
+cmp "$package/payload/compiler-porting-native.sh" "$work/installed-porting-test.sh"
+cmp "$work/original-porting-test.sh" "$work/update-20261008-v2-backup/files/_home_dev_rem-native-userland_tests_compiler-porting-native.sh"
+if [ -n "$fold_porting_test" ]; then
+    echo "PASS exact Fold compiler-porting test baseline replaced and backed up byte-for-byte"
+fi
 dump parse.c "$work/merged-parse.c"
 grep -q 'FOLD_LOCAL_PARSER_CHANGE = 1' "$work/merged-parse.c"
 grep -q 'if (rty->kind == TY_STRUCT || rty->kind == TY_UNION)' "$work/merged-parse.c"
@@ -206,21 +237,35 @@ dump codegen.c "$work/restored-codegen.c"
 cmp "$work/local-parse.c" "$work/restored-parse.c"
 cmp "$work/base/codegen.c" "$work/restored-codegen.c"
 echo "PASS rollback restores exact pre-update compiler sources"
+debugfs -R "dump $porting_test_guest $work/restored-porting-test.sh" "$work/rootfs.ext4" >/dev/null 2>&1
+cmp "$work/original-porting-test.sh" "$work/restored-porting-test.sh"
+if [ -n "$fold_porting_test" ]; then
+    echo "PASS rollback restores exact Fold compiler-porting test bytes"
+fi
 if [ -f "$work/original-private-libc.a" ]; then
     debugfs -R "dump $private_libc $work/restored-private-libc.a" "$work/rootfs.ext4" >/dev/null 2>&1
     cmp "$work/original-private-libc.a" "$work/restored-private-libc.a"
 fi
-if [ -n "$fold_libc" ]; then
+if [ -n "$fold_libc" ] || [ -n "$fold_porting_test" ]; then
     debugfs -R "stat $private_libc" "$work/rootfs.ext4" 2>/dev/null > "$work/restored-private-libc.stat"
-    grep -Eq 'Mode: *0644' "$work/restored-private-libc.stat"
-    grep -Eq 'User: *1000.*Group: *100' "$work/restored-private-libc.stat"
+    if [ -n "$fold_libc" ]; then
+        grep -Eq 'Mode: *0644' "$work/restored-private-libc.stat"
+        grep -Eq 'User: *1000.*Group: *100' "$work/restored-private-libc.stat"
+    fi
     sh "$package/install.sh" install "$work/rootfs.ext4" > "$work/after-rollback-install.log" 2>&1
     sh "$package/install.sh" verify "$work/rootfs.ext4" > "$work/after-rollback-verify.log" 2>&1
     grep -q '^VERIFY_OK$' "$work/after-rollback-verify.log"
     sh "$package/install.sh" rollback "$work/rootfs.ext4" > "$work/after-rollback-rollback.log" 2>&1
-    debugfs -R "dump $private_libc $work/twice-restored-private-libc.a" "$work/rootfs.ext4" >/dev/null 2>&1
-    cmp "$fold_libc" "$work/twice-restored-private-libc.a"
-    echo "PASS exact Fold libc bytes/ownership/mode restored; reinstall after rollback verified"
+    if [ -n "$fold_libc" ]; then
+        debugfs -R "dump $private_libc $work/twice-restored-private-libc.a" "$work/rootfs.ext4" >/dev/null 2>&1
+        cmp "$fold_libc" "$work/twice-restored-private-libc.a"
+        echo "PASS exact Fold libc bytes/ownership/mode restored; reinstall after rollback verified"
+    fi
+    if [ -n "$fold_porting_test" ]; then
+        debugfs -R "dump $porting_test_guest $work/twice-restored-porting-test.sh" "$work/rootfs.ext4" >/dev/null 2>&1
+        cmp "$fold_porting_test" "$work/twice-restored-porting-test.sh"
+        echo "PASS exact Fold compiler-porting baseline restored after reinstall/rollback"
+    fi
 fi
 for runtime in bootstrap/native/chibicc-selfbuilt bootstrap/tools/native/samu; do
     key=${runtime##*/}

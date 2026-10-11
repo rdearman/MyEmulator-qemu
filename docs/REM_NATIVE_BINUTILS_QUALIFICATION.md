@@ -63,6 +63,29 @@ currently staged chibicc rejects `/usr/include/bits/alltypes.h:322`
 made. The production rootfs still contains the old `/usr` archive tools until
 the image owner integrates these staged replacements.
 
+## Assembler `-c` command-path qualification (2026-09-29)
+
+A focused disposable guest test compared the two command forms that had been
+reported differently:
+
+```sh
+as min.s -o as-no-c.o
+as -c min.s -o as-c.o
+```
+
+Both returned zero with the qualified assembler (SHA-256
+`c56f6b236f15200426c9fe5a81caa8251df71b401c0bddd93827c1a4f68e7d93`), and
+the resulting objects were byte-identical (SHA-256
+`f36ceb7905ac3776e749631ce0b902a4ec732eb16d3b1033af6fb6163ffb6a5f`). The
+former `_bfd_clear_error_data` report was a false attribution: the guest shell
+`printf` diagnostic process faulted after the assembler completed. The
+reproducible fixture is `toolchain/tests/native-binutils/guest-as-c-repro.sh`;
+the run records are under `/tmp/rem-native-as-c-repro2/`.
+
+The normal qualification script now includes the same `-c` invocation and
+object-equivalence check. This does not clear the unrelated native `readelf`
+archive-member and hosted-chibicc failures seen in the broader qualification.
+
 ## Other primary tool hashes
 
 These tested artifact identities remain unchanged:
@@ -149,3 +172,65 @@ The regenerated deterministic overlay passes
 hashes, executable modes, ELF32 endianness, symlinks, and tar contents. The
 qualified assembler and linker hashes remain unchanged. The full disposable
 candidate manifest and host verification are under the candidate path above.
+
+## Developer workflow repeated-link investigation (2026-09-28)
+
+The developer qualification workflow was exercised in a disposable guest
+using temporary diagnostic-only no-TLS assembler/linker builds. The first
+`make clean; make; ./hello` completed successfully. On the second clean build,
+the same generated `hello.o` was accepted by the assembler, but the linker
+reported overlapping output LMAs for `.text`, `.rodata`, and `.data` at zero
+and insufficient room for program headers. The workflow therefore failed its
+repeat-build acceptance check; the temporary tools are not flight artifacts.
+
+For the diagnostic linker, an instrumented run showed that the same input
+operand was present in the process arguments on both invocations. The first
+argument parse observed positional input files; on the second parse,
+`getopt_long_only` yielded no positional input and `optind` was already out of
+the expected range at the earliest inserted `main` marker. Setting `optind=1`
+at parser entry experimentally bypassed the `no input files` path, but exposed
+the separate overlapping-LMA failure. This instrumentation narrows the
+failure to linker process startup/argument parser state in the temporary
+native build; it does not yet establish why that state differs, and it is not
+a production fix.
+
+A separate static REM C probe with an explicitly initialized global repeated
+across three process launches and observed the initializer as `1` each time.
+That does not reproduce a general initialized-data isolation failure. The
+native linker startup/runtime or its generated code remains under
+investigation; no kernel/loader root cause is established. The configured
+cross-GCC wrapper also recursively called itself for compile-only links, so a
+temporary wrapper around the underlying `xgcc` was used to build diagnostic
+variants. No compiler, kernel, or production binutils source was changed.
+
+The exact end-to-end repeat-build result and limits are tracked in
+[`REM_DEVELOPER_GUIDE.md`](REM_DEVELOPER_GUIDE.md) and the executable checks in
+[`tests/developer/`](../tests/developer/). Requalification requires correcting
+the authoritative native binutils/compiler startup behavior and rerunning the
+same two-build guest workflow against a single hash-recorded image/tool tuple.
+## RC3 direct `as -c` failure and no-TLS qualification (2026-09-29)
+
+The RC3 workload reproduced a native assembler failure that the earlier
+qualification did not cover.  With the qualified TLS-enabled `/usr/bin/as`
+(`c56f6b236f15200426c9fe5a81caa8251df71b401c0bddd93827c1a4f68e7d93`),
+`as -c tiny.s -o as-c.o` faulted at `0x020607fc` in
+`_bfd_clear_error_data`; `r2` was `0x10000044`, the pointer returned by
+REM GCC emulated-TLS allocation for BFD error state.  The subsequent store
+faulted before an object was produced.  The same child failure propagated
+through chibicc, Make, and Samurai.
+
+An existing diagnostic binutils build without GCC emulated TLS was staged as
+`/tmp/rem-binutils-nontls-build/gas/as-new` (ELF32 little-endian MyEmulator2,
+SHA-256 `1a437fd5bfe7564e61ac14ceacc40f06bc932bca2099b74a39e773010bf300ba`).
+In an init-driven disposable RC3 guest using the pinned kernel/QEMU tuple, it
+completed both `as -c /home/dev/rc3build/tiny.s -o ...` and the corresponding
+default assembly invocation with exit status 0, whereas the TLS-enabled build
+entered the failing emulated-TLS path and did not complete promptly.
+
+This qualifies the no-TLS assembler as the current RC3 fallback, pending a
+source-level fix to REM emulated TLS/allocator startup.  It does not change
+the kernel or musl and is not yet a release-image update.
+
+The same disposable init test then ran the exact compiler recipes used by RC3:
+`chibicc -c tiny.c -o make.o` and `chibicc -c tiny.c -o samu.o`. Both returned
+zero with the no-TLS assembler (`CHIBICC_MAKE:0`, `CHIBICC_SAMU:0`).

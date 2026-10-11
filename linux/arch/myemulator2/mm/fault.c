@@ -4,6 +4,7 @@
 #include <linux/sched.h>
 #include <linux/signal.h>
 #include <linux/perf_event.h>
+#include <linux/uaccess.h>
 
 #include <asm/ptrace.h>
 #include <asm/page.h>
@@ -36,6 +37,50 @@ static bool myemulator2_sync_vmalloc_pgd(struct mm_struct *mm,
 	*active = *master;
 	flush_tlb_kernel_page(address);
 	return true;
+}
+
+static void myemulator2_report_user_fault(struct pt_regs *regs,
+		unsigned long cause, unsigned long address,
+		struct vm_area_struct *vma, struct mm_struct *mm)
+{
+	unsigned char instruction[16] = { 0 };
+	unsigned long instruction_start = regs->pc > 8 ? regs->pc - 8 : 0;
+	unsigned int instruction_valid = 0;
+	unsigned int i;
+
+	/* Do not let diagnostics on a bad PC trigger a second kernel fault. */
+	for (i = 0; i < ARRAY_SIZE(instruction); i++) {
+		if (copy_from_user_nofault(&instruction[i],
+				(const void __user *)(instruction_start + i), 1) == 0)
+			instruction_valid |= 1U << i;
+	}
+
+	pr_warn("MYEMU_BAD_USER_FAULT pid=%d comm=%s pc=%08lx addr=%08lx "
+		"cause=%lu trap_cause=%08lx info=%08lx sr=%08lx "
+		"sp=%08lx lr=%08lx fp=%08lx "
+		"r0=%08lx r1=%08lx r2=%08lx r3=%08lx "
+		"r4=%08lx r5=%08lx r6=%08lx r7=%08lx "
+		"r8=%08lx r9=%08lx r10=%08lx r11=%08lx "
+		"r12=%08lx r13=%08lx r14=%08lx r15=%08lx\n",
+		current->pid, current->comm, regs->pc, address, cause,
+		regs->cause, regs->info, regs->sr,
+		regs->r[13], regs->r[14], regs->r[15],
+		regs->r[0], regs->r[1], regs->r[2], regs->r[3],
+		regs->r[4], regs->r[5], regs->r[6], regs->r[7],
+		regs->r[8], regs->r[9], regs->r[10], regs->r[11],
+		regs->r[12], regs->r[13], regs->r[14], regs->r[15]);
+	pr_warn("MYEMU_BAD_USER_FAULT_VMA vma=%px start=%08lx end=%08lx "
+		"flags=%08lx brk=%08lx start_brk=%08lx\n",
+		vma, vma ? vma->vm_start : 0, vma ? vma->vm_end : 0,
+		vma ? vma->vm_flags : 0, mm->brk, mm->start_brk);
+	pr_warn("MYEMU_BAD_USER_FAULT_INSN pc=%08lx window_start=%08lx "
+		"valid=%04x bytes=%02x %02x %02x %02x %02x %02x %02x %02x "
+		"%02x %02x %02x %02x %02x %02x %02x %02x\n",
+		regs->pc, instruction_start, instruction_valid,
+		instruction[0], instruction[1], instruction[2], instruction[3],
+		instruction[4], instruction[5], instruction[6], instruction[7],
+		instruction[8], instruction[9], instruction[10], instruction[11],
+		instruction[12], instruction[13], instruction[14], instruction[15]);
 }
 
 asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
@@ -195,17 +240,7 @@ bad_area:
 			 regs->r[6]);
 		panic("MyEmulator2 kernel page fault");
 	}
-	pr_warn("MYEMU_BAD_USER_FAULT pid=%d comm=%s pc=%08lx addr=%08lx "
-		"cause=%lu sp=%08lx lr=%08lx fp=%08lx r1=%08lx r2=%08lx "
-		"r3=%08lx r4=%08lx r5=%08lx r6=%08lx r7=%08lx r8=%08lx "
-		"r9=%08lx r10=%08lx r11=%08lx r12=%08lx vma=%px start=%08lx "
-		"end=%08lx flags=%08lx brk=%08lx start_brk=%08lx\\n",
-		current->pid, current->comm, regs->pc, address, cause,
-		regs->r[13], regs->r[14], regs->r[15], regs->r[1], regs->r[2],
-		regs->r[3], regs->r[4], regs->r[5], regs->r[6], regs->r[7],
-		regs->r[8], regs->r[9], regs->r[10], regs->r[11], regs->r[12], vma,
-		vma ? vma->vm_start : 0, vma ? vma->vm_end : 0,
-		vma ? vma->vm_flags : 0, mm->brk, mm->start_brk);
+	myemulator2_report_user_fault(regs, cause, address, vma, mm);
 	force_sig_fault(SIGSEGV,
 			(cause == 4 || cause == 6 || cause == 8) ?
 			SEGV_MAPERR : SEGV_ACCERR,

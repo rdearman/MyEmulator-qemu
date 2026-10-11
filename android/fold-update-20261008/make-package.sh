@@ -128,6 +128,8 @@ sed 's#^#/#; s#^//#/#' "$BUSYBOX_LINKS" > "$out/applets.list"
     echo "Kernel SHA-256: $(s "$out/payload/vmlinux")"
     echo "Supported actual Fold private libc baseline SHA-256: 0bc5770f3d1b84a97a1030f5c2911b164a375d89c2db9e4a89a4f51c4f2b3186"
     echo "This baseline is accepted only at $K/bootstrap/musl/native/libc.a and is replaced in full."
+    echo "Supported exact Fold compiler-porting test baseline SHA-256: d17dafa21d95dd5457f2ab5a39111d99a7a8930f6bea002719d275ec7f9ae4f4"
+    echo "This script baseline is accepted only at $K/tests/compiler-porting-native.sh and is replaced with the qualified package test."
     if [ -n "${QUALIFICATION_LOG:-}" ]; then
         echo "Full REM execution qualification: PASS"
         echo "Qualification serial SHA-256: $(s "$QUALIFICATION_LOG")"

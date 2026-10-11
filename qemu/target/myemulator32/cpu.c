@@ -72,7 +72,8 @@ static bool myemulator32_has_work(CPUState *cs)
     bool irq = false;
 
     for (unsigned level = 1; level <= 7; level++) {
-        if (level > ipl && (env->irq_asserted & (1u << level))) {
+        if (level > ipl &&
+            (qatomic_read(&env->irq_asserted) & (1u << level))) {
             irq = true;
         }
     }
@@ -141,6 +142,7 @@ static bool myemulator32_exec_interrupt(CPUState *cs, int interrupt_request)
 {
     CPUMyEmulator32State *env = cpu_env(cs);
 
+
     if (interrupt_request & CPU_INTERRUPT_EXITTB) {
         cpu_reset_interrupt(cs, CPU_INTERRUPT_EXITTB);
         return true;
@@ -154,7 +156,7 @@ static bool myemulator32_exec_interrupt(CPUState *cs, int interrupt_request)
         unsigned ipl = (env->sr & MYEMU32_SR_IPL_MASK) >> 2;
 
         for (unsigned level = 7; level > ipl; level--) {
-            if (env->irq_asserted & (1u << level)) {
+            if (qatomic_read(&env->irq_asserted) & (1u << level)) {
                 cs->exception_index = MYEMU32_EXCP_IRQ;
                 myemulator32_do_interrupt(cs);
                 return true;
@@ -172,7 +174,7 @@ static void myemulator32_do_interrupt(CPUState *cs)
         unsigned ipl = (env->sr & MYEMU32_SR_IPL_MASK) >> 2;
 
         for (unsigned level = 7; level > ipl; level--) {
-            if (env->irq_asserted & (1u << level)) {
+            if (qatomic_read(&env->irq_asserted) & (1u << level)) {
                 helper_irq(env, level);
                 return;
             }
@@ -294,7 +296,12 @@ bool myemulator32_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
     if ((pde & pte & (1u << 2)) != 0) {
         perms |= PAGE_READ;
     }
-    if ((pde & pte & (1u << 3)) != 0) {
+    /* The REM MMU contract requires the hardware to set the PTE dirty bit
+     * on the first successful store. QEMU's software TLB does not revisit
+     * tlb_fill() on a writable TLB hit, so only cache write permission on a
+     * store refill. A later store after a read refill then updates the
+     * architectural dirty bit before becoming writable in the TLB. */
+    if ((pde & pte & (1u << 3)) != 0 && store) {
         perms |= PAGE_WRITE;
     }
     if ((pde & pte & (1u << 4)) != 0) {
@@ -308,33 +315,31 @@ bool myemulator32_cpu_tlb_fill(CPUState *cs, vaddr address, int size,
 void myemulator32_cpu_set_irq(CPUState *cs, unsigned level, bool asserted)
 {
     CPUMyEmulator32State *env = cpu_env(cs);
+    uint8_t mask;
+    uint8_t pending;
+    bool need_bql;
 
     if (level == 0 || level > 7) {
         return;
     }
+    mask = 1u << level;
+    need_bql = !bql_locked();
+    if (need_bql) {
+        bql_lock();
+    }
     if (asserted) {
-        env->irq_asserted |= 1u << level;
-        bool need_bql = !bql_locked();
-        if (need_bql) {
-            bql_lock();
-        }
+        qatomic_fetch_or(&env->irq_asserted, mask);
         cpu_interrupt(cs, CPU_INTERRUPT_HARD);
         cpu_exit(cs);
-        if (need_bql) {
-            bql_unlock();
-        }
     } else {
-        env->irq_asserted &= ~(1u << level);
-        if (!env->irq_asserted) {
-            bool need_bql = !bql_locked();
-            if (need_bql) {
-                bql_lock();
-            }
+        qatomic_fetch_and(&env->irq_asserted, (uint8_t)~mask);
+        pending = qatomic_read(&env->irq_asserted);
+        if (!pending) {
             cpu_reset_interrupt(cs, CPU_INTERRUPT_HARD);
-            if (need_bql) {
-                bql_unlock();
-            }
         }
+    }
+    if (need_bql) {
+        bql_unlock();
     }
 }
 
@@ -457,7 +462,7 @@ void myemulator32_cpu_dump_state(CPUState *cs, FILE *f, int flags)
                  myemulator32_cpu_time_us(env), env->timecmp,
                  env->halted);
     qemu_fprintf(f, "IRQ_ASSERTED=0x%02" PRIx8 " IRQ_REQUEST=0x%08" PRIx32 "\n",
-                 env->irq_asserted, cs->interrupt_request);
+                 qatomic_read(&env->irq_asserted), cs->interrupt_request);
     qemu_fprintf(f, "CF=%u OF=%u IPL=%u S=%u\n",
                  !!(env->sr & MYEMU32_SR_CF), !!(env->sr & MYEMU32_SR_OF),
                  (env->sr & MYEMU32_SR_IPL_MASK) >> 2,
