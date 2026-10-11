@@ -1,7 +1,7 @@
 	.file	"aggregate-abi.c"
-# GCC 15 emits a hidden result pointer for 8-byte struct returns.  The REM
-# ABI returns small aggregates directly in r1:r2, so this callee fixture is
-# adapted to the REM convention while retaining the GCC-generated large case.
+# GCC-generated REM helper fixture: every aggregate return, including the
+# 8-byte small struct, receives hidden result pointer in r1 and argument
+# pointer in r2. Keep this fixture synchronized with the installed REM GCC ABI.
 	.text
 	.p2align	2
 	.global	small_copy
@@ -15,10 +15,20 @@ small_copy:
 	sw lr, 32(sp)
 	sw r12, 36(sp)
 	sw r1, 16(r15)
-	add r5, r1, r0
+	add r5, r2, r0
 	lw r1, (r5)
-	lw r2, 4(r5)
-	addi r2, r2, 1
+	sw r1, -12(r15)
+	lw r1, 4(r5)
+	sw r1, -8(r15)
+	lw r1, -8(r15)
+	addi r1, r1, 1
+	sw r1, -8(r15)
+	lw r1, 16(r15)
+	lw r2, -12(r15)
+	sw r2, (r1)
+	lw r2, -8(r15)
+	sw r2, 4(r1)
+	lw r1, 16(r15)
 	add r12, r15, r0
 	subi r12, r12, 68
 	lw lr, (r12)

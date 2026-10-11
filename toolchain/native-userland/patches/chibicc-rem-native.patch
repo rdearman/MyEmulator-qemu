@@ -4761,3 +4761,57 @@
 +    return;
    }
  }
+diff --git a/codegen.c b/codegen.c
+index 9c44593..b8f9e83 100644
+--- a/codegen.c
++++ b/codegen.c
+@@ -106,4 +105,0 @@ static int arg_words(Type *ty) {
+-static bool uses_hidden_aggregate_return(Type *ty) {
+-  return (ty->kind == TY_STRUCT || ty->kind == TY_UNION) && ty->size > 8;
+-}
+-
+@@ -475 +471 @@ static void gen_call(Node *node) {
+-  bool hidden_return = uses_hidden_aggregate_return(node->ty);
++  bool hidden_return = aggregate_return;
+@@ -800,20 +796,5 @@ static void gen_stmt(Node *node) {
+-      if (uses_hidden_aggregate_return(ty)) {
+-        println("  add r3, r1, r0");
+-        load_fp(1, current_fn->params->offset);
+-        push_reg(1);
+-        println("  add r1, r3, r0");
+-        store(ty);
+-      } else {
+-        /* REM returns aggregates up to 8 bytes directly in r1:r2. */
+-        println("  add r3, r1, r0");
+-        println("  li r1, 0");
+-        println("  li r2, 0");
+-        for (int i = 0; i < ty->size; i++) {
+-          int reg = i / 4 + 1;
+-          int shift = (i % 4) * 8;
+-          println("  lbu r4, %d(r3)", i);
+-          if (shift)
+-            println("  slli r4, r4, %d", shift);
+-          println("  or r%d, r%d, r4", reg, reg);
+-        }
+-      }
++      println("  add r3, r1, r0");
++      load_fp(1, current_fn->params->offset);
++      push_reg(1);
++      println("  add r1, r3, r0");
++      store(ty);
+@@ -953,3 +934,2 @@ static void emit_text(Obj *prog) {
+-    if ((fn->ty->return_ty->kind == TY_STRUCT ||
+-         fn->ty->return_ty->kind == TY_UNION) &&
+-        uses_hidden_aggregate_return(fn->ty->return_ty)) {
++    if (fn->ty->return_ty->kind == TY_STRUCT ||
++        fn->ty->return_ty->kind == TY_UNION) {
+@@ -958 +938 @@ static void emit_text(Obj *prog) {
+-          !is_compatible(result->ty->base, fn->ty->return_ty))
++          result->ty->base != fn->ty->return_ty)
+diff --git a/parse.c b/parse.c
+index 52ee58e..a61289e 100644
+--- a/parse.c
++++ b/parse.c
+@@ -3440 +3440 @@ static Token *function(Token *tok, Type *basety, VarAttr *attr) {
+-  if ((rty->kind == TY_STRUCT || rty->kind == TY_UNION) && rty->size > 8)
++  if (rty->kind == TY_STRUCT || rty->kind == TY_UNION)

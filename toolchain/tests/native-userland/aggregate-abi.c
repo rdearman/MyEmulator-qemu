@@ -1,5 +1,7 @@
 struct small { int first, last; };
 struct large { long long seconds; int padding, nanos; };
+/* REM C ABI: every aggregate result uses a hidden destination pointer,
+   including this 8-byte return. Keep this test compatible with REM GCC. */
 #ifdef AGGREGATE_EXTERNAL
 struct small small_copy(struct small);
 struct large large_copy(int, int, int, struct large, int);
@@ -25,11 +27,13 @@ int main(void)
 #else
   struct large l = {10000000000LL, 7, 123};
   struct large m = large_copy(1, 2, 3, l, 4);
-  if (s.last != 22 || t.first != 11 || t.last != 23) return 1;
-  if (l.seconds != 10000000000LL || l.nanos != 123) return 2;
-  if (m.seconds != 10000000010LL || m.padding != 7 || m.nanos != 124) return 3;
-  if (small_copy(s).last != 23) return 4;
-  if (large_copy(1, 2, 3, l, 4).nanos != 124) return 5;
+  if (s.last != 22) return 11;
+  if (t.first != 11) return 12;
+  if (t.last != 23) return 13;
+  if (l.seconds != 10000000000LL || l.nanos != 123) return 21;
+  if (m.seconds != 10000000010LL || m.padding != 7 || m.nanos != 124) return 22;
+  if (small_copy(s).last != 23) return 14;
+  if (large_copy(1, 2, 3, l, 4).nanos != 124) return 23;
   return 0;
 #endif
 }

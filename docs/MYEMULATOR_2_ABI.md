@@ -134,9 +134,12 @@ The initial calling convention is:
 Additional arguments are passed on the stack. The stack is 16-byte aligned at
 every function-call boundary and has no red zone.
 
-The ABI does not yet define structure-return rules, aggregate passing,
-varargs register save areas, unwind encoding, or compiler-specific stack
-canaries. These are listed under Future ABI Work rather than guessed here.
+For the REM C ABI, struct/union arguments are passed by address to a caller
+owned copy. Every struct/union return uses a hidden result pointer in `r1`,
+regardless of size; the first explicit argument then begins in `r2`. This
+matches the REM GCC ABI and applies to 8-byte aggregates as well as larger
+ones. The pointer occupies one argument word. Varargs register save areas,
+unwind encoding, and compiler-specific stack canaries remain future ABI work.
 
 ## 5. Relocation model
 
