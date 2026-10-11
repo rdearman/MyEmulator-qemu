@@ -254,7 +254,9 @@ long-term ABI. The stable physical layout reserved by ABI v1 is:
 | `0x00000000-0x000003FF` | 256-entry physical vector table |
 | `0x00000400` | initial SSP word |
 | `0x00000404` | initial PC word |
-| `0x00000408-0x00000FFF` | reserved bootstrap metadata |
+| `0x00000408-0x0000040B` | boot wall-clock Unix epoch seconds, low 32 bits, little-endian |
+| `0x0000040C-0x0000040F` | boot wall-clock Unix epoch seconds, high 32 bits, little-endian |
+| `0x00000410-0x00000FFF` | reserved bootstrap metadata |
 | `0x00001000-0xEFFFFFFF` | physical RAM address space, subject to installed RAM size |
 | `0xF0000000-0xF0FFFFFF` | reserved MMIO window |
 | `0xF1000000-0xFEFFFFFF` | reserved future machine space |

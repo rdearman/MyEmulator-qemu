@@ -5,7 +5,11 @@
 #include <linux/interrupt.h>
 #include <linux/irqflags.h>
 #include <linux/io.h>
+#include <linux/timekeeping.h>
 #include <asm/irq.h>
+
+#define MYEMU32_BOOT_EPOCH_LO_ADDR 0x00000408UL
+#define MYEMU32_BOOT_EPOCH_HI_ADDR 0x0000040cUL
 
 static inline u32 myemulator2_read_time_lo(void)
 {
@@ -62,6 +66,18 @@ static struct clock_event_device myemulator2_clockevent = {
 	.set_next_event = myemulator2_set_next_event,
 	.rating = 200,
 };
+
+void read_persistent_clock64(struct timespec64 *ts)
+{
+	const volatile u32 *lo =
+		(const volatile u32 *)MYEMU32_BOOT_EPOCH_LO_ADDR;
+	const volatile u32 *hi =
+		(const volatile u32 *)MYEMU32_BOOT_EPOCH_HI_ADDR;
+	u64 epoch_sec = (u64)*lo | ((u64)*hi << 32);
+
+	ts->tv_sec = (time64_t)epoch_sec;
+	ts->tv_nsec = 0;
+}
 
 void __init time_init(void)
 {
