@@ -1,0 +1,21 @@
+toolbin = /root/native/bin
+crt_dir = /usr/lib
+lib_dir = /root/native/lib
+ld_script = /lib/myemulator2-user.ld
+
+rule compile
+  command = $toolbin/chibicc -S -o $out $in
+  description = CC $out
+
+rule assemble
+  command = $toolbin/as -o $out $in
+  description = AS $out
+
+rule link
+  command = $toolbin/ld -T $ld_script -o $out $crt_dir/crt1.o $crt_dir/crti.o $in -L$crt_dir -L$lib_dir --start-group -lc $lib_dir/libgcc.a --end-group $crt_dir/crtn.o
+  description = LD $out
+
+build hello.s: compile hello.c
+build hello.o: assemble hello.s
+build hello: link hello.o
+default hello

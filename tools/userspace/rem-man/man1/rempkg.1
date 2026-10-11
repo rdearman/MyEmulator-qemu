@@ -1,0 +1,48 @@
+.TH REMPKG 1 "September 2026" "REM developer tools" "User Commands"
+.SH NAME
+rempkg \- create, install, inspect and verify local REM packages
+.SH SYNOPSIS
+.B rempkg
+.B pack
+.I directory archive.rmpkg
+.br
+.B rempkg
+.B install
+[\fB--root \fIdir\fR]
+.I archive.rmpkg
+.br
+.B rempkg
+.B remove
+[\fB--root \fIdir\fR]
+.I name
+.br
+.B rempkg
+.B list|verify
+[\fB--root \fIdir\fR]
+[\fIname\fR]
+.br
+.B rempkg
+.B info
+[\fB--root \fIdir\fR]
+.I name-or-archive
+.SH DESCRIPTION
+.B rempkg
+is a local Python 3 package prototype. Packages use a gzip-compressed tar
+archive with JSON metadata, a SHA-256 manifest and a payload tree. Installed
+ownership records are kept under /var/lib/rempkg.
+.SH SAFETY
+Installation refuses to overwrite existing files. Removal refuses to delete
+files that are missing or changed from the recorded manifest. The tool does
+not authenticate packages, resolve dependencies, run hooks, or recover a
+multi-file install after power loss. Install only trusted archives and retain
+a separate rootfs backup.
+.SH EXAMPLES
+.nf
+rempkg pack hello-package hello-1.0.rmpkg
+rempkg info hello-1.0.rmpkg
+rempkg install hello-1.0.rmpkg
+rempkg verify
+rempkg remove hello
+.fi
+.SH SEE ALSO
+REM_PACKAGE_SYSTEM.md

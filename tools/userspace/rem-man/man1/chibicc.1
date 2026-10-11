@@ -1,0 +1,50 @@
+.TH CHIBICC 1 "September 2026" "REM developer tools" "User Commands"
+.SH NAME
+chibicc \- compile C source for the REM Linux target
+.SH SYNOPSIS
+.B chibicc
+[-S|-c] [-O0|-O2] [-g] [-I dir] [-D macro] [-o output] \fIinput.c ...\fR
+.SH DESCRIPTION
+.B chibicc
+is the native REM C compiler driver. It parses C and emits REM assembly or
+invokes the configured REM assembler and linker. A hosted static executable
+requires the matching REM CRT objects, musl headers and libc, libgcc archive,
+and user linker script. These pieces must come from one validated runtime
+tuple.
+.SH OPTIONS
+.TP
+.B -S
+Emit assembly rather than linking.
+.TP
+.B -c
+Compile/assemble to an object without linking.
+.TP
+.B -O0, -O2
+Select the supported unoptimized or optimized mode.
+.TP
+.B -g
+Request debug information. Tested builds do not all provide complete
+source-level DWARF data.
+.TP
+.B -I dir, -D macro
+Add an include directory or preprocessor definition.
+.TP
+.B -o FILE
+Choose the output path.
+.SH EXAMPLES
+.nf
+chibicc -S -o hello.s hello.c
+chibicc -c -o hello.o hello.c
+chibicc -O2 -static -o hello hello.c
+./hello
+.fi
+.SH ENVIRONMENT
+The REM driver uses \fBCHIBICC_REM_AS\fR, \fBCHIBICC_REM_LD\fR,
+\fBCHIBICC_REM_LINKER_SCRIPT\fR, \fBCHIBICC_REM_CRTDIR\fR, and
+\fBCHIBICC_REM_GCCLIB\fR to select the matching runtime components.
+.SH LIMITATIONS
+The tested REM subset is smaller than full hosted C11. Consult
+REM_C_COMPILER_STATUS.md and REM_VALIDATED_RUNTIME_TUPLES.md before selecting
+language/library features or mixing toolchain files.
+.SH SEE ALSO
+as(1), ld(1), remdbg(1)

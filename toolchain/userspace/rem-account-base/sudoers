@@ -1,0 +1,3 @@
+# REM single-user workstation policy. The staged sudo helper enforces UID 1000.
+root ALL=(ALL) ALL
+dev ALL=(ALL) ALL

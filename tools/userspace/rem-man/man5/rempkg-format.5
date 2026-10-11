@@ -1,0 +1,25 @@
+.TH REMPKG-FORMAT 5 "September 2026" "REM package format" "File Formats"
+.SH NAME
+rempkg-format \- REM local package archive layout
+.SH DESCRIPTION
+A version 1 REM package is a gzip-compressed tar archive. It contains one
+JSON file named \fBrempkg.json\fR and a \fBpayload/\fR tree whose paths are
+relative to the target filesystem root.
+.PP
+The JSON object contains \fBformat\fR (integer 1), \fBname\fR,
+\fBversion\fR, \fBarch\fR, \fBdescription\fR and a \fBfiles\fR array.
+Each array item records a relative \fBpath\fR, \fBtype\fR, permission
+\fBmode\fR and, for regular files, a SHA-256 \fBsha256\fR digest. Symlink
+entries record the relative \fBtarget\fR. Supported types are regular file,
+directory and symlink. Device nodes and hard links are rejected.
+.SH PATH RULES
+Paths must be relative and cannot contain a parent-directory component.
+Symlink targets must be relative and resolve lexically within the package
+root. No payload path may descend through a symlink. Install refuses to
+overwrite existing non-directory objects.
+.SH SECURITY
+The digest detects payload corruption but does not authenticate the publisher.
+Only install archives from a trusted source. Version 1 has no signatures,
+dependency metadata, hooks, upgrade protocol or crash-recovery journal.
+.SH SEE ALSO
+rempkg(1), REM_PACKAGE_SYSTEM.md

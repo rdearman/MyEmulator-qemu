@@ -1,0 +1,35 @@
+.TH SAMU 1 "September 2026" "REM developer tools" "User Commands"
+.SH NAME
+samu \- execute a Ninja build description
+.SH SYNOPSIS
+.B samu
+[-C dir] [-f build.ninja] [-n] [target ...]
+.SH DESCRIPTION
+.B samu
+is Samurai, a Ninja-compatible build executor. It reads a build graph and
+starts the listed commands. On REM, the compiler, assembler and linker named
+by the build graph must be available in PATH or named explicitly.
+.SH OPTIONS
+.TP
+.B -C DIR
+Change to DIR before reading the build graph.
+.TP
+.B -f FILE
+Read FILE instead of the default build.ninja.
+.TP
+.B -n
+Print commands without running them (dry run), when supported by the installed
+build.
+.SH EXAMPLES
+.nf
+samu -f build.ninja
+samu -n -f build.ninja
+samu -f build.ninja hello
+.fi
+.SH REM STATUS
+Compilation of Samurai source and native executable qualification have had
+separate blockers. Presence of this manual does not mean a working \fBsamu\fR
+binary is installed. Check REM_SAMURAI_STATUS.md and qualify a real and
+incremental build on the exact rootfs before depending on it.
+.SH SEE ALSO
+make(1), chibicc(1)

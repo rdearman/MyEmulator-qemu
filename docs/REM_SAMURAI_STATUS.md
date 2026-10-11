@@ -521,3 +521,15 @@ cleaned disposable guest, `samu-fix` completed the real `touch hello` build
 with exit 0, a second no-op build with exit 0, `-n` with exit 0, and a rebuild
 after changing the input with exit 0. The prior post-build memchr/strnlen
 fault did not recur.
+
+## Physical Fold report after the desktop qualification
+
+On 2026-10-11 the Fold owner reported that both Samurai hashes
+`98aec69f3b5810d299045010bd5a5569bae1e3102032ddf77f2c89cf1064e15f` and
+`1bee2e3c9aa19fe0ece0af1eb333b41e63ba7382bff993b68d297515d9d1aa93` faulted
+on the physical Fold at the same PC (`0x020367f8`) and LR (`0x02037a40`), with
+different small invalid addresses. The 1bee binary's desktop REM qualification
+does not reproduce that host result. No source-level root cause for this
+physical-only discrepancy has been established here; do not describe either
+hash as Fold-qualified. The Fold runtime report supersedes any implication in
+the earlier desktop test notes that those results established device safety.

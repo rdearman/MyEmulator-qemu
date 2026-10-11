@@ -1,0 +1,15 @@
+.TH REM-USER-ACCOUNT 7 "September 2026" "REM system documentation" "Miscellaneous Information"
+.SH NAME
+rem-user-account \- REM account setup status and integration requirements
+.SH DESCRIPTION
+The inspected REM development rootfs has no /etc/passwd, /etc/group, or
+/etc/shadow and no configured login, getty, useradd, passwd, su, or sudo
+command. Its init script launches a root console shell. This system therefore
+has no qualified normal-user account workflow.
+.PP
+Do not create a passwd entry and assume that it enables authentication or a
+login session. Account database population, shell assignment to
+/usr/bin/yash, home ownership, password management, supplementary groups and
+controlling-terminal session setup must be implemented and tested together.
+.SH SEE ALSO
+REM_USER_MANAGEMENT.md, REM_SYSTEM_ADMIN.md

@@ -1,0 +1,67 @@
+.TH REMDBG 1 "September 2026" "REM developer tools" "User Commands"
+.SH NAME
+remdbg \- debug a single REM Linux process
+.SH SYNOPSIS
+.B remdbg
+.I program
+[\fIargument ...\fR]
+.SH DESCRIPTION
+.B remdbg
+launches a REM ELF under ptrace and provides breakpoints, register and memory
+inspection, stepping, symbol lookup and a heuristic backtrace. It is a
+guest-native process debugger, not a QEMU machine debugger and not a GDB
+remote-protocol server.
+.SH COMMANDS
+.TP
+.B run
+Start or restart the current debuggee.
+.TP
+.B continue
+Resume until exit, signal or a breakpoint.
+.TP
+.B break SYMBOL|ADDRESS
+Set a software breakpoint.
+.TP
+.B regs
+Show general registers and the nearest ELF symbol.
+.TP
+.B mem ADDRESS LENGTH
+Read bytes from the tracee.
+.TP
+.B write ADDRESS BYTE
+Write one byte to the tracee.
+.TP
+.B disasm [ADDRESS [COUNT]]
+Disassemble fixed-width REM32 instructions.
+.TP
+.B step
+Execute one instruction through ptrace single-step.
+.TP
+.B bt
+Show PC, LR, and heuristic code-pointer candidates from a bounded stack area.
+.TP
+.B source, locals, globals
+Show the supported subset of DWARF/source information. These commands may
+invoke guest \fBreadelf\fR.
+.TP
+.B load FILE
+Replace the stopped debuggee and load another program.
+.TP
+.B quit
+Exit the debugger.
+.SH EXAMPLES
+.nf
+remdbg ./hello
+(remdbg) break main
+(remdbg) run
+(remdbg) regs
+(remdbg) step
+(remdbg) continue
+.fi
+.SH LIMITATIONS
+Only one process/thread is traced. The backtrace beyond PC/LR is heuristic.
+DWARF evaluation is limited; current GCC output has a documented stack-local
+location mismatch, and the tested chibicc artifact did not emit a source CU.
+The exact kernel, debugger and rootfs must be a qualified matching tuple.
+.SH SEE ALSO
+readelf(1), objdump(1), remdbg documentation in REM_DEBUGGER.md

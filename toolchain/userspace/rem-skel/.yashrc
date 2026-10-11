@@ -1,0 +1,26 @@
+# REM interactive Yash configuration template. Install as /etc/skel/.yashrc.
+
+HISTFILE=${HOME:-/}/.yash_history
+HISTSIZE=500
+export HISTFILE HISTSIZE
+EDITOR=${EDITOR:-kilo}
+export EDITOR
+
+# Keep the prompt portable; terminal and username expansions differ by shell.
+PS1='REM> '
+export PS1
+
+alias ll='ls -l'
+alias la='ls -A'
+alias ..='cd ..'
+
+mkcd()
+{
+    [ "$#" -eq 1 ] || return 2
+    mkdir -p "$1" && cd "$1"
+}
+
+croot()
+{
+    cd "${HOME:-/}"
+}

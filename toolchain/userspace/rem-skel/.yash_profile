@@ -1,0 +1,21 @@
+# REM login profile template. Install as /etc/skel/.yash_profile.
+# The login program should set HOME, USER, SHELL, and TERM before execing Yash.
+
+PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin
+export PATH
+
+HOME=${HOME:-/home/${USER:-user}}
+export HOME
+TERM=${TERM:-linux}
+export TERM
+EDITOR=${EDITOR:-kilo}
+export EDITOR
+
+# Native compiler and linker from the matching REM runtime tuple.
+CHIBICC_REM_AS=${CHIBICC_REM_AS:-/usr/bin/as}
+CHIBICC_REM_LD=${CHIBICC_REM_LD:-/usr/bin/ld}
+CHIBICC_REM_LINKER_SCRIPT=${CHIBICC_REM_LINKER_SCRIPT:-/usr/lib/myemulator2-user.ld}
+CHIBICC_REM_CRTDIR=${CHIBICC_REM_CRTDIR:-/usr/lib}
+CHIBICC_REM_GCCLIB=${CHIBICC_REM_GCCLIB:-/usr/lib}
+export CHIBICC_REM_AS CHIBICC_REM_LD CHIBICC_REM_LINKER_SCRIPT
+export CHIBICC_REM_CRTDIR CHIBICC_REM_GCCLIB
