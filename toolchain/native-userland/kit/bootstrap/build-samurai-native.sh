@@ -16,10 +16,42 @@ done
 ld -r -T "$ROOT/bootstrap/rem-reloc.ld" -o samu-partial.o $objects
 "$CC" -o samu samu-partial.o
 mkdir -p "$ROOT/bootstrap/tools/native"
-cp samu "$ROOT/bootstrap/tools/native/samu.new"
-mv "$ROOT/bootstrap/tools/native/samu.new" "$ROOT/bootstrap/tools/native/samu"
+install_dir="$ROOT/bootstrap/tools/native"
+install_tmp="$install_dir/samu.new"
+install_bin="$install_dir/samu"
+# native-env.sh puts this directory on PATH, and an earlier bootstrap stage
+# may leave a no-op `cp` placeholder there. Use the system BusyBox applet
+# explicitly, preserve the linked binary's mode, and stage beside the target
+# so the final rename is atomic on this filesystem.
+/bin/busybox rm -f "$install_tmp"
+/bin/busybox cp samu "$install_tmp"
+test -s "$install_tmp" || {
+    echo "Samurai install staging copy is missing or empty: $install_tmp" >&2
+    exit 1
+}
+src_sha_line=$(sha256sum samu)
+tmp_sha_line=$(sha256sum "$install_tmp")
+src_sha=${src_sha_line%% *}
+tmp_sha=${tmp_sha_line%% *}
+test -n "$src_sha" && test "$src_sha" = "$tmp_sha" || {
+    /bin/busybox rm -f "$install_tmp"
+    echo "Samurai install staging hash mismatch" >&2
+    exit 1
+}
+/bin/mv -f "$install_tmp" "$install_bin"
+test -s "$install_bin" || {
+    echo "Samurai install target is missing or empty: $install_bin" >&2
+    exit 1
+}
+installed_sha_line=$(sha256sum "$install_bin")
+installed_sha=${installed_sha_line%% *}
+test "$installed_sha" = "$src_sha" || {
+    echo "Samurai installed hash mismatch: $install_bin" >&2
+    exit 1
+}
+echo "SAMURAI_SELECTED_SHA256|$installed_sha"
 echo SAMURAI_BUILD_OK
-samu="$ROOT/bootstrap/tools/native/samu"
+samu="$install_bin"
 run="$src/rem-selftest"
 rm -rf "$run"
 mkdir -p "$run"
