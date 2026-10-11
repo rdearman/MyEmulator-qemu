@@ -1,6 +1,7 @@
 #include "qemu/osdep.h"
 #include "qapi/error.h"
 #include "qemu/error-report.h"
+#include "qemu/timer.h"
 #include "hw/boards.h"
 #include "hw/loader.h"
 #include "hw/core/cpu.h"
@@ -22,6 +23,8 @@
 #define MYEMU32_ELF_MACHINE 0xF2E2
 #define MYEMU32_RESET_SSP_ADDR 0x00000400
 #define MYEMU32_RESET_PC_ADDR  0x00000404
+#define MYEMU32_BOOT_EPOCH_LO_ADDR 0x00000408
+#define MYEMU32_BOOT_EPOCH_HI_ADDR 0x0000040c
 
 typedef struct MyEmulator32MachineState {
     MachineState parent_obj;
@@ -35,6 +38,17 @@ DECLARE_INSTANCE_CHECKER(MyEmulator32MachineState, MYEMULATOR32_MACHINE,
 static void myemulator32_machine_irq(void *opaque, int number, int level)
 {
     myemulator32_cpu_set_irq(CPU(opaque), number, level != 0);
+}
+
+static void myemulator32_write_boot_epoch(void)
+{
+    uint64_t epoch_sec =
+        (uint64_t)(qemu_clock_get_ns(QEMU_CLOCK_HOST) / NANOSECONDS_PER_SECOND);
+
+    stl_le_phys(&address_space_memory, MYEMU32_BOOT_EPOCH_LO_ADDR,
+                (uint32_t)epoch_sec);
+    stl_le_phys(&address_space_memory, MYEMU32_BOOT_EPOCH_HI_ADDR,
+                (uint32_t)(epoch_sec >> 32));
 }
 
 static void myemulator32_machine_init(MachineState *machine)
@@ -88,6 +102,13 @@ static void myemulator32_machine_init(MachineState *machine)
         }
         memcpy(memory_region_get_ram_ptr(&s->ram), image, image_size);
     }
+
+    /*
+     * The bootstrap metadata page is reserved by the machine ABI.  Seed its
+     * wall-clock field from the host before the guest starts so Linux can use
+     * the normal persistent-clock hook to initialize CLOCK_REALTIME.
+     */
+    myemulator32_write_boot_epoch();
 
     s->cpu = MYEMULATOR32_CPU(cpu_create(machine->cpu_type));
     myemulator32_debug_register_qmp();
